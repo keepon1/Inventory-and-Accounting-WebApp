@@ -1,0 +1,357 @@
+/* laptop and big screen */
+@media (min-width: 1024px){
+    .cs_detail_box{
+        border-bottom: solid;
+        height: 26vh;
+        display: flex;
+        flex-direction: row;
+    }
+
+    .cs_detail_subbox{
+        height: 24vh;
+        width: 30vw;
+        margin: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cs_input_box{
+        display: flex;
+        flex-direction: column;
+        margin: auto;
+    }
+
+    .cs_d_label{
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 110%;
+    }
+
+    .cs_d_input{
+        height: 3.6vh;
+        width: 18vw;
+        font-size: 110%;
+    }
+
+    .cs_d_input:focus{
+        outline: none;
+    }
+
+    .cs_d_inputs{
+        height: 4vh;
+        width: 18vw;
+        font-size: 110%;
+    }
+
+    .cs_d_inputs:focus{
+        outline: none;
+    }
+
+    .cs_select_loc_box{
+        width: 18vw;
+        margin:0 auto;
+    }
+
+    .cs_select_main_box{
+        border-bottom: solid;
+        height: 30vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cs_select_box{
+        height: 11vh;
+        width: 90%;
+        margin: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cs_selects_box{
+        height: 19vh;
+        width: 90%;
+        margin: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cs_select_table{
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .cs_select_heads{
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 120%;
+        width: 22%;
+    }
+
+    .cs_select_head{
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 120%;
+    }
+
+    .cs_select_input{
+        width: 99%;
+        color: black;
+        font-family: Arial, Helvetica, sans-serif;
+        font-weight: 550;
+    }
+
+    .cs_select_input:focus{
+        outline: none;
+    }
+
+    .cont__option:hover{
+        background-color: rgb(3, 98, 122);
+        color: aliceblue;
+    }
+
+    .cs_select_input:focus{
+        outline: none;
+    }
+
+    .cs_select_inputs{
+        width: 96%;
+        height: 34px;
+        border: none;
+        font-size: 110%;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .cs_select_inputs:focus{
+        outline: none;
+    }
+
+    .right{
+        text-align: right;
+    }
+
+    .cs_tax_box{
+        width: 100%;
+        height: 20vh;
+        display: flex;
+        flex-direction: row;
+    }
+
+    .cs_taxs_box{
+        height: 10vh;
+        display: flex;
+    }
+
+    .cs_shape_box{
+        height: 12vh;
+        width: 70%;
+    }
+
+    .cs_discount_box{
+        height: 12vh;
+        width: 22%;
+    }
+
+    .cs_taxes_box{
+        height: 12vh;
+        width: 20%;
+    }
+
+    .cs_ltotal{
+        font-size: 120%;
+        font-family: sans-serif;
+        border-bottom: double;
+    }
+
+    .cs_preview_box{
+        margin: auto;
+    }
+
+    .cs_preview_btn{
+        border-radius: 6px;
+        font-size: 110%;
+        font-family: 'Times New Roman', Times, serif;
+    }
+
+    .cs_discount_label{
+        font-size: 110%;
+        font-family: 'Times New Roman', Times, serif;
+        opacity: 0.5;
+    }
+
+    .cs_discount_input{
+        height: 4vh;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 110%;
+        width: 90%;
+        text-align: right;
+    }
+
+    .cs_discount_input:focus{
+        outline: none;
+    }
+
+    .cs_item_preview_box{
+        height: 45vh;
+        overflow-y: scroll;
+    }
+
+    .cs_btn_preview_box{
+        display: flex;
+        flex-direction: column;
+        height: 6vh;
+    }
+
+    .cs_edit_btn_box{
+        margin: auto;
+        display: flex;
+        flex-direction: row;
+        gap: 0.6vw;
+    }
+
+    .greens{
+        background-color: green;
+        color: white;
+    }
+
+    .reds{
+        background-color: red;
+        color: white;
+    }
+
+    .cs_submit_btn{
+        border-radius: 6px;
+        margin: auto;
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 110%;
+    }
+
+    .cs_view_main{
+        position: fixed;
+        border: solid;
+        width: 40%;
+        max-height: 94vh;
+        min-height: 94vh;
+        background-color: white;
+        margin: -14vh 22vw;
+        border-radius: 7px;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        overflow-y: scroll;
+    }
+
+    .cs_company_box{
+        color: black;
+        margin: 0 auto;
+    }
+
+    .cs_company{
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 120%;
+    }
+
+    .cs_customer_info_box{
+        color: black;
+    }
+
+    .cs_info_box{
+        display: flex;
+        flex-direction: column;
+        width: fit-content;
+        margin-left: auto;
+    }
+
+    .cs_info{
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 110%;
+        margin: 1vh;
+    }
+
+    .cs_diss_box{
+        display: flex;
+        margin: 2vh;
+    }
+
+    .cs_dis{
+        margin: auto;
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 115%;
+    }
+
+    .cs_table{
+        color: black;
+    }
+
+    .cs_main_thead{
+        color: black;
+    }
+
+    .cs_thead_header{
+        border: solid 1px;
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 110%;
+    }
+
+    .cs_thead_body{
+        border: solid 1px;
+        font-size: 105%;
+        font-family: 'Times New Roman', Times, serif;
+        text-align: center;
+    }
+
+    .rights{
+        text-align: right;
+    }
+
+    .cs_totals_boxs{
+        color: black;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cs_totals_box{
+        width: fit-content;
+        margin-left: auto;
+        margin-top: 1vh;
+
+    }
+
+    .cs_total_word{
+        font-size: 115%;
+        font-family: 'Times New Roman', Times, serif;
+    }
+
+    .cs_total_number{
+        font-family: sans-serif;
+        font-size: 105%;
+    }
+
+    .cs_due_box{
+        margin: 1.4vh auto;
+    }
+
+    .cs_due_word{
+        font-size: 120%;
+        font-family: 'Times New Roman', Times, serif;
+        margin: 0.2vw;
+    }
+
+    .cs_confirm_btn_box{
+        display: flex;
+    }
+
+    .cs_confirm_btns_box{
+        margin: auto;
+        display: flex;
+        flex-direction: row;
+        gap: 0.8vw;
+    }
+
+    .cs_confirm_btn{
+        font-size: 105%;
+        font-family: 'Times New Roman', Times, serif;
+    }
+}
+
+/*  tablet */
+@media (min-width: 640px) and (max-width: 1023px){}
+
+/* small phones */
+@media (max-width: 639px){}

@@ -1,0 +1,11 @@
+django-cors-headers
+djangorestframework
+djangorestframework-simplejwt
+mysqlclient
+pillow
+numpy
+django
+django-environ
+celery
+redis
+django-redis

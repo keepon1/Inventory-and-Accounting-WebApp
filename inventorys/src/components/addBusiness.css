@@ -1,0 +1,264 @@
+/* Inherit variables from main CSS */
+@import url('./home.css');
+
+/* Business Container */
+.business-container {
+  padding: 60px 0;
+}
+
+.business-hero {
+  background: linear-gradient(135deg, #f5f7ff 0%, #f0f4ff 100%);
+  padding: 0px 0;
+}
+
+.business-hero h1 {
+  font-size: 2.5rem;
+  text-align: center;
+}
+
+.business-hero .lead {
+  font-size: 1.25rem;
+  color: var(--gray);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Business Management */
+.business-management {
+  padding: 40px 0;
+}
+
+.business-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--light-gray);
+  margin-bottom: 30px;
+}
+
+.tab-btn {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  font-weight: 600;
+  color: var(--gray);
+  cursor: pointer;
+  position: relative;
+  transition: var(--transition);
+}
+
+.tab-btn.active {
+  color: var(--primary);
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--primary);
+}
+
+/* Business List */
+.business-actions {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+.business-table-container {
+  overflow-x: auto;
+  overflow-y: scroll;
+  min-height: 70vh;
+}
+
+.business-table {
+  width: 100%;
+  border-collapse: collapse;
+  box-shadow: var(--box-shadow);
+}
+
+.business-table th {
+  background-color: var(--primary);
+  color: white;
+  padding: 16px;
+  text-align: left;
+}
+
+.business-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.business-table tr:hover {
+  background-color: rgba(67, 97, 238, 0.05);
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 0.9rem;
+}
+
+/* Forms */
+.add-business-form,
+.modal form {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  font-family: Arial, sans-serif;
+}
+
+.month-selectors {
+  display: block;
+}
+
+.ivi_input {
+  border: none;
+  border-bottom: 2px solid #ddd;
+  padding: 0.4rem 0;
+  font-size: 1rem;
+  background: transparent;
+}
+
+.month-select .month-select__control{
+  border: none;
+  border-bottom: 2px solid #ddd;
+  border-radius: 0;
+  box-shadow: none;
+  font-family: 'IBM Plex Mono', Verdana, Geneva, Tahoma, sans-serif;
+  margin-bottom: 3rem;
+  margin-top: 0.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-group textarea,
+.form-group .select-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--light-gray);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+}
+
+.form-group textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-group input {
+  width: auto;
+}
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.action-width {
+  width: 100px;
+}
+
+.modal {
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  width: 94%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 30px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.modal-header h3 {
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--gray);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.modal-close:hover {
+  color: var(--dark);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .business-hero {
+    padding: 40px 0;
+  }
+  
+  .business-hero h1 {
+    font-size: 2rem;
+  }
+  
+  .business-actions {
+    flex-direction: column;
+  }
+  
+  .business-table th,
+  .business-table td {
+    padding: 12px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .business-hero h1 {
+    font-size: 1.8rem;
+  }
+  
+  .tab-btn {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+  }
+  
+  .modal {
+    padding: 20px;
+  }
+}

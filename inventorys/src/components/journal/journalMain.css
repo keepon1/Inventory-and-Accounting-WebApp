@@ -1,0 +1,174 @@
+/* Journal Page Styling */
+.journal-container {
+    padding: 0.4rem;
+    width: 100%;
+  }
+  
+  .journal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .journal-header h1 {
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+  }
+  
+  .header-icon {
+    font-size: 1.8rem;
+    color: var(--primary);
+  }
+  
+  .journal-filters {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+    border-bottom: solid black 1px;
+  }
+
+  .filter-groups-right {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-groups-right {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .filter-group1 {
+    display: flex;
+    align-items: center;
+    flex-direction: row-reverse;
+    gap: 8px;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-left: auto;
+  }
+  
+  .filter-group1 select,
+  .filter-group1 input {
+    border: 1px solid var(--light-gray);
+    padding: 0.5rem;
+    width: 14rem;
+  }
+
+  .filter-group1 select,
+  .filter-group1 input:focus {
+    outline: #2196F3;
+  }
+  
+  .journal-table-container {
+    overflow-x: auto;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+  }
+  
+  .journal-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .journal-table th,
+  .journal-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--light-gray);
+  }
+  
+  .journal-table th {
+    background: var(--light);
+    color: var(--dark);
+    font-weight: 600;
+  }
+  
+  .entry-type {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+  }
+  
+  .entry-type.sale {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+  }
+  
+  .entry-type.reversal {
+    background: rgba(255, 152, 0, 0.1);
+    color: #FF9800;
+  }
+  
+  .entry-type.purchase {
+    background: rgba(33, 150, 243, 0.1);
+    color: #2196F3;
+  }
+  
+  .positive {
+    color: #4CAF50;
+    font-weight: 500;
+  }
+  
+  .negative {
+    color: #F44336;
+    font-weight: 500;
+  }
+  
+  .btn-icon {
+    background: none;
+    border: none;
+    color: var(--dark-gray);
+    cursor: pointer;
+    padding: 0.5rem;
+  }
+  
+  .btn-icon:hover {
+    color: var(--primary);
+  }
+  
+  .journal-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    align-items: center;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .journal-container {
+      padding: 0.1rem;
+    }
+    
+    .journal-filters {
+      flex-direction: column;
+    }
+    
+    .filter-group {
+      width: 100%;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .journal-table th,
+    .journal-table td {
+      padding: 0.75rem;
+      font-size: 0.9rem;
+    }
+    
+    .entry-type {
+      font-size: 0.8rem;
+    }
+  }

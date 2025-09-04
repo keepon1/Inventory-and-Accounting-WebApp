@@ -1,0 +1,228 @@
+/* Sales Pages Styles */
+.dashboard-content {
+    padding: 0.5rem;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  
+  .page-title {
+    margin-bottom: 2rem;
+    color: var(--dark);
+  }
+  
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .metric-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  
+  .metric-card h3 {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+  
+  .metric-card p {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  
+  .chart-container {
+    background: white;
+    padding: 0.5rem;
+    margin-bottom: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+  }
+  
+  .table-container {
+    overflow-x: auto;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    margin-top: 0.1rem;
+  }
+  
+  th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--light-gray);
+  }
+  
+  th {
+    background-color: var(--blue);
+    font-weight: 600;
+  }
+  
+  .status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+  }
+  
+  .status-badge.completed {
+    background: #d4edda;
+    color: #155724;
+  }
+  
+  .status-badge.processing {
+    background: #fff3cd;
+    color: #856404;
+  }
+  
+  .status-badge.shipped {
+    background: #cce5ff;
+    color: #004085;
+  }
+  
+  .filters {
+    margin-bottom: 2rem;
+  }
+  
+  .filters select {
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--light-gray);
+  }
+
+  @media (max-width: 1024px) {
+    .dashboard-content {
+      padding: 0.5rem;
+    }
+    
+    .chart-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .metric-card p {
+      font-size: 1.3rem;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .dashboard-content {
+      padding: 0.5rem;
+    }
+    
+    .metrics-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .chart-container {
+      padding: 1rem;
+    }
+    
+    table {
+      font-size: 0.9rem;
+    }
+    
+    .status-badge {
+      font-size: 0.7rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .metrics-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .metric-card {
+      padding: 1rem;
+    }
+    
+    .metric-card p {
+      font-size: 1.2rem;
+    }
+    
+    th, td {
+      padding: 8px;
+      font-size: 0.8rem;
+    }
+    
+    .filters select {
+      width: 100%;
+    }
+    
+    .chart-container {
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+    }
+    
+    .page-title {
+      font-size: 1.3rem;
+      margin-bottom: 1.5rem;
+    }
+  }
+
+  /* Financial Type Badges */
+.type-badge {
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+}
+
+.type-badge.revenue {
+  background: #d4edda;
+  color: #155724;
+}
+
+.type-badge.expense {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* Chart of Accounts Styles */
+.btn-icon {
+  background: none;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.btn-icon:hover {
+  background-color: var(--light-gray);
+}
+
+.sub-row td {
+  padding: 0;
+  background-color: var(--light);
+}
+
+.sub-accounts {
+  padding: 8px;
+}
+
+.sub-account {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.sub-account:last-child {
+  border-bottom: none;
+}

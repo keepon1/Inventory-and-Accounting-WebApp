@@ -1,0 +1,165 @@
+/* Inherit variables from main CSS */
+@import url('/src/components/home.css');
+
+/* Dashboard Content */
+.dashboard-content {
+  padding: 0rem;
+  height: inherit;
+}
+
+.dashboard-header1 {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 1;
+  transition: var(--transition);
+  display: flex;
+  min-height: 50px;
+}
+
+
+.dashboard-header2 h1 {
+  font-size: 1.8rem;
+  color: var(--dark);
+}
+
+.month-selector {
+  display: block;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  width: 15%;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  padding: 5px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.metric-card {
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  text-align: center;
+  transition: var(--transition);
+}
+
+
+.metric-icon {
+  font-size: 1.8rem;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+
+.trend-up {
+  color: #4ade80;
+  margin-left: 5px;
+}
+
+.trend-down {
+  color: #f87171;
+  margin-left: 5px;
+}
+
+.transfer-value {
+  display: inline-flex;
+  align-items: center;
+  font-size: larger;
+  gap: 3px;
+}
+
+.trend-up, .trend-down {
+  transition: transform 0.2s ease;
+}
+
+.trend-up:hover, .trend-down:hover {
+  transform: scale(1.2);
+}
+
+.metric-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: larger;
+  gap: 5px;
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: var(--gray);
+}
+
+/* Charts Container */
+.charts-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+}
+
+.chart-card {
+  background-color: white;
+  border-radius: var(--border-radius);
+  padding: 20px;
+  box-shadow: var(--box-shadow);
+}
+
+.chart-card.wide {
+  grid-column: span 2;
+}
+
+.chart-card h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--dark);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.2rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1024px) {
+  .chart-card.wide {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .dashboard-header2 {
+    width: 66%;
+  }
+  
+  .month-selector {
+    width: 32%;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .charts-container {
+    grid-template-columns: 1fr;
+  }
+}

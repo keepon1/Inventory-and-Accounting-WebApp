@@ -1,0 +1,268 @@
+import React, { useEffect, useState } from "react";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+import { faTimesCircle as redcircle, faEdit } from "@fortawesome/free-regular-svg-icons";
+import './addItem.css';
+import Select from 'react-select';
+import api from "../api";
+import { useNavigate } from "react-router-dom";
+import enableKeyboardScrollFix from "../../utils/scroll";
+import { toast } from "react-toastify";
+
+const AddItem = (props) => {
+    const [itemDetail, setItemDetail] = useState({
+        code: '', brand: '', name: '', unit: {value:'', label:''}, model: '',
+        imageFile: null, imagePreview: null, category: {value:'', label:''},
+        reorder: '', description: ''
+    });
+    const [fullList, setFullList] = useState([]);
+    const [category, setCategory] = useState([{ value: '', label: '' }]);
+    const [unit, setUnit] = useState([{ value: '', label: '' }]);
+    const navigate = useNavigate();
+
+    const checkExistingItems = (field, value) =>
+        fullList.some(item => item[field].toLowerCase() === value.toLowerCase());
+
+    useEffect(() => {
+        const fetchLocations = async () => {
+            try {
+                const [catRes, unitRes] = await Promise.all([
+                    api.post('fetch_category', { business: props.business }),
+                    api.post('fetch_unit', { business: props.business })
+                ]);
+                setCategory(catRes.length ? catRes : [{ value: '', label: '' }]);
+                setUnit(unitRes.length ? unitRes : [{ value: '', label: '' }]);
+            } catch (error) {
+                if (error.response?.status === 401) {
+                    localStorage.removeItem('access');
+                    navigate('/sign_in');
+                }
+            }
+        };
+        fetchLocations();
+        const cleanup = enableKeyboardScrollFix();
+        return cleanup;
+    }, [navigate]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        if (name === 'images') {
+            const file = e.target.files[0];
+            if (file) {
+                setItemDetail(prev => ({
+                    ...prev,
+                    imageFile: file,
+                    imagePreview: URL.createObjectURL(file)
+                }));
+            }
+            return;
+        }
+        setItemDetail(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmitPreview = async (e) => {
+        e.preventDefault();
+
+        if (!itemDetail.name.trim()) {
+            toast.error("Item name is required");
+            return;
+        }
+        if (!itemDetail.unit.value.trim()) {
+            toast.error("Unit is required");
+            return;
+        }
+        if (!itemDetail.category.value.trim()) {
+            toast.error("Category is required");
+            return;
+        }
+
+        const nameExists = checkExistingItems('name', itemDetail.name);
+
+        if (nameExists) {
+            if (nameExists) toast.error("Item name already exists!");
+            return;
+        }
+
+        try {
+            const image = new FormData();
+            image.append('image', itemDetail.imageFile);
+            image.append('code', itemDetail.code);
+            image.append('name', itemDetail.name);
+            image.append('business', props.business);
+
+            const response = await api.post('verify_item', image);
+
+            if (response.status === "success") {
+                setFullList(prev => [...prev, itemDetail]);
+                resetForm();
+                toast.success(response.message || "Item added to preview list");
+            } else {
+                toast.error(response.message || "Failed to verify item");
+            }
+        } catch (error) {
+            localStorage.removeItem('access');
+            navigate('/sign_in');
+        }
+    };
+
+    const resetForm = () => {
+        setItemDetail({
+            code: '', brand: '', name: '', unit: {value:'', label:''}, model: '',
+            imageFile: null, imagePreview: null, category: {value:'', label:''},
+            reorder: '', description: ''
+        });
+    };
+
+    const removePreviewItem = (index) => {
+        setFullList(prev => prev.filter((_, i) => i !== index));
+        toast.info("Item removed from preview list");
+    };
+
+    const editPreviewItem = (index) => {
+        const item = fullList[index];
+        setItemDetail({ ...item });
+        removePreviewItem(index);
+        toast.info("Item moved back to form for editing");
+    };
+
+    const addItems = async () => {
+        try {
+            const formData = new FormData();
+            fullList.forEach((item) => {
+                formData.append('code', item.code);
+                formData.append('brand', item.brand);
+                formData.append('name', item.name);
+                formData.append('model', item.model);
+                formData.append('description', item.description);
+                formData.append('reorder', item.reorder || 0);
+                formData.append('unit', item.unit.value);
+                formData.append('category', item.category.value);
+                formData.append('image', item.imageFile);
+            });
+            formData.append('business', props.business);
+            formData.append('user', props.user);
+
+            const response = await api.post('add_items', formData);
+
+            if (response.status === "success") {
+                toast.success(response.message || "Items saved successfully!");
+                navigate(-1);
+            } else {
+                toast.error(response.message || "Failed to save items");
+            }
+        } catch (error) {
+            localStorage.removeItem('access');
+            navigate('/sign_in');
+        }
+    };
+
+    return (
+        <div className="ivi_display_mainbox">
+            <div className="ia_submain_box">
+                <div className="ia_description_box">
+                    <div className="ia_description">
+                        <span className="ia_description_word">Add Items</span>
+                    </div>
+                    <div className="inner_close">
+                        <FontAwesomeIcon onClick={() => navigate(-1)} className="close-button" icon={faTimesCircle} />
+                    </div>
+                </div>
+
+                <form onSubmit={handleSubmitPreview}>
+                    <div className="ivi_display_box">
+                        <div className="ivi_subboxes">
+                            <div className="ivi_holder_box">
+                                <label className="ivi_label">Item Code</label>
+                                <input type="text" name="code" value={itemDetail.code} onChange={handleChange} className="ivi_input" />
+                            </div>
+                            <div className="ivi_holder_box">
+                                <label className="ivi_label">Brand</label>
+                                <input type="text" name="brand" value={itemDetail.brand} onChange={handleChange} className="ivi_input" />
+                            </div>
+                            <div className="ivi_holder_box">
+                                <label className="ivi_label">Model Number</label>
+                                <input type="text" name="model" value={itemDetail.model} onChange={handleChange} className="ivi_input" />
+                            </div>
+                        </div>
+
+                        <div className="ivi_subboxes">
+                            <div className="ivi_holder_box">
+                                <label className="ivi_label">Item Name*</label>
+                                <input type="text" name="name" value={itemDetail.name} onChange={handleChange} className="ivi_input" />
+                            </div>
+                            <div className="ivi_holder_box">
+                                <label className="ivi_label">Description</label>
+                                <input type="text" name="description" value={itemDetail.description} onChange={handleChange} className="ivi_input" />
+                            </div>
+                            <div className="ivi_holder_box">
+                                <label className="ivi_label">Image</label>
+                                <input type="file" accept="image/*" name="images" onChange={handleChange} className="ivi_input" />
+                            </div>
+                        </div>
+
+                        <div className="ivi_subboxes">
+                            <div className="ivi_holder_box">
+                                <label className="ivi_label">Category</label>
+                                <Select options={category} value={itemDetail.category} onChange={selected => setItemDetail({ ...itemDetail, category: selected })} className="ivi_select" classNamePrefix="ivi_select" />
+                            </div>
+                            <div className="ivi_holder_box">
+                                <label className="ivi_label">Unit</label>
+                                <Select options={unit} value={itemDetail.unit} onChange={selected => setItemDetail({ ...itemDetail, unit: selected })} className="ivi_select" classNamePrefix="ivi_select" />
+                            </div>
+                            <div className="ivi_holder_box">
+                                <label className="ivi_label">Reorder Level</label>
+                                <input type="number" className="ivi_input" onChange={handleChange} name="reorder" value={itemDetail.reorder} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="form-actions">
+                        <button type="submit" className="btn btn-outline">Preview</button>
+                    </div>
+                </form>
+
+                <div className="ia_table_box">
+                    <table className="ia_main_table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Brand</th>
+                                <th>Model No.</th>
+                                <th>Item Code</th>
+                                <th>Item Name</th>
+                                <th>Description</th>
+                                <th>Unit</th>
+                                <th>Reorder level</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {fullList.map((item, index) => (
+                                <tr key={index}>
+                                    <td>{item.category.value}</td>
+                                    <td>{item.brand}</td>
+                                    <td>{item.model}</td>
+                                    <td>{item.code}</td>
+                                    <td>{item.name}</td>
+                                    <td>{item.description}</td>
+                                    <td>{item.unit.value}</td>
+                                    <td>{item.reorder}</td>
+                                    <td>
+                                        <FontAwesomeIcon onClick={() => editPreviewItem(index)} className="item_action" icon={faEdit} />
+                                        <FontAwesomeIcon onClick={() => removePreviewItem(index)} className="item_action" icon={redcircle} />
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="ia_add_item_mbox">
+                    <button className="btn btn-outline" onClick={addItems}>Save Items</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default AddItem;

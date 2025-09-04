@@ -1,0 +1,28 @@
+@media (min-width: 1024px){
+    .cp_tax_box{
+        display: flex;
+        flex-direction: row;
+        width: fit-content;
+        margin-left: auto;
+        margin-right: 1%;
+        gap: 1.2vw;
+    }
+
+    .cp_discount_box{
+        display: flex;
+        flex-direction: row;
+        gap: 1.2vw;
+    }
+
+    .cp_taxes_box{
+        display: flex;
+        flex-direction: row;
+        gap: 1.2vw;
+    }
+}
+
+/*  tablet */
+@media (min-width: 640px) and (max-width: 1023px){}
+
+/* small phones */
+@media (max-width: 639px){}
