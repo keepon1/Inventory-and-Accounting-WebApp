@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimesCircle, faTachometer } from "@fortawesome/free-solid-svg-icons";
+import { faTimesCircle, faTachometer, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 const ViewPurchase = ({ purchase, business, access, user }) => {
@@ -15,12 +15,12 @@ const ViewPurchase = ({ purchase, business, access, user }) => {
     address: '',
     discount: '',
     tax_levy: '',
-    rate:[],
+    rate: [],
     description: '',
     location: '',
     total: 0,
     items: [],
-    status:'',
+    status: '',
   });
 
   const navigate = useNavigate();
@@ -32,8 +32,8 @@ const ViewPurchase = ({ purchase, business, access, user }) => {
           'view_purchase',
           { business, number: purchase },
         );
-        
-        if (response.status === 'error'){
+
+        if (response.status === 'error') {
           toast.error(response.message || 'Failed to fetch purchase details');
           return;
         }
@@ -44,7 +44,7 @@ const ViewPurchase = ({ purchase, business, access, user }) => {
           total: customer.total,
           location: customer.loc,
           tax_levy: JSON.parse(customer.tax_levy[0]).map(item => `${item.label} `),
-          rate: JSON.parse(customer.tax_levy[0]).map(item => ({value: `${item.label}`, rate: `${item.rate}`}))
+          rate: JSON.parse(customer.tax_levy[0]).map(item => ({ value: `${item.label}`, rate: `${item.rate}` }))
         });
 
       } catch (error) {
@@ -58,20 +58,21 @@ const ViewPurchase = ({ purchase, business, access, user }) => {
     fetchPurchase();
   }, []);
 
-  const reverse = async() => {
+  const reverse = async () => {
     try {
-        const response = await api.post(
-          'edit_purchase',
-          { business, number: purchaseData.number, user },
-        );
+      const response = await api.post(
+        'edit_purchase',
+        { business, number: purchaseData.number, user },
+      );
 
-        if (response.status === 'success'){
-          navigate(-1);
-        }else{
-          toast.error(response.message || 'Failed to reverse purchase');
-        }
+      if (response.status === 'success') {
+        toast.success(response.message || 'Purchase reversed successfully')
+        navigate(-1);
+      } else {
+        toast.error(response.message || 'Failed to reverse purchase');
       }
-    catch(error) {
+    }
+    catch (error) {
       toast.error("An error occurred while reversing the purchase.");
     }
   }
@@ -85,7 +86,7 @@ const ViewPurchase = ({ purchase, business, access, user }) => {
     }, 0);
 
     const grandTotal = purchaseData.total;
-    return{
+    return {
       subtotal, discount, total, levies, grandTotal
     };
   };
@@ -96,57 +97,57 @@ const ViewPurchase = ({ purchase, business, access, user }) => {
     <div className="ivi_display_mainbox">
       <div className="ia_submain_box">
         <div className="ia_description_box">
-          <h2>Purchase Invoice : {purchaseData.number}</h2>
-          <FontAwesomeIcon 
-            icon={faTimesCircle} 
-            className="close-button"
-            onClick={() => navigate(-1)}
-          />
+          <div className="header-back">
+            <Link to="../" className="back-link">
+                <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+            </Link>
+            <h2>{purchaseData.number}</h2>
+          </div>
         </div>
 
         <div className="ivi_display_box">
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label>Supplier</label>
-              <div className="ivi_input">{purchaseData.supplier}</div>
+              <input className="ivi_input" value={purchaseData.supplier} readOnly title={purchaseData.supplier} />
             </div>
             <div className="ivi_holder_box">
               <label>Contact</label>
-              <div className="ivi_input">{purchaseData.contact}</div>
+              <input className="ivi_input" value={purchaseData.contact} readOnly title={purchaseData.contact} />
             </div>
             <div className="ivi_holder_box">
               <label>Address</label>
-              <div className="ivi_input">{purchaseData.address}</div>
+              <input className="ivi_input" value={purchaseData.address} readOnly title={purchaseData.address} />
             </div>
           </div>
 
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label>Issue Date</label>
-              <div className="ivi_input">{purchaseData.issueDate}</div>
+              <input className="ivi_input" value={purchaseData.issueDate} readOnly title={purchaseData.issueDate} />
             </div>
             <div className="ivi_holder_box">
               <label>Due Date</label>
-              <div className="ivi_input">{purchaseData.dueDate}</div>
+              <input className="ivi_input" value={purchaseData.dueDate} readOnly title={purchaseData.dueDate} />
             </div>
             <div className="ivi_holder_box">
               <label>Description</label>
-              <div className="ivi_input">{purchaseData.description}</div>
+              <input className="ivi_input" value={purchaseData.description} readOnly title={purchaseData.description} />
             </div>
           </div>
 
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label>Location</label>
-              <div className="ivi_input">{purchaseData.location}</div>
+              <input className="ivi_input" value={purchaseData.location} readOnly title={purchaseData.location} />
             </div>
             <div className="ivi_holder_box">
               <label>Discount</label>
-              <div className="ivi_input">{purchaseData.discount}%</div>
+              <input className="ivi_input" value={`${purchaseData.discount}%`} readOnly title={`${purchaseData.discount}%`} />
             </div>
             <div className="ivi_holder_box">
               <label>Tax & Levy</label>
-              <div className="ivi_input">{purchaseData.tax_levy}</div>
+              <input className="ivi_input" value={purchaseData.tax_levy} readOnly title={purchaseData.tax_levy} />
             </div>
           </div>
         </div>
@@ -195,8 +196,8 @@ const ViewPurchase = ({ purchase, business, access, user }) => {
           </div>
           {purchaseData.rate.map(levy => (
             <div className="total-row" key={levy.value}>
-                <span>{levy.value}:</span>
-                <span>+{(total1.total * (levy.rate/100)).toFixed(2)}</span>
+              <span>{levy.value}:</span>
+              <span>+{(total1.total * (levy.rate / 100)).toFixed(2)}</span>
             </div>
           ))}
           <div className="total-row grand-total">
@@ -207,11 +208,11 @@ const ViewPurchase = ({ purchase, business, access, user }) => {
 
         {purchaseData.status === 'Reversed' ? (
           <></>
-          ):(
+        ) : (
           <>
-            {(access.admin || (access.purchase_access && access.per_location_access.includes(sale.location) && access.reverse_access)) && (
+            {(access.admin || (access.purchase_access && access.per_location_access.includes(purchaseData.location) && access.reverse_access)) && (
               <div className="ia_add_item_mbox">
-                <button 
+                <button
                   className="btn btn-outline-red"
                   onClick={() => reverse()}
                 >

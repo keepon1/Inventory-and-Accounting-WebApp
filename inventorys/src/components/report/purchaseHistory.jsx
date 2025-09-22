@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, 
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, AreaChart, Area
@@ -8,20 +8,16 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChartLine,
   faDollarSign,
-  faShoppingCart,
   faUsers,
-  faFilter,
-  faSearch,
-  faFileExport,
-  faChevronDown,
-  faCartShopping,
-  faTrainTram
+  faTrainTram,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import './itemSummary.css';
 import { format, set, parseISO } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -228,10 +224,14 @@ const PurchaseMetric = ({ business, user }) => {
   return (
     <div className="dashboard-main">
       <div className="journal-header">
-        <h3>
-          <FontAwesomeIcon icon={faTrainTram} className="header-icon" />
-          Purchase Performance
-        </h3>
+        <div className='header-back'>
+          <Link to="../" className='back-link'>
+            <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+          </Link>
+          <h2>
+            Purchase Metrics
+          </h2>
+        </div>
       </div>
 
       <div className="journal-filters">

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import api from "../api";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBarcode, faWeightHanging, faDollarSign, faWarehouse, faCalendarAlt, faUser, faTimesCircle, faMoneyBill, faTimeline, faNewspaper, faCartPlus } from "@fortawesome/free-solid-svg-icons";
+import { faBarcode, faWeightHanging, faDollarSign, faWarehouse, faCalendarAlt, faUser, faTimesCircle, faMoneyBill, faTimeline, faNewspaper, faCartPlus, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import './viewItem.css';
 import { useNavigate, Link } from "react-router-dom";
 import { faBraveReverse } from "@fortawesome/free-brands-svg-icons";
@@ -41,13 +41,11 @@ const ViewItem = (props) => {
   return (
     <div className="ia_submain_box">
       <div className="ia_description_box">
-        <div className="ia_description">
-          <span className="ia_description_word">{props.item}</span>
-        </div>
-        <div className="inner_close">
-          <FontAwesomeIcon 
-            onClick={() => navigate(-1)}
-            className="close-button" icon={faTimesCircle} />
+        <div className="header-back">
+          <Link to="../" className="back-link">
+              <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+          </Link>
+          <h2 className="ia_description_word">{itemInfo.name}</h2>
         </div>
       </div>
 
@@ -55,57 +53,57 @@ const ViewItem = (props) => {
         <div className="ivi_subboxes">
           <div className="ivi_holder_box">
             <span className="ivi_label"><FontAwesomeIcon icon={faBarcode} /> Item Code</span>
-            <div className="ivi_input">{itemInfo.code}</div>
+            <input className="ivi_input" value={itemInfo.code} readOnly title={itemInfo.code} />
           </div>
           <div className="ivi_holder_box">
             <span className="ivi_label"><FontAwesomeIcon icon={faCartPlus} /> Category</span>
-            <div className="ivi_input">{itemInfo.category.value}</div>
+            <input className="ivi_input" value={itemInfo.category.value} readOnly title={itemInfo.category.value} />
           </div>
           <div className="ivi_holder_box">
             <span className="ivi_label"><FontAwesomeIcon icon={faBraveReverse} /> Brand</span>
-            <div className="ivi_input">{itemInfo.brand}</div>
+            <input className="ivi_input" value={itemInfo.brand} readOnly title={itemInfo.brand} />
           </div>
           <div className="ivi_holder_box">
             <span className="ivi_label"><FontAwesomeIcon icon={faNewspaper} /> Model Name</span>
-            <div className="ivi_input">{itemInfo.model}</div>
+            <input className="ivi_input" value={itemInfo.model} readOnly title={itemInfo.model} />
           </div>
         </div>
 
         <div className="ivi_subboxes">
           <div className="ivi_holder_box">
             <span className="ivi_label"><FontAwesomeIcon icon={faWarehouse} /> Unit Of Measurement</span>
-            <div className="ivi_input">{itemInfo.unit.value}</div>
+            <input className="ivi_input" value={itemInfo.unit.value} readOnly title={itemInfo.unit.value} />
           </div>
           <div className="ivi_holder_box">
             <span className="ivi_label"><FontAwesomeIcon icon={faTimeline} /> Reorder Level</span>
-            <div className="ivi_input">{itemInfo.reorder}</div>
+            <input className="ivi_input" value={itemInfo.reorder} readOnly title={itemInfo.reorder} />
           </div>
           <div className="ivi_holder_box">
             <span className="ivi_label"><FontAwesomeIcon icon={faCalendarAlt} /> Date Created</span>
-            <div className="ivi_input">{itemInfo.date ? new Date(itemInfo.date).toLocaleDateString() : ""}</div>
+            <input className="ivi_input" value={itemInfo.date ? new Date(itemInfo.date).toLocaleDateString() : ""} readOnly title={itemInfo.date ? new Date(itemInfo.date).toLocaleDateString() : ""} />
           </div>
           <div className="ivi_holder_box">
             <span className="ivi_label"><FontAwesomeIcon icon={faUser} /> Created By</span>
-            <div className="ivi_input">{itemInfo.by}</div>
+            <input className="ivi_input" value={itemInfo.by} readOnly title={itemInfo.by} />
           </div>
         </div>
 
         <div className="ivi_subboxes">
           <div className="ivi_holder_box">
             <span className="ivi_label"><FontAwesomeIcon icon={faMoneyBill} /> Sales Price</span>
-            <div className="ivi_input">₵{itemInfo.Sales}</div>
+            <input className="ivi_input" value={`₵${itemInfo.Sales}`} readOnly title={`₵${itemInfo.Sales}`} />
           </div>
           <div className="ivi_holder_box">
             <span className="ivi_label"><FontAwesomeIcon icon={faMoneyBill} /> Cost Price</span>
-            <div className="ivi_input">₵ {itemInfo.Cost}</div>
+            <input className="ivi_input" value={`₵ ${itemInfo.Cost}`} readOnly title={`₵ ${itemInfo.Cost}`} />
           </div>
           <div className="ivi_holder_box">
             <span className="ivi_label"><FontAwesomeIcon icon={faWeightHanging} /> Quantities</span>
-            <div className="ivi_input">{itemInfo.quantity}</div>
+            <input className="ivi_input" value={itemInfo.quantity} readOnly title={itemInfo.quantity} />
           </div>
           <div className="ivi_holder_box">
             <span className="ivi_label"><FontAwesomeIcon icon={faDollarSign} /> Total Values</span>
-            <div className="ivi_input">₵{totalCurrentCost || 0}</div>
+            <input className="ivi_input" value={`₵${totalCurrentCost || 0}`} readOnly title={`₵${totalCurrentCost || 0}`} />
           </div>
         </div>
       </div>

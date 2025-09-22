@@ -1,13 +1,14 @@
 // PaymentJournal.jsx
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimesCircle, faSave, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faTimesCircle, faSave, faPlus, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { faEdit, faTrashAlt } from "@fortawesome/free-regular-svg-icons";
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
 import api from "../api";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import enableKeyboardScrollFix from "../../utils/scroll";
+import { toast } from "react-toastify";
 
 const PaymentJournal = ({business, user}) => {
     const [entry, setEntry] = useState({
@@ -46,6 +47,11 @@ const PaymentJournal = ({business, user}) => {
                         { business, user },
                     ),
                 ]);
+
+                if (accRes.status === 'error') {
+                    toast.error(accRes.message || 'Failed to fetch accounts');
+                    return;
+                }
                 
                 const formattedAccounts = accRes.filter(acc => acc.account_type__code === '10100' || acc.account_type__code === '10200' || acc.account_type__code === '10500')
                 .map(acc => ({
@@ -55,6 +61,8 @@ const PaymentJournal = ({business, user}) => {
                 
                 setAccounts(formattedAccounts);
             } catch (error) {
+                console.error("Fetch error:", error);
+                toast.error('An error occurred while fetching accounts');
                 if (error.response?.status === 401) {
                     localStorage.removeItem('access');
                     navigate('/sign_in');
@@ -62,9 +70,7 @@ const PaymentJournal = ({business, user}) => {
             }
         };
         fetchData();
-        const cleanup = enableKeyboardScrollFix();
-        return cleanup;
-    }, [navigate]);
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -91,27 +97,27 @@ const PaymentJournal = ({business, user}) => {
         setFormError('');
 
         if (!entry.debitAccount) {
-            setFormError('Debit account is required');
+            toast.info('Debit account is required');
             return;
         }
         
         if (!entry.creditAccount) {
-            setFormError('Credit account is required');
+            toast.info('Credit account is required');
             return;
         }
         
         if (entry.debitAccount.value === entry.creditAccount.value) {
-            setFormError('Debit and credit accounts must be different');
+            toast.info('Debit and credit accounts must be different');
             return;
         }
         
         if (!entry.referenceType) {
-            setFormError('Reference type is required');
+            toast.info('Reference type is required');
             return;
         }
         
         if (entry.amount <= 0) {
-            setFormError('Amount must be positive');
+            toast.info('Amount must be positive');
             return;
         }
 
@@ -167,17 +173,19 @@ const PaymentJournal = ({business, user}) => {
 
             const response = await api.post('add_payments', payload);
             
-            if(response === 'done'){
+            if(response.status === 'success'){
+                toast.success(response.message || 'Payment journal posted successfully');
                 navigate(-1);
+            }else{
+                setFormError(response.message || 'Failed to save journal');
             }
 
         } catch (error) {
+            toast.error('An error occurred while saving the journal');
             console.error("Save error:", error);
             if (error.response?.status === 401) {
                 localStorage.removeItem('access');
                 navigate('/sign_in');
-            } else if (error.response) {
-                setFormError(error.response || 'Failed to save journal');
             }
         }
     };
@@ -188,15 +196,11 @@ const PaymentJournal = ({business, user}) => {
         <div className="ivi_display_mainbox">
             <div className="ia_submain_box">
                 <div className="ia_description_box">
-                    <div className="ia_description">
-                        <span className="ia_description_word">Payment Journal</span>
-                    </div>
-                    <div className="inner_close">
-                        <FontAwesomeIcon 
-                            onClick={() => navigate(-1)} 
-                            className="close-button" 
-                            icon={faTimesCircle} 
-                        />
+                    <div className="header-back">
+                        <Link to="../" className="back-link">
+                            <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+                        </Link>
+                        <h2>Payment Journal</h2>
                     </div>
                 </div>
 

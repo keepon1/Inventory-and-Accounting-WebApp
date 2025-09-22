@@ -21,12 +21,14 @@ import {
   faDollarSign,
   faInfoCircle,
   faUserPlus,
-  faKey
+  faKey,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Select from 'react-select';
 import api from '../api';
 import enableKeyboardScrollFix from '../../utils/scroll';
+import { toast } from 'react-toastify';
 
 const RolePermission = ({ business, user }) => {
     const [users, setUsers] = useState([]);
@@ -76,12 +78,20 @@ const RolePermission = ({ business, user }) => {
         const fetchData = async () => {
             try {
                 const [users, locations] = await Promise.all([
-                    api.post('fetch_users', { business }),
-                    api.post('fetch_locations', { business }),
-                ]); 
-                setUsers(users);
-                setLocations(locations);
+                    api.post('fetch_users', { business, user }),
+                    api.post('fetch_locations', { business, user }),
+                ]);
+
+                if (users.status === 'error' || locations.status === 'error') {
+                    toast.error(users.message || locations.message || 'Failed to fetch data');
+                    return;
+                }
+                setUsers(users.data || []);
+                setLocations(locations.data || []);
             } catch (error) {
+                console.error(error);
+                toast.error('An error occurred while fetching data');
+
                 if (error.response?.status === 401) {
                     localStorage.removeItem('access');
                     navigate('/sign_in');
@@ -89,8 +99,7 @@ const RolePermission = ({ business, user }) => {
             }
         };
         fetchData();
-        const cleanup = enableKeyboardScrollFix();
-        return cleanup;
+
     }, []);
 
     const handleEditOverlay = (e) => {
@@ -101,7 +110,15 @@ const RolePermission = ({ business, user }) => {
 
     const openEdit = async (username) => {
         try {
-            const response = await api.post('get_user_access', { business, username });
+            const respons = await api.post('get_user_access', { business, username, user });
+
+            const response = respons.data;
+
+            if (respons.status === 'error') {
+                toast.error(respons.message || 'Failed to fetch user details');
+                return;
+            }
+
             setEditData({
                 user_name: response.user_name,
                 admin: response.admin,
@@ -136,6 +153,8 @@ const RolePermission = ({ business, user }) => {
             setShowEdit(true);
             document.addEventListener('mousedown', handleEditOverlay);
         } catch (error) {
+            console.error(error);
+            toast.error('An error occurred while fetching user details');
             if (error.response?.status === 401) {
                 navigate('/sign_in');
             }
@@ -193,7 +212,7 @@ const RolePermission = ({ business, user }) => {
             cash_access: editData.admin || editData.cash_access,
             payment_access: editData.admin || editData.payment_access,
             report_access: editData.admin || editData.report_access,
-            settings_access: editData.admin || editData.settings_access,
+           settings_access : editData.admin || editData.settings_access,
             edit_access: editData.admin || editData.edit_access,
             purchase_price_access: editData.admin || editData.purchase_price_access,
             dashboard_access: editData.admin || editData.dashboard_access,
@@ -203,40 +222,51 @@ const RolePermission = ({ business, user }) => {
         };
 
         try {
-            const response = await api.post('edit_user_permissions', { business, detail: data });
-            if (response === 'done') {
+            const response = await api.post('edit_user_permissions', { business, detail: data, user });
+
+            if (response.status === 'success') {
+                toast.success(response.message || `${data.user_name} permissions updated successfully`);
                 setShowEdit(false);
                 document.removeEventListener('mousedown', handleEditOverlay);
 
-                const usersResponse = await api.post('fetch_users', { business });
-                setUsers(usersResponse);
+                const usersResponse = await api.post('fetch_users', { business, user });
+
+                if (usersResponse.status === 'error'){
+                    toast.error(usersResponse.message || 'Failed to fetch updated users');
+                    return;
+                }
+                setUsers(usersResponse.data || []);
             }
         } catch (error) {
             console.error(error);
+            toast.error('An error occurred while updating permissions');
+            if (error.response?.status === 401) {
+                localStorage.removeItem('access');
+                navigate('/sign_in');
+            }
         }
     };
 
     return (
         <div className="journal-container">
             <div className="journal-header">
-                <h1>
-                    <FontAwesomeIcon icon={faUserShield} className="header-icon" />
-                    Role Permissions
-                </h1>
-                <div className="journal-controls">
-                    <FontAwesomeIcon 
-                        icon={faTimesCircle} 
-                        className="close-button"
-                        onClick={() => navigate(-1)}
-                    />
+                <div className='header-back'>
+                    <Link to="../" className='back-link'>
+                        <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+                    </Link>
+                    <h2>
+                        Role Permissions
+                    </h2>
                 </div>
             </div>
 
             <div className="journal-filters">
-                <div className="filter-groups-right">
-                    <div className="filter-group1">
-                        <FontAwesomeIcon icon={faSearch} />
-                        <input onChange={handleSearch} type="text" placeholder="Search users..." />
+                <div></div>
+                <div className="ivi_display_box1">
+                    <div className="ivi_subboxes1">
+                        <div className="ivi_holder_box1">
+                            <input onChange={handleSearch} className='ivi_input' type="text" placeholder="Search users..." />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -289,7 +319,7 @@ const RolePermission = ({ business, user }) => {
                                             <>
                                                 {user.dashboard_access && <span title="Dashboard Access"><FontAwesomeIcon icon={faTachometerAlt} /></span>}
                                                 {user.journal_access && <span title="Journal Access"><FontAwesomeIcon icon={faFileInvoice} /></span>}
-                                                {user.item_access && <span title="Item Access"><FontAwesomeIcon icon={faBoxes} /></span>}
+                                                {user.item_access && (<span title="Item Access"><FontAwesomeIcon icon={faBoxes} /></span>)}
                                                 {user.transfer_access && <span title="Transfer Access"><FontAwesomeIcon icon={faExchangeAlt} /></span>}
                                                 {user.sales_access && <span title="Sales Access"><FontAwesomeIcon icon={faShoppingCart} /></span>}
                                                 {user.purchase_access && <span title="Purchase Access"><FontAwesomeIcon icon={faTruck} /></span>}

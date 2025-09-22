@@ -1,6 +1,6 @@
 from . import models
-from django.db.models import When, Case, Q, Sum, F, Aggregate, Value, DecimalField, ExpressionWrapper, OuterRef, Subquery
-from django.db.models.functions import Coalesce, ExtractWeekDay
+from django.db.models import When, Case, Q, Sum, F, Aggregate, Value, DecimalField, ExpressionWrapper, OuterRef, Subquery, Count
+from django.db.models.functions import Coalesce, ExtractWeekDay, TruncDate
 from datetime import date, timedelta,datetime
 from collections import defaultdict
 import logging  
@@ -9,14 +9,20 @@ logger = logging.getLogger(__name__)
 
 class Report_Data:
     def __init__(self, business, company, user, location_access=None, start=None, end=None):
-        self.business = models.bussiness.objects.get(bussiness_name=business, company_id=company)  
+        self.business = models.bussiness.objects.get(bussiness_name=business)
         self.user = user
         self.location = location_access
         self.start = start
         self.end = end
 
     def fetch_sales(self):   
-        sales = models.sale.objects.filter(bussiness_name=self.business, date__range=(self.start, self.end), location_address__location_name__in=self.location)
+        sales = models.sale.objects.filter(
+            bussiness_name=self.business, 
+            date__range=(self.start, self.end), 
+            location_address__location_name__in=self.location,
+            is_reversed=False
+            )
+
         sales = sales.order_by('-date').values(
             'code', 'date', 'customer_name', 'customer_info__name', 'created_by__user_name', 'description', 'cog', 'discount', 'tax_levy', 'gross_total', 'status',
             'location_address__location_name', 'total_quantity', 'amount_paid', 'customer_info__account',
@@ -25,7 +31,13 @@ class Report_Data:
         return sales
     
     def fetch_purchase(self):
-        purchases = models.purchase.objects.filter(bussiness_name=self.business, date__range=(self.start, self.end), location_address__location_name__in=self.location)
+        purchases = models.purchase.objects.filter(
+            bussiness_name=self.business, 
+            date__range=(self.start, self.end), 
+            location_address__location_name__in=self.location,
+            is_reversed=False
+            )
+        
         purchases = purchases.order_by('-date').values(
             'code', 'date', 'supplier__name', 'created_by__user_name', 'description', 'sub_total', 'discount', 'tax_levy', 'gross_total', 'status',
             'location_address__location_name', 'total_quantity', 'amount_paid', 'supplier__account'
@@ -60,7 +72,8 @@ class Report_Data:
             bussiness_name=self.business, 
             date__lte=self.end,
             amount_paid__lt=F('gross_total'),
-            location_address__location_name__in=self.location
+            location_address__location_name__in=self.location,
+            is_reversed=False
         )
 
 
@@ -78,7 +91,8 @@ class Report_Data:
             bussiness_name=self.business, 
             date__lte=self.end,
             amount_paid__lt=F('gross_total'),
-            location_address__location_name__in=self.location
+            location_address__location_name__in=self.location,
+            is_reversed=False
         )
 
         purchases = purchases.values(
@@ -89,9 +103,81 @@ class Report_Data:
 
         return purchases
     
+
+    def fetch_sales_records(self):
+        qs = models.sale_history.objects.filter(
+            sales__bussiness_name=self.business,
+            sales__date__range=(self.start, self.end),
+            sales__location_address__location_name__in=self.location,
+            sales__is_reversed=False
+        )
+
+        records = qs.values(
+            invoice_code=F("sales__code"),
+            sale_date=F("sales__date"),
+            customer_name=F("sales__customer_name"),
+            customer=F("sales__customer_info__name"),
+            item_name1=F("item_name__item_name"),
+            category=F("item_name__category__name"),
+            quantity1=F("quantity"),
+            unit_price=F("sales_price"),
+            cost_price=F("purchase_price"),
+        ).annotate(
+            total_price=F("quantity") * F("sales_price"),
+        )
+
+        summary = qs.aggregate(
+            total_sales=Sum(F("quantity") * F("sales_price")),
+            total_quantity=Sum("quantity"),
+            unique_customers=Count("sales__customer_name", distinct=True),
+        )
+
+        top_items = qs.values(
+            name=F("item_name__item_name")
+        ).annotate(
+            quantity1=Sum("quantity"),
+            revenue=Sum(F("quantity") * F("sales_price"))
+        ).order_by("-revenue")[:10]
+
+        by_category = qs.values(
+            name=F("item_name__category__name")
+        ).annotate(
+            value=Sum("quantity")
+        )
+
+        daily_trend = qs.annotate(
+            date=TruncDate("sales__date")
+        ).values("date").annotate(
+            quantity1=Sum("quantity"),
+            revenue=Sum(F("quantity") * F("sales_price"))
+        ).order_by("date")
+
+        profit_by_item = qs.values(
+            name=F("item_name__item_name")
+        ).annotate(
+            revenue=Sum(F("quantity") * F("sales_price")),
+            cost=Sum(F("quantity") * F("purchase_price")),
+            quantity1=Sum("quantity")
+        ).annotate(
+            profit=F("revenue") - F("cost"),
+            margin=(F("revenue") - F("cost")) * 100.0 / F("revenue")
+        ).order_by("-profit")
+
+        return {
+            "records": list(records),
+            "summary": summary,
+            "charts": {
+                "topItems": list(top_items),
+                "byCategory": list(by_category),
+                "dailyTrend": list(daily_trend),
+                "profitByItem": list(profit_by_item),
+            }
+        }
+
+    
 class Dashboard_Report:
     def __init__(self, business, company, user, location_access=None):
-        self.business = models.bussiness.objects.get(bussiness_name=business, company_id=company)  
+        self.business = models.bussiness.objects.get(bussiness_name=business)  
         self.user = user
         self.location = location_access
         self.start = date.today().replace(day=1)
@@ -153,7 +239,8 @@ class Dashboard_Report:
         sales = models.sale.objects.filter(
             bussiness_name=self.business, 
             date__range=(self.start, self.end),
-            location_address__location_name__in=self.location
+            location_address__location_name__in=self.location,
+            is_reversed=False
         )
 
         today_sales = sales.filter(date=date.today())
@@ -202,7 +289,8 @@ class Dashboard_Report:
         purchases = models.purchase.objects.filter(
             bussiness_name=self.business, 
             date__range=(self.start, self.end),
-            location_address__location_name__in=self.location
+            location_address__location_name__in=self.location,
+            is_reversed=False
         )
 
         today_purchases = purchases.filter(date=date.today())
@@ -609,7 +697,7 @@ class Inventory_Valuation:
                         item_name=OuterRef("item"), bussiness_name=self.business,
                         sales__date__range=[self.start, self.end]
                     )
-                    .exclude(sales__status="Reversed")
+                    .exclude(sales__is_reversed=True)
                     .values("item_name")
                     .annotate(total_qty=Coalesce(Sum("quantity"), 0))
                     .values("total_qty")[:1]
@@ -624,10 +712,8 @@ class Inventory_Valuation:
                         sales_price=F("item__sales_price"),
                         purchase_price=F("item__purchase_price"),
 
-                        # sales quantity from sale_history
                         quantity_solds=Subquery(sales_qs, output_field=DecimalField()),
 
-                        # avg inventory value
                         avg_inv_value=ExpressionWrapper(
                             (Coalesce(F("opening_value"), 0) + Coalesce(F("quantity_solds"), 0)) * Coalesce(F("purchase_price"), 0) / Value(2.0),
                             output_field=DecimalField(max_digits=12, decimal_places=2),
@@ -678,9 +764,6 @@ class Trial_Balance:
         self.end = datetime.strptime(end, "%Y-%m-%d").date()
 
     def tb_data(self):
-        """Return trial balance at end date: closed months use snapshots, 
-        current month uses previous balance + ledgers."""
-        # Find the month period that contains the end date
         target_period = models.month_period.objects.filter(
             business=self.business,
             start__lte=self.end,
@@ -690,11 +773,9 @@ class Trial_Balance:
         if not target_period:
             return []
 
-        # ✅ Case 1: End is in a closed period → just return snapshot
         if target_period.is_closed:
             return self._balances_for_period(target_period)
 
-        # ✅ Case 2: End is in the current open month
         prev_closed = models.month_period.objects.filter(
             business=self.business,
             end__lt=target_period.start,
@@ -704,12 +785,10 @@ class Trial_Balance:
         base_balances = self._balances_for_period(prev_closed) if prev_closed else []
         ledger_balances = self._ledger_movements(target_period)
 
-        # Merge base snapshot with ledger movements
         merged = self._merge_balances(base_balances, ledger_balances, period=target_period.name)
         return merged
 
     def _balances_for_period(self, period):
-        """Get balances from snapshots (account_balance)."""
         balances = models.account_balance.objects.filter(
             period=period
         ).values(
@@ -738,7 +817,6 @@ class Trial_Balance:
         ]
 
     def _ledger_movements(self, period):
-        """Aggregate all ledgers for a given period."""
         ledgers = []
 
         def collect(qs):
@@ -772,7 +850,6 @@ class Trial_Balance:
         ]
 
     def _merge_balances(self, snapshot, movements, period):
-        """Merge previous snapshot balances with current month movements."""
         merged = {b["account_id"]: b for b in snapshot}
 
         for move in movements:
@@ -784,7 +861,6 @@ class Trial_Balance:
                 move["period"] = period
                 merged[acc_id] = move
 
-        # Ensure all have correct period label
         for v in merged.values():
             v["period"] = period
 

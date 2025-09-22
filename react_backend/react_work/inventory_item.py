@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def fetch_items_for_main_view(business, page, company, search, user, location, page_quantity=30):
     try:
-        business_obj = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_obj = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_obj, user_name=user)
 
         if not user_query.item_access and not user_query.admin:
@@ -128,7 +128,7 @@ def fetch_items_for_main_view(business, page, company, search, user, location, p
 
 def fetch_items_for_select(business, user, company, search, location):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         
         if not location:
             items_query = models.items.objects.filter(bussiness_name=business_query)
@@ -182,7 +182,7 @@ def verify_item(name, code, image, business, company):
     valid_extensions = ['.jpg', 'png', '.jpeg', 'webp', 'avif']
     
     try:
-        business_data = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_data = models.bussiness.objects.get(bussiness_name=business)
         if models.items.objects.filter(bussiness_name=business_data, code=code).exists():
             logger.warning(f"Item code '{code}' already exists in business '{business}'")
             return {'status': 'error', 'message': f"Item code '{code}' already exists"}
@@ -210,7 +210,7 @@ def verify_item(name, code, image, business, company):
 
 def add_inventory_item(business, user, company, code, name, reorder, model, category, suffix, image, description, brand):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.admin and not user_query.create_access:
@@ -288,7 +288,7 @@ def update_item(data, company):
             return {"status": "error", "message": "Invalid image type"}
             
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=data['business'], company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=data['business'])
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=data['user'])
 
         if not user_query.admin and not user_query.edit_access:

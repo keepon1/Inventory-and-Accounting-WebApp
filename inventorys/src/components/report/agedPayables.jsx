@@ -10,13 +10,15 @@ import {
   faCalendarDay,
   faExclamationTriangle,
   faFileExport,
-  faChevronDown
+  faChevronDown,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import './itemSummary.css';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -220,10 +222,14 @@ const AgedPayables = ({ business, user }) => {
   return (
     <div className="dashboard-main">
       <div className="journal-header">
-        <h3>
-          <FontAwesomeIcon icon={faFileInvoiceDollar} className="header-icon" />
-          Aged Payables Report
-        </h3>
+        <div className="header-back">
+          <Link to="../" className="back-link">
+              <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+          </Link>
+          <h2>
+            Aged Payables Report
+          </h2>
+        </div>
       </div>
 
       <div className="journal-filters">

@@ -2,16 +2,15 @@ import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faSearch,
-  faUser,
   faTimesCircle,
   faEye,
-  faFileAlt,
-  faCalendarAlt,
   faUserShield,
-  faUserCheck
+  faUserCheck,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
+import { toast } from 'react-toastify';
 
 const UserActivity = ({ business, user }) => {
     const [users, setUsers] = useState([]);
@@ -33,9 +32,16 @@ const UserActivity = ({ business, user }) => {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const response = await api.post('fetch_users', { business });
-                setUsers(response);
+                const response = await api.post('fetch_users', { business, user });
+
+                if (response.status === 'error') {
+                    console.error(response.message || 'Failed to fetch users');
+                    return;
+                }
+                setUsers(response.data || []);
             } catch (error) {
+                toast.error("An error occurred while fetching users");
+                console.error(error);
                 if (error.response?.status === 401) {
                     localStorage.removeItem('access');
                     navigate('/sign_in');
@@ -50,11 +56,18 @@ const UserActivity = ({ business, user }) => {
         try {
             const response = await api.post('fetch_user_activities', { 
                 business, 
-                username 
+                username,
+                user
             });
-            setActivities(response);
+
+            if (response.status === 'error'){
+                toast.error(response.message || "fetching history failed");
+                return;
+            }
+            setActivities(response.data);
             setLoadingActivities(false);
         } catch (error) {
+            toast.error()
             console.error('Error fetching activities:', error);
             setLoadingActivities(false);
         }
@@ -81,28 +94,28 @@ const UserActivity = ({ business, user }) => {
     return (
         <div className="journal-container">
             <div className="journal-header">
-                <h1>
-                    <FontAwesomeIcon icon={faUser} className="header-icon" />
-                    User Activity Monitoring
-                </h1>
-                <div className="journal-controls">
-                    <FontAwesomeIcon 
-                        icon={faTimesCircle} 
-                        className="close-button"
-                        onClick={() => navigate(-1)}
-                    />
+                <div className='header-back'>
+                    <Link to="../" className='back-link'>
+                        <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+                    </Link>
+                    <h2>
+                        User Activity Monitoring
+                    </h2>
                 </div>
             </div>
 
             <div className="journal-filters">
-                <div className="filter-groups-right">
-                    <div className="filter-group1">
-                        <FontAwesomeIcon icon={faSearch} />
-                        <input 
-                            onChange={handleSearch} 
-                            type="text" 
-                            placeholder="Search users..." 
-                        />
+                <div></div>
+                <div className="ivi_display_box1">
+                    <div className="ivi_subboxes1">
+                        <div className="ivi_holder_box1">
+                            <input 
+                                onChange={handleSearch} 
+                                type="text" 
+                                placeholder="Search users..." 
+                                className='ivi_input'
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -118,7 +131,6 @@ const UserActivity = ({ business, user }) => {
                     </thead>
                     <tbody>
                         {filteredUsers.map((user, index) => {
-                            // Find the most recent activity for this user
                             const lastActivity = activities.find(a => a.user === user.user_name);
                             return (
                                 <tr key={user.user_name} className="table-row">
@@ -157,11 +169,6 @@ const UserActivity = ({ business, user }) => {
                         <div className="modal-header">
                             <h3>
                                 Activity History for {selectedUser.user_name}
-                                {selectedUser.admin && (
-                                    <span className="admin-badge">
-                                        <FontAwesomeIcon icon={faUserShield} /> Admin
-                                    </span>
-                                )}
                             </h3>
                             <button
                                 className="modal-close"

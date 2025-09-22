@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def fetch_locations_for_select(business, user, company, search):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
         
         location_query = models.inventory_location.objects.filter(bussiness_name=business_query)
@@ -38,7 +38,7 @@ def fetch_locations_for_select(business, user, company, search):
     
 def fetch_source_locations_for_select(business, user, company, search):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
         
         location_query = models.inventory_location.objects.filter(bussiness_name=business_query)
@@ -73,11 +73,11 @@ def fetch_source_locations_for_select(business, user, company, search):
 
 def fetch_location_for_main_view(business, user, search, company):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(user_name=user, bussiness_name=business_query)
 
         if not user_query.admin and not user_query.location_access:
-            return 'no access'
+            return {'status': 'error', 'message': 'User has no location access'}
         
         location = models.inventory_location.objects.filter(bussiness_name=business_query)
 
@@ -115,20 +115,20 @@ def fetch_location_for_main_view(business, user, search, company):
                 'value': r['total_value']
             })
 
-        return data
+        return {'status': 'success', 'data': data}
     
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
-        return f"Business '{business}' not found."
+        return {'status': 'error', 'message': f'Business {business} not found'}
     
     except models.current_user.DoesNotExist:
         logger.warning(f"User '{user}' not found.")
-        return f"User '{user}' not found."
+        return {'status': 'error', 'message': f'User {user} not found'}
     
     except ValueError as value:
         logger.info(value)
-        return 'Info does not exist'
+        return {'status': 'error', 'message': 'Invalid data was submitted'}
     
     except Exception:
         logger.exception("Unhandled error during item verification")
-        return 'error'
+        return {'status': 'error', 'message': 'something happened'}

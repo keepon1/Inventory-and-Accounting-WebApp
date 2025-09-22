@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def fetch_purchase_for_main_view(search, date_search, business, company, page, user, page_quantity=30):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
        
         if not user_query.admin and not user_query.purchase_access:
@@ -75,7 +75,7 @@ def fetch_purchase_for_main_view(search, date_search, business, company, page, u
     
 def post_and_save_purchase(business, user, company, location, data, totals, items, levy, real_levy, supplier):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
        
         if not user_query.admin and not user_query.create_access and not user_query.purchase_access:
@@ -302,7 +302,7 @@ def post_and_save_purchase(business, user, company, location, data, totals, item
     
 def reverse_purchase(business, user, company, number):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.admin and not user_query.reverse_access:
@@ -310,7 +310,7 @@ def reverse_purchase(business, user, company, number):
         
         purchase = models.purchase.objects.get(code=number, bussiness_name=business_query)
 
-        if purchase.status.lower() == 'reversed':
+        if purchase.is_reversed:
             return {'status': 'error', 'message': f'Purchase {number} has been reversed already'}
         
         history = models.purchase_history.objects.filter(purchase=purchase, bussiness_name=business_query)
@@ -446,6 +446,7 @@ def reverse_purchase(business, user, company, number):
             payments = models.payment.objects.filter(transaction_number=purchase.code, bussiness_name=business_query, status=True)
             for pay in payments:
                 pay.status = False
+                pay.is_reversed = True
                 pay.save()
 
             total_paid = sum(p.amount for p in payments)
@@ -455,10 +456,11 @@ def reverse_purchase(business, user, company, number):
                     
                     
             purchase.status = 'Reversed'
+            purchase.is_reversed = True
             purchase.save()
 
         models.tracking_history.objects.create(user=user_query, head=purchase.code, area='Reverse purchase', bussiness_name=business_query)
-        return 'reversed'
+        return {'status': 'success' , 'message': f'Purchase invoice {number} has been reversed successfully'}
 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")

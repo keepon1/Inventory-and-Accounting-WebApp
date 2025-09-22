@@ -10,12 +10,14 @@ import {
   faChevronUp,
   faTable,
   faChartBar,
-  faExclamationTriangle
+  faExclamationTriangle,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 const TrialBalance = ({ business, user }) => {
   const today = new Date();
@@ -29,7 +31,6 @@ const TrialBalance = ({ business, user }) => {
   const [activeView, setActiveView] = useState('table');
   const [alertsCollapsed, setAlertsCollapsed] = useState(true);
 
-  // 🔹 Process backend trial balance data into grouped structure
   const processTrialBalanceData = (response) => {
     const groups = {
       Assets: { name: 'Assets', debit: 0, credit: 0, accounts: [] },
@@ -209,10 +210,14 @@ const TrialBalance = ({ business, user }) => {
   return (
     <div className="dashboard-main">
       <div className="journal-header">
-        <h3>
-          <FontAwesomeIcon icon={faBalanceScale} className="header-icon" />
-          Trial Balance
-        </h3>
+        <div className='header-back'>
+          <Link to="../" className='back-link'>
+            <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+          </Link>
+          <h2>
+            Trial Balance
+          </h2>
+        </div>
       </div>
 
       <div className="journal-filters">

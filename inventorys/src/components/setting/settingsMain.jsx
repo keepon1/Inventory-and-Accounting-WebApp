@@ -113,7 +113,7 @@ const SettingsMain = ({ business, user }) => {
         <Route path="currency" element={<CurrencyMain business={business} user={user}/>} />
         <Route path="unit" element={<MeasurementUnit business={business} user={user}/>} />
         <Route path="category" element={<CategoryMain business={business} user={user}/>} />
-        <Route path="users" element={<UserAccount business={business} />} user={user}/>
+        <Route path="users" element={<UserAccount business={business} user={user}/>} />
         <Route path="roles" element={<RolePermission business={business} user={user}/>} />
         <Route path="activity" element={<UserActivity business={business} user={user}/>} />
       </Routes>

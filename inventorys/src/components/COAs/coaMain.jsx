@@ -8,9 +8,11 @@ import {
 import './coaMain.css';
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
-import { Link } from 'react-router-dom';
+import { Link, Route, Routes, useParams } from 'react-router-dom';
 import api from '../api';
-import enableKeyboardScrollFix from '../../utils/scroll';
+import { toast } from 'react-toastify';
+import AccountHistory from './coaHistory';
+import AccessDenied from '../access';
 
 const AccountMain = ({ business, user, access }) => {
   const [accountsData, setAccountsData] = useState([]);
@@ -26,14 +28,17 @@ const AccountMain = ({ business, user, access }) => {
       try {
         const response = await api.post('fetch_coa', {business, user});
         
+        if (response.status === 'error') {
+          toast.error(response.message || "Failed to fetch chart of accounts");
+          return;
+        }
         setAccountsData(response);
       } catch (error) {
+        toast.error("Failed to fetch chart of accounts");
         console.error("Error fetching chart of accounts:", error);
       }
     };
     fetchData();
-    const cleanup = enableKeyboardScrollFix();
-    return cleanup;
   }, [business]);
 
   const handleCreateOverlay = (e) => {
@@ -99,17 +104,17 @@ const AccountMain = ({ business, user, access }) => {
 
   const addAccount = async() => {
     if (!detail.account){
-      setFormError('Account is required');
+      toast.info('Account is required');
       return;
     }
 
     if (!detail.sub){
-      setFormError('Sub Account is required');
+      toast.info('Sub Account is required');
       return;
     }
 
     if (detail.real === ''){
-      setFormError('Real Account is required');
+      toast.info('Real Account is required');
       return;
     }
 
@@ -124,122 +129,141 @@ const AccountMain = ({ business, user, access }) => {
 
     try{
       const response = await api.post('create_account', data);
-      console.log(response)
-      if (response === 'done'){
+      
+      if (response.status === 'success'){
+        toast.success(response.message || 'Account created successfully');
         setShowCreate(false);
         setDetail({account:{value:'', label:''}, sub:null, real:'', description:''});
 
         const refreshResponse = await api.post('fetch_coa', { business, user });
         setAccountsData(refreshResponse || []);
+      }else{
+        toast.error(response.message || 'Failed to create account');
+        return;
       }
     } catch(error) {
+      toast.error("Failed to create account");
       console.error("Error creating account:", error);
     }
   };
 
   return (
     <div className="journal-container">
-      <div className="ledger-header">
+      <div className="journal-header">
         <h1><FontAwesomeIcon icon={faBook} className="header-icon" /> Chart of Accounts</h1>
-        <div className="ledger-controls">
-          <button className="btn btn-outline"><FontAwesomeIcon icon={faFileExport} /> Export</button>
-        </div>
       </div>
 
-      <div className="journal-filters">
-        <div className="create_access">
-        {(access.create_access || access.admin) && (
-          <button className="btn btn-outline" onClick={() => {
-            setShowCreate(true);
-            document.addEventListener('mousedown', handleCreateOverlay);
-          }}>
-            Add Account
-          </button>
-        )}
-        </div>
+      <Routes>
+        <Route index element={
+          <>
 
-        <div className="ivi_display_box1">
-          <div className="ivi_subboxes1">
-            <div className="ivi_holder_box1">
-              <input
-                type="text"
-                placeholder="Search accounts..."
-                className='ivi_input'
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="journal-filters">
+              <div className="create_access">
+              {(access.create_access || access.admin) && (
+                <button className="btn btn-outline" onClick={() => {
+                  setShowCreate(true);
+                  document.addEventListener('mousedown', handleCreateOverlay);
+                }}>
+                  Add Account
+                </button>
+              )}
+              </div>
+
+              <div className="ivi_display_box1">
+                <div className="ivi_subboxes1">
+                  <div className="ivi_holder_box1">
+                    <input
+                      type="text"
+                      placeholder="Search accounts..."
+                      className='ivi_input'
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="items-table-box">
-        <table className="items-table">
-          <thead className="table-header">
-            <tr>
-              <th style={{width: '20%'}}>Code</th>
-              <th style={{width: '40%'}}>Name</th>
-              <th className="text-right" style={{width: '15%'}}>Balance</th>
-              <th style={{width: '5%'}}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredAccounts.map(account => (
-              <React.Fragment key={account.code}>
-                <tr className="account-row parent-row">
-                  <td>
-                    <span 
-                      className="expand-toggle"
-                      onClick={() => toggleAccountExpansion(account.code)}
-                    >
-                      <FontAwesomeIcon 
-                        icon={expandedAccounts[account.code] ? faChevronDown : faChevronRight} 
-                      />
-                    </span>
-                    {account.code}
-                  </td>
-                  <td>{account.name}</td>
-                  <td className="text-right">{formatAmount(account.total)}</td>
-                  <td>
-                    <button 
-                      className="btn-icon"
-                      onClick={() => toggleAccountExpansion(account.code)}
-                    >
-                      {expandedAccounts[account.code] ? 'Collapse' : 'Expand'}
-                    </button>
-                  </td>
-                </tr>
-                
-                {expandedAccounts[account.code] && account.subs && account.subs.map(sub => (
-                  <React.Fragment key={sub.code}>
-                    <tr className="sub-account-row">
-                      <td>
-                        <span className="indent"></span>
-                        {sub.code}
-                      </td>
-                      <td>{sub.name}</td>
-                      <td className="text-right">{formatAmount(sub.total)}</td>
-                      <td></td>
-                    </tr>
-                    
-                    {sub.accounts && sub.accounts.map(real => (
-                      <tr key={real.code} className="real-account-row">
+      
+            <div className="items-table-box">
+              <table className="items-table">
+                <thead className="table-header">
+                  <tr>
+                    <th style={{width: '20%'}}>Code</th>
+                    <th style={{width: '40%'}}>Name</th>
+                    <th style={{width: '15%'}} className="text-right">Debit</th>
+                    <th style={{width: '15%'}} className="text-right">Credit</th>
+                    <th className="text-right" style={{width: '15%'}}>Balance</th>
+                    <th style={{width: '5%'}}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAccounts.map(account => (
+                    <React.Fragment key={account.code}>
+                      <tr className="account-row parent-row">
                         <td>
-                          <span className="indent-double"></span>
-                          {real.code}
+                          <span 
+                            className="expand-toggle"
+                            onClick={() => toggleAccountExpansion(account.code)}
+                          >
+                            <FontAwesomeIcon 
+                              icon={expandedAccounts[account.code] ? faChevronDown : faChevronRight} 
+                            />
+                          </span>
+                          {account.code}
                         </td>
-                        <td>{real.name}</td>
-                        <td className="text-right">{formatAmount(real.balance)}</td>
-                        <td></td>
+                        <td>{account.name}</td>
+                        <td className="text-right"><Link to={`history/${account.code} - ${account.name}`} className="transaction-link">{formatAmount(account.total_debit)}</Link></td>
+                        <td className="text-right"><Link to={`history/${account.code} - ${account.name}`} className="transaction-link">{formatAmount(account.total_credit)}</Link></td>
+                        <td className="text-right"><Link to={`history/${account.code} - ${account.name}`} className="transaction-link">{formatAmount(account.balance)}</Link></td>
+                        <td>
+                          <button 
+                            className="btn-icon"
+                            onClick={() => toggleAccountExpansion(account.code)}
+                          >
+                            {expandedAccounts[account.code] ? 'Collapse' : 'Expand'}
+                          </button>
+                        </td>
                       </tr>
-                    ))}
-                  </React.Fragment>
-                ))}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                      
+                      {expandedAccounts[account.code] && account.subs && account.subs.map(sub => (
+                        <React.Fragment key={sub.code}>
+                          <tr className="sub-account-row">
+                            <td>
+                              <span className="indent"></span>
+                              {sub.code}
+                            </td>
+                            <td>{sub.name}</td>
+                            <td className="text-right"><Link to={`history/${sub.code} - ${sub.name}`} className="transaction-link">{formatAmount(sub.total_debit)}</Link></td>
+                            <td className="text-right"><Link to={`history/${sub.code} - ${sub.name}`} className="transaction-link">{formatAmount(sub.total_credit)}</Link></td>
+                            <td className="text-right"><Link to={`history/${sub.code} - ${sub.name}`} className="transaction-link">{formatAmount(sub.balance)}</Link></td>
+                            <td></td>
+                          </tr>
+                          
+                          {sub.accounts && sub.accounts.map(real => (
+                            <tr key={real.code} >
+                              <td>
+                                <span className="indent-double"></span>
+                                {real.code}
+                              </td>
+                              <td>{real.name}</td>
+                              <td className="text-right"><Link to={`history/${real.code} - ${real.name}`} className="transaction-link">{formatAmount(real.debit)}</Link></td>
+                              <td className="text-right"><Link to={`history/${real.code} - ${real.name}`} className="transaction-link">{formatAmount(real.credit)}</Link></td>
+                              <td className="text-right"><Link to={`history/${real.code} - ${real.name}`} className="transaction-link">{formatAmount(real.balance)}</Link></td>
+                              <td></td>
+                            </tr>
+                          ))}
+                        </React.Fragment>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        } />
+        <Route path="history/:accountCode" element={<AccountHistoryWrapper business={business} user={user} access={access} />} />
+        <Route path="*" element={<AccessDenied />} />
+      </Routes>
 
       {showCreate && (
         <div className="modal-overlay">
@@ -309,6 +333,11 @@ const AccountMain = ({ business, user, access }) => {
       )}
     </div>
   );
+};
+
+const AccountHistoryWrapper = ({ business, user, access }) => {
+  const { accountCode } = useParams();
+  return <AccountHistory accountCode={accountCode} business={business} user={user} access={access} />;
 };
 
 export default AccountMain;

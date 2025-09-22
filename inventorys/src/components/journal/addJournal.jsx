@@ -1,12 +1,13 @@
 import {useState, useEffect } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import { faEdit, faTrashAlt } from "@fortawesome/free-regular-svg-icons";
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
 import api from "../api";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import enableKeyboardScrollFix from "../../utils/scroll";
+import { toast } from "react-toastify";
 
 const GLJournal = ({business, user}) => {
     const [entry, setEntry] = useState({
@@ -31,6 +32,11 @@ const GLJournal = ({business, user}) => {
                     { business, user }
                 );
 
+                if (response.status === 'error') {
+                    toast.error(response.message || 'Failed to fetch accounts');
+                    return;
+                }
+
                 const disallowed = ["10400", "20100", "20300", "10300", "10600", "40100", "50100"];
                 const isManualGLSafe = (acc) =>
                     !disallowed.includes(String(acc.account_type__code));
@@ -44,6 +50,8 @@ const GLJournal = ({business, user}) => {
                 
                 setAccounts(formattedAccounts);
             } catch (error) {
+                console.error('Error fetching accounts:', error);
+                toast.error('An error occurred while fetching accounts');
                 if (error.response?.status === 401) {
                     localStorage.removeItem('access');
                     navigate('/sign_in');
@@ -51,8 +59,6 @@ const GLJournal = ({business, user}) => {
             }
         };
         fetchAccounts();
-        const cleanup = enableKeyboardScrollFix();
-        return cleanup;
     }, [navigate]);
 
     const handleChange = (e) => {
@@ -69,22 +75,22 @@ const GLJournal = ({business, user}) => {
         setFormError('');
 
         if (!entry.debitAccount) {
-            setFormError('Debit account is required');
+            toast.info('Debit account is required');
             return;
         }
         
         if (!entry.creditAccount) {
-            setFormError('Credit account is required');
+            toast.info('Credit account is required');
             return;
         }
         
         if (entry.debitAccount.value === entry.creditAccount.value) {
-            setFormError('Debit and credit accounts must be different');
+            toast.info('Debit and credit accounts must be different');
             return;
         }
         
         if (entry.amount <= 0) {
-            setFormError('Amount must be positive');
+            toast.info('Amount must be positive');
             return;
         }
 
@@ -123,7 +129,7 @@ const GLJournal = ({business, user}) => {
             const totalCredit = entries.reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
             if (totalDebit !== totalCredit) {
-                setFormError('Total debits must equal total credits');
+                toast.info('Total debits must equal total credits');
                 return;
             }
 
@@ -142,16 +148,18 @@ const GLJournal = ({business, user}) => {
 
             const response = await api.post('add_journal', payload);
 
-            if (response === 'done'){
+            if (response.status === 'success') {
+                toast.success(response.message || 'Journal posted successfully');
                 navigate(-1);
-            };
+            }else{
+                toast.error(response.message || 'Failed to post journal');
+            }
         } catch (error) {
             console.error("Save error:", error);
+            toast.error('An error occurred while saving the journal');
             if (error.response?.status === 401) {
                 localStorage.removeItem('access');
                 navigate('/sign_in');
-            } else if (error.response?.data) {
-                setFormError(error.response.data.detail || 'Failed to save journal');
             }
         }
     };
@@ -163,15 +171,11 @@ const GLJournal = ({business, user}) => {
         <div className="ivi_display_mainbox">
             <div className="ia_submain_box">
                 <div className="ia_description_box">
-                    <div className="ia_description">
-                        <span className="ia_description_word">General Journal</span>
-                    </div>
-                    <div className="inner_close">
-                        <FontAwesomeIcon 
-                            onClick={() => navigate(-1)} 
-                            className="close-button" 
-                            icon={faTimesCircle} 
-                        />
+                    <div className="header-back">
+                        <Link to="../" className="back-link">
+                            <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+                        </Link>
+                        <h2 >General Journal</h2>
                     </div>
                 </div>
 

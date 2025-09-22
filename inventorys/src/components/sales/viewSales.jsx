@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimesCircle, faEdit, faTachometer } from "@fortawesome/free-solid-svg-icons";
+import { faTimesCircle, faEdit, faTachometer, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
-const ViewSales = ( {business, user, access, sales} ) => {
+const ViewSales = ({ business, user, access, sales }) => {
   const [sale, setSale] = useState({
     customer: '',
     customer_info: '',
@@ -16,14 +16,14 @@ const ViewSales = ( {business, user, access, sales} ) => {
     address: '',
     discount: '',
     tax_levy: '',
-    rate:[],
+    rate: [],
     description: '',
     location: '',
     total: 0,
-    type:'',
+    type: '',
     status: '',
   });
-  
+
   const [items, setItems] = useState([]);
   const navigate = useNavigate();
 
@@ -35,11 +35,11 @@ const ViewSales = ( {business, user, access, sales} ) => {
           { business, number: sales },
         );
 
-        if (response.status === 'error'){
+        if (response.status === 'error') {
           toast.error(response.message);
           return;
         }
-        
+
         const { customer, items } = response.data;
         setSale({
           number: customer.number,
@@ -54,7 +54,7 @@ const ViewSales = ( {business, user, access, sales} ) => {
           total: customer.total,
           createdBy: customer.by,
           tax_levy: JSON.parse(customer.tax_levy[0]).map(item => `${item.label} `),
-          rate: JSON.parse(customer.tax_levy[0]).map(item => ({value: `${item.label}`, rate: `${item.rate}`})),
+          rate: JSON.parse(customer.tax_levy[0]).map(item => ({ value: `${item.label}`, rate: `${item.rate}` })),
           type: customer.type,
           discount: customer.discount,
           status: customer.status
@@ -71,25 +71,23 @@ const ViewSales = ( {business, user, access, sales} ) => {
     fetchSale();
   }, []);
 
-  const reverse = async() => {
+  const reverse = async () => {
     try {
-        const response = await api.post(
-          'edit_sale',
-          { business, number: sale.number, user },
-        );
-        
-        if (response.status === 'success'){
-          toast.success(response.message || `Sales Invoice ${sale.number} reversed successfully`);
-          navigate(-1);
-        }
-        else{
-          toast.error(response.message || 'Failed to reverse sales invoice');
-        }
+      const response = await api.post(
+        'edit_sale',
+        { business, number: sale.number, user },
+      );
+
+      if (response.status === 'success') {
+        toast.success(response.message || `Sales Invoice ${sale.number} reversed successfully`);
+        navigate(-1);
+      } else {
+        toast.error(response.message || 'Failed to reverse sales invoice');
       }
-    catch(error){
+    } catch (error) {
       toast.error("An error occurred while reversing the sales invoice.");
     }
-  }
+  };
 
   const total2 = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.qty * item.price), 0);
@@ -100,7 +98,7 @@ const ViewSales = ( {business, user, access, sales} ) => {
     }, 0);
 
     const grandTotal = sale.total;
-    return{
+    return {
       subtotal, discount, total, levies, grandTotal
     };
   };
@@ -111,99 +109,59 @@ const ViewSales = ( {business, user, access, sales} ) => {
     <div className="ivi_display_mainbox">
       <div className="ia_submain_box">
         <div className="ia_description_box">
-          <h2 className="ia_description_word">Sales Invoice Details : {sale.number}</h2>
-          <FontAwesomeIcon 
-            icon={faTimesCircle} 
-            className="close-button"
-            onClick={() => navigate(-1)}
-          />
+          <div className="header-back">
+            <Link to="../" className="back-link">
+                <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+            </Link>
+            <h2 className="ia_description_word">{sale.number}</h2>
+          </div>  
         </div>
 
         <div className="ivi_display_box">
-          {sale.type === 'regular' ? (
-            <>
-              <div className="ivi_subboxes">
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Sales Type</label>
-                  <div className="ivi_input">Regular Sales</div>
-                </div>
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Customer Name</label>
-                  <div className="ivi_input">{sale.customer}</div>
-                </div>
-              </div>
+          <div className="ivi_subboxes">
+            <div className="ivi_holder_box">
+              <label className="ivi_label">Sales Type</label>
+              <input className="ivi_input" value={sale.type === 'regular' ? 'Regular Sales' : 'To Registered Customer'} readOnly title={sale.type === 'regular' ? 'Regular Sales' : 'To Registered Customer'} />
+            </div>
+            <div className="ivi_holder_box">
+              <label className="ivi_label">Customer Name</label>
+              <input className="ivi_input" value={sale.customer || sale.customer_info} readOnly title={sale.customer || sale.customer_info} />
+            </div>
+            <div className="ivi_holder_box">
+              <label className="ivi_label">Status</label>
+              <input className="ivi_input" value={sale.status} readOnly title={sale.status} />
+            </div>
+          </div>
 
-              <div className="ivi_subboxes">
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Issue Date</label>
-                  <div className="ivi_input">{sale.issueDate}</div>
-                </div>
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Location</label>
-                  <div className="ivi_input">{sale.location}</div>
-                </div>
-              </div>
+          <div className="ivi_subboxes">
+            <div className="ivi_holder_box">
+              <label className="ivi_label">Issue Date</label>
+              <input className="ivi_input" value={sale.issueDate} readOnly title={sale.issueDate} />
+            </div>
+            <div className="ivi_holder_box">
+              <label className="ivi_label">Due Date</label>
+              <input className="ivi_input" value={sale.dueDate} readOnly title={sale.dueDate} />
+            </div>
+            <div className="ivi_holder_box">
+              <label className="ivi_label">Description</label>
+              <input className="ivi_input" value={sale.description} readOnly title={sale.description} />
+            </div>
+          </div>
 
-              <div className="ivi_subboxes">
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Discount</label>
-                  <div className="ivi_input">{sale.discount}</div>
-                </div>
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Tax & Levy</label>
-                  <div className="ivi_input">{sale.tax_levy}</div>
-                </div>
-              </div>
-            </>
-          ):(
-            <>
-              <div className="ivi_subboxes">
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Sales Type</label>
-                  <div className="ivi_input">To Registered Customer</div>
-                </div>
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Customer Name</label>
-                  <div className="ivi_input">{sale.customer_info}</div>
-                </div>
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Status</label>
-                  <div className="ivi_input">{sale.status}</div>
-                </div>
-              </div>
-
-              <div className="ivi_subboxes">
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Issue Date</label>
-                  <div className="ivi_input">{sale.issueDate}</div>
-                </div>
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Due Date</label>
-                  <div className="ivi_input">{sale.dueDate}</div>
-                </div>
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Description</label>
-                  <div className="ivi_input">{sale.description}</div>
-                </div>
-              </div>
-
-              <div className="ivi_subboxes">
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Location</label>
-                  <div className="ivi_input">{sale.location}</div>
-                </div>
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Discount</label>
-                  <div className="ivi_input">{sale.discount}</div>
-                </div>
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Tax & Levy</label>
-                  <div className="ivi_input">{sale.tax_levy}</div>
-                </div>
-              </div>
-            </>
-          )}
-          
+          <div className="ivi_subboxes">
+            <div className="ivi_holder_box">
+              <label className="ivi_label">Location</label>
+              <input className="ivi_input" value={sale.location} readOnly title={sale.location} />
+            </div>
+            <div className="ivi_holder_box">
+              <label className="ivi_label">Discount</label>
+              <input className="ivi_input" value={sale.discount} readOnly title={sale.discount} />
+            </div>
+            <div className="ivi_holder_box">
+              <label className="ivi_label">Tax & Levy</label>
+              <input className="ivi_input" value={sale.tax_levy} readOnly title={sale.tax_levy} />
+            </div>
+          </div>
         </div>
 
         <div className="ia_table_box">

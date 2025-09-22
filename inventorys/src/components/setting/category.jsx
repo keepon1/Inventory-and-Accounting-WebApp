@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faSearch,
-  faTags,
   faTimesCircle,
-  faEdit
+  faEdit,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import enableKeyboardScrollFix from '../../utils/scroll';
+import { toast } from 'react-toastify';
 
 const CategoryMain = ({ business, user }) => {
     const [categories, setCategories] = useState([]);
@@ -37,10 +38,17 @@ const CategoryMain = ({ business, user }) => {
             try {
                 const response = await api.post(
                     'fetch_categories',
-                    { business: business },
+                    { business, user },
                 );
-                setCategories(response);
+
+                if (response.status === 'error'){
+                    toast.error(response.message || 'Error fetching categories');
+                    return;
+                }
+                setCategories(response.data || []);
             } catch (error) {
+                toast.error('An error occurred while fetching categories');
+                console.error(error);
                 if (error.response?.status === 401) {
                     localStorage.removeItem('access');
                     navigate('/sign_in');
@@ -48,8 +56,6 @@ const CategoryMain = ({ business, user }) => {
             }
         };
         fetchItems();
-        const cleanup = enableKeyboardScrollFix();
-        return cleanup;
     }, []);
 
     const handleCreateOverlay = (e) => {
@@ -66,14 +72,11 @@ const CategoryMain = ({ business, user }) => {
 
     const openEdit = async (category) => {
         try {
-            const response = await api.post(
-                'get_category',
-                { business, category: category },
-            );
+
             setEditData({
-                originalName: category,
-                name: response.name,
-                description: response.description,
+                originalName: category.name,
+                name: category.name,
+                description: category.description,
             });
             setShowEdit(true);
             document.addEventListener('mousedown', handleEditOverlay);
@@ -86,7 +89,7 @@ const CategoryMain = ({ business, user }) => {
 
     const addCategory = async () => {
         if (!detail.name || detail.name === '') {
-            setErrors('Name cannot be empty');
+            toast.info('Name cannot be empty');
             return;
         };
 
@@ -97,21 +100,37 @@ const CategoryMain = ({ business, user }) => {
 
         try {
             const response = await api.post('add_category', { business, detail: data, user });
-            if (response === 'done') {
+
+            if (response.status === 'success') {
+                toast.success(response.message || 'Category added successfully');
                 setShowCreate(false);
                 document.addEventListener('mousedown', handleCreateOverlay);
 
-                const response = await api.post('fetch_categories', { business: business });
-                setCategories(response);
-            };
+                setDetail({ name: '', description: '' });
+
+                const update = await api.post('fetch_categories', { business, user });
+
+                if (update.status === 'error'){
+                    toast.error(update.message || 'Error fetching categories');
+                    return;
+                }
+                setCategories(update.data || []);
+            }else{
+                toast.error(response.message || 'Error adding category');
+            }
         } catch (error) {
+            toast.error('An error occurred while adding the category');
             console.error(error);
+            if (error.response?.status === 401) {
+                localStorage.removeItem('access');
+                navigate('/sign_in');
+            }
         };
     };
 
     const editCategory = async () => {
         if (!editData.name || editData.name === '') {
-            setErrors('Name cannot be empty');
+            toast.info('Name cannot be empty');
             return;
         };
 
@@ -122,14 +141,26 @@ const CategoryMain = ({ business, user }) => {
         };
 
         try {
-            const response = await api.post('edit_category', { business, detail: data });
-            if (response === 'done') {
+            const response = await api.post('edit_category', { business, detail: data, user });
+
+            if (response.status === 'success') {
+                toast.success(response.message || 'Category updated successfully');
                 setShowEdit(false);
                 document.addEventListener('mousedown', handleEditOverlay);
 
-                const response = await api.post('fetch_categories', { business: business });
-                setCategories(response);
-            };
+                setEditData({ originalName: '', name: '', description: '' });
+
+                const update = await api.post('fetch_categories', { business, user });
+
+                if (update.status === 'error'){
+                    toast.error(update.message || 'Error fetching categories');
+                    return;
+                }
+
+                setCategories(update.data || []);
+            }else{
+                toast.error(response.message || 'Error updating category');
+            }
         } catch (error) {
             console.error(error);
         };
@@ -138,23 +169,20 @@ const CategoryMain = ({ business, user }) => {
     return (
         <div className="journal-container">
             <div className="journal-header">
-                <h1>
-                    <FontAwesomeIcon icon={faTags} className="header-icon" />
-                    Categories
-                </h1>
-                <div className="journal-controls">
-                    <FontAwesomeIcon
-                        icon={faTimesCircle}
-                        className="close-button"
-                        onClick={() => navigate(-1)}
-                    />
+                <div className='header-back'>
+                    <Link to="../" className='back-link'>
+                        <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+                    </Link>
+                    <h2>
+                        Categories
+                    </h2>
                 </div>
             </div>
 
             <div className="journal-filters">
                 <div className="filter-groups-left">
                     <div>
-                        <button className="add-item-button" onClick={() => {
+                        <button className="btn btn-outline" onClick={() => {
                             setShowCreate(true);
                             document.addEventListener('mousedown', handleCreateOverlay);
                         }}>
@@ -162,10 +190,11 @@ const CategoryMain = ({ business, user }) => {
                         </button>
                     </div>
                 </div>
-                <div className="filter-groups-right">
-                    <div className="filter-group1">
-                        <FontAwesomeIcon icon={faSearch} />
-                        <input onChange={handleSearch} type="text" placeholder="Search categories..." />
+                <div className="ivi_display_box1">
+                    <div className="ivi_subboxes1">
+                        <div className="ivi_holder_box1">
+                            <input onChange={handleSearch} className='ivi_input' type="text" placeholder="Search categories..." />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -183,7 +212,7 @@ const CategoryMain = ({ business, user }) => {
                         {filteredItems.map((category, index) => (
                             <tr key={category.name} id={`row-${index}`} className="table-row">
                                 <td className="table-row">
-                                    <button className="action-button" onClick={() => openEdit(category.name)}>
+                                    <button className="action-button" onClick={() => openEdit(category)}>
                                         <FontAwesomeIcon icon={faEdit} />
                                     </button>
                                 </td>

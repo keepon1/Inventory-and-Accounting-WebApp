@@ -4,6 +4,9 @@ import { faSearch, faEye, faEdit, faTimesCircle, faMapMarkerAlt, faUsers,  } fro
 import api from "../api";
 import { useNavigate, Routes, Route, useParams, Link } from "react-router-dom";
 import enableKeyboardScrollFix from "../../utils/scroll";
+import { toast } from "react-toastify";
+import CustomerHistory from "./customerHistory";
+import AccessDenied from "../access";
 
 const CustomerMain = ({ business, user, access }) => {
   const [customers, setCustomers] = useState([]);
@@ -29,9 +32,16 @@ const CustomerMain = ({ business, user, access }) => {
           { business, user, page, searchQuery },
         );
 
-        setCustomers(prev => page === 1 ? response.data : [...prev, ...response.data]);
-        setHasNext(response.has_more);
+        if (response.status === 'error') {
+          toast.error(response.message || 'Failed to fetch customers');
+          return;
+        }
+
+        setCustomers(prev => page === 1 ? response.data.data : [...prev, ...response.data.data]);
+        setHasNext(response.data.has_more);
       } catch (error) {
+        console.error('Error fetching customers:', error);
+        toast.error('An error occurred while fetching customers.');
         if (error.response?.status === 401) {
           localStorage.removeItem('access');
           navigate('/sign_in');
@@ -105,7 +115,7 @@ const CustomerMain = ({ business, user, access }) => {
 
   const handleCreate = async () => {
     if (!currentCustomer.name) {
-      setErrors({ name: 'Customer`s Name can not be empty' });
+      toast.info('Customer`s Name can not be empty');
       return;
     }
 
@@ -115,21 +125,30 @@ const CustomerMain = ({ business, user, access }) => {
         { business, customer: currentCustomer, user },
       );
 
-      if (response === 'exist') {
-        setErrors({ name: 'Customer already exist' });
+      if (response.status === 'error') {
+        toast.error(response.message || 'Customer already exist');
         return;
       }
 
+      toast.success(response.message || 'Customer created successfully');
       setShowCreate(false);
       const updated = await api.post(
         'fetch_customers',
         { business, user, page, searchQuery },
       );
-      setCustomers(prev => page === 1 ? updated.data : [...prev, ...updated.data]);
-      setHasNext(updated.has_more);
+
+      if (updated.status === 'error') {
+        toast.error(updated.message || 'Failed to fetch customers');
+        return;
+      }
+
+      setCustomers(prev => page === 1 ? updated.data.data : [...prev, ...updated.data.data]);
+      setHasNext(updated.data.has_more);
       setCurrentCustomer({ name: '', address: '', contact: '',  email:''});
 
     } catch (error) {
+      toast.error('An error occurred while creating customer.');
+      console.error(error);
       if (error.response?.status === 401) {
         navigate('/sign_in');
       }
@@ -148,21 +167,29 @@ const CustomerMain = ({ business, user, access }) => {
         }
       );
 
-      if (response === 'exist') {
-        setErrors({ names: 'Customer`s Name already exist' });
+      if (response.status === 'error') {
+        toast.error(response.message || 'Customer`s Name already exist');
         return;
       }
 
+      toast.success(response.message || 'Customer updated successfully');
       setShowEdit(false);
       const updated = await api.post(
         'fetch_customers',
         { business, user, page, searchQuery }
       );
-      setCustomers(prev => page === 1 ? updated.data : [...prev, ...updated.data]);
-      setHasNext(updated.has_more);
+
+      if (updated.status === 'error') {
+        toast.error(updated.message || 'Failed to fetch customers');
+        return;
+      }
+      setCustomers(prev => page === 1 ? updated.data.data : [...prev, ...updated.data.data]);
+      setHasNext(updated.data.has_more);
       setEditData({ originalName: '', name: '', address: '', contact:'', email:'' });
 
     } catch (error) {
+      toast.error('An error occurred while editing customer.');
+      console.error(error);
       if (error.response?.status === 401) {
         navigate('/sign_in');
       }
@@ -241,9 +268,9 @@ const CustomerMain = ({ business, user, access }) => {
                       <td>{customer.contact}</td>
                       <td>{customer.address}</td>
                       <td>{customer.email}</td>
-                      <td><Link>{customer.debit}</Link></td>
-                      <td><Link>{customer.credit}</Link></td>
-                      <td>{(customer.debit - customer.credit).toFixed(2) }</td>
+                      <td><Link to={`history/${customer.account} - ${customer.name}`} className="transaction-link">{customer.debit}</Link></td>
+                      <td><Link to={`history/${customer.account} - ${customer.name}`} className="transaction-link">{customer.credit}</Link></td>
+                      <td><Link to={`history/${customer.account} - ${customer.name}`} className="transaction-link">{(customer.debit - customer.credit).toFixed(2) }</Link></td>
                     </tr>
                   ))}
                 </tbody>
@@ -377,14 +404,16 @@ const CustomerMain = ({ business, user, access }) => {
 
           </>
         } />
-        {/*<Route path="view/:itemCode" element={<ViewItemWrapper />} />*/}
+        <Route path="history/:customerName" element={<CustomerHistoryWrapper business={business} user={user} access={access} />} />
+        <Route path="*" element={<AccessDenied />} />
       </Routes>
     </div>
   );
 };
 
-const ViewItemWrapper = () => {
-    const { itemCode } = useParams();
-  };
+const CustomerHistoryWrapper = ({ business, user, access }) => {
+  const { customerName } = useParams();
+  return <CustomerHistory customerName={customerName} business={business} user={user} access={access} />;
+};
 
 export default CustomerMain;

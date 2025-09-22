@@ -1,7 +1,7 @@
 from . import models
 from decimal import Decimal
 from django.core.paginator import Paginator
-from django.db.models import Sum
+from django.db.models import Sum, F
 from collections import defaultdict
 from django.db import transaction
 from django.db.models import Q
@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 def fetch_journal_for_main_view(search, date_search, business, company, page, user, page_quantity=30):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
        
         if not user_query.admin and not user_query.journal_access:
-            return 'user has no access'
+            return {'status':'error', 'message':f'User {user} has no access to view journal'}
 
         journal = models.journal_head.objects.filter(bussiness_name=business_query)
 
@@ -48,7 +48,7 @@ def fetch_journal_for_main_view(search, date_search, business, company, page, us
         
         journal = journal.order_by('-code').values(
             'code', 'date', 'entry_type', 'transaction_number', 'amount', 'description',
-            'created_by__user_name'
+            'created_by__user_name', 'reversed'
         )
         
         paginator = Paginator(journal, page_quantity)
@@ -56,64 +56,63 @@ def fetch_journal_for_main_view(search, date_search, business, company, page, us
 
         result = {'journals':list(current_page.object_list), 'has_more':current_page.has_next()}
 
-        return result
+        return {'status':'success', 'data':result}
 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
-        return "Business not found"
+        return {'status': 'error', 'message': f'Business {business} not found'}
     
     except models.current_user.DoesNotExist:
         logger.warning(f"User '{user}' not found.")
-        return "User not found"
+        return {'status': 'error', 'message': f'User {user} not found'}
     
     except Exception as error:
-        logger.exception('unhandled error')
-        return 'something happened'
+        logger.exception(error)
+        return {'status': 'error', 'message': 'something happened'}
     
 def view_gl_journal(business, user, company, code):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(user_name=user, bussiness_name=business_query)
 
         if not user_query.admin and not user_query.journal_access:
-            return 'no access'
+            return {'status':'error', 'message':f'User {user} has no access to view journal'}
         
         journal_query = models.journal_head.objects.get(bussiness_name=business_query, code=code)
-        items = models.journal.objects.filter(head=journal_query, bussiness_name=business_query)
+        items = models.journal.objects.filter(head=journal_query, bussiness_name=business_query).values('date', 'entry_type', 'description', 'amount', 'debit', 'credit').annotate(type=F('entry_type'))
 
         journal = {'type':journal_query.entry_type, 'number':journal_query.code, 'date':journal_query.date,
                  'description':journal_query.description, 'by':journal_query.created_by.user_name, 'amount':journal_query.amount,
-                 'transation_number':journal_query.transaction_number}
-        items = [{'date':i.date, 'type':i.entry_type, 'description':i.description, 'amount':i.amount, 'debit':i.debit,
-                  'credit':i.credit} for i in items]
+                 'transation_number':journal_query.transaction_number
+                }
 
         data = {'customer':journal, 'items':items}
 
-        return data
+        return {'status':'success', 'data':data}
 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
-        return "Business not found"
+        return {'status': 'error', 'message': f'Business {business} not found'}
     
     except models.current_user.DoesNotExist:
         logger.warning(f"User '{user}' not found.")
-        return "User not found"
+        return {'status': 'error', 'message': f'User {user} not found'}
     
     except models.journal_head.DoesNotExist:
         logger.warning(f"Journal code '{code}' not found.")
-        return "Journal code not found"
+        return {'status': 'error', 'message': f'Journal code {code} not found'}
     
     except Exception as error:
-        logger.exception('unhandled error')
-        return 'something happened'
+        logger.exception(error)
+        return {'status': 'error', 'message': 'something happened'}
     
 def add_gl_journal(company, user, business, data):
     try:
-        business_query = models.bussiness.objects.get(company_id=company, bussiness_name=business)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.admin and not user_query.create_access:
-            return 'no access'
+            return {'status':'error', 'message':f'User {user} has no access to create general journal'}
         
         ledger_map = {
             'Assets': models.asset_ledger,
@@ -129,13 +128,13 @@ def add_gl_journal(company, user, business, data):
                                  i['credit_account'] and i['debit_account'])
 
                 if not validate_data:
-                    raise ValueError('invalid data')
+                    return {'status':'error', 'message':'Invalid data was submitted'}
                 
                 current_date = datetime.strptime(i['date'], "%Y-%m-%d").date()
                 today = date.today()
 
                 if current_date.month != today.month:
-                    raise ValueError('can`t post to other period')
+                    return {'status':'error', 'message':'Transaction date must be within the current month'}
                 
                 accounts = {'debit':i['debit_account'], 'credit':i['credit_account']}
 
@@ -158,43 +157,47 @@ def add_gl_journal(company, user, business, data):
                 
                 debit_real_account = result.get('debit')
 
-                ledger_map.get(bussiness_name=business_query, period=result.get('period'),
+                ledger_map.get(debit_real_account.account_type.account_type.name).objects.create(bussiness_name=business_query, period=result.get('period'),
                             account=debit_real_account, transaction_number=head.transaction_number, date=i['date'], type="Manuel Entry",
                             description=head.description, debit=Decimal(str(head.amount)), head=head)
 
                 models.tracking_history.objects.create(user=user_query, bussiness_name=business_query, area='Posted GL entry', head=head.code)
 
-            return 'done'
+            return {'status':'success', 'message':'General journal entries added successfully'}
 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
-        return "Business not found"
+        return {'status': 'error', 'message': f'Business {business} not found'}
     
     except models.current_user.DoesNotExist:
         logger.warning(f"User '{user}' not found.")
-        return "User not found"
+        return {'status': 'error', 'message': f'User {user} not found'}
     
     except ValueError as value:
         logger.warning(value)
-        return str(value)
+        return {'status': 'error', 'message': 'Invalid data was submitted'}
+    
+    except TypeError as type_error:
+        logger.warning(type_error)
+        return {'status': 'error', 'message': 'Invalid data was submitted'}
 
     except Exception as error:
-        logger.exception('unhandled error')
-        return 'something happened'
+        logger.warning(error)
+        return {'status': 'error', 'message': 'something happened'}
     
 def reverse_gl_journal(company, user, number, business):
     try:    
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.admin and not user_query.create_access:
-            return 'no access'
+            return {'status':'error', 'message':f'User {user} has no access to reverse general journal'}
 
         head = models.journal_head.objects.get(bussiness_name=business_query, code=number)
 
         if head.entry_type.split()[-1].lower() == 'reversed':
             logger.warning(f"Journal no. '{number}' has already been reversed.")
-            return 'reversed'
+            return {'status':'error', 'message':'This journal entry has already been reversed'}
             
         with transaction.Atomic(using='default', durable=False, savepoint=False):
             head.entry_type = f'{head.entry_type} - Reversed'
@@ -292,24 +295,24 @@ def reverse_gl_journal(company, user, number, business):
 
             models.tracking_history.objects.create(user=user_query, bussiness_name=business_query, area='Reversed GL entry', head=head.code)
 
-        return 'done'
+        return {'status': 'success', 'message': f'General journal entry {number} reversed successfully'}
         
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
-        return "Business not found"
+        return {'status': 'error', 'message': f'Business {business} not found'}
     
     except models.current_user.DoesNotExist:
         logger.warning(f"User '{user}' not found.")
-        return "User not found"
+        return {'status': 'error', 'message': f'User {user} not found'}
     
     except models.journal_head.DoesNotExist:
         logger.warning(f"Journal no. '{number}' not found.")
-        return "Journal no. not found"
+        return {'status': 'error', 'message': f'Journal no. {number} not found'}
     
     except ValueError as value:
         logger.warning(value)
-        return value
+        return {'status': 'error', 'message': 'Invalid data was submitted'}
 
     except Exception as error:
-        logger.exception('unhandled error')
-        return 'something happened'
+        logger.exception(error)
+        return {'status': 'error', 'message': 'something happened'}

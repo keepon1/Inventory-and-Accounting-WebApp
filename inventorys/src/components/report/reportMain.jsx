@@ -29,6 +29,7 @@ import CustomerAgingReport from './customerAging';
 import CashFlow from './cashflow';
 import ProfitAndLoss from './profitLoss';
 import TrialBalance from './trialBalance';
+import SalesRecords from './salesRecords';
 
 // Suggested new report components (to be implemented)
 //import TrialBalance from './trialBalance';
@@ -67,6 +68,7 @@ const ReportMain = ({ business, user }) => {
               </h2>
               <div className="report-links">
                 <Link to="sales-performance" className="report-link">• Sales Performance</Link>
+                <Link to="sales-records" className="report-link">• Sales Records</Link>
                 <Link to="customer-insights" className="report-link">• Customer Insights</Link>
                 <Link to="customer-aging" className="report-link">• Customer Aging Report</Link>
               </div>
@@ -110,7 +112,7 @@ const ReportMain = ({ business, user }) => {
 
         <Route path="sales-performance" element={<SalesPerformance business={business} user={user}/>} />
         <Route path="customer-insights" element={<CustomerInsights business={business} user={user}/>} />
-        <Route path="order-history" element={<OrderHistory business={business} user={user}/>} />
+        <Route path="sales-records" element={<SalesRecords business={business} user={user}/>} />
         <Route path="customer-aging" element={<CustomerAgingReport business={business} user={user}/>} />
 
         <Route path="purchase-metric" element={<PurchaseMetric business={business} user={user}/>} />

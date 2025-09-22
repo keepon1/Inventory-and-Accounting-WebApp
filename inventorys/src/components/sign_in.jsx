@@ -8,6 +8,8 @@ import api from './api';
 import { Link, useNavigate } from "react-router-dom";
 import { GoogleLogin } from '@react-oauth/google';
 import './sign_in.css';
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function SignIn() {
   const [formData, setFormData] = useState({ company: '', email: '', password: '' });
@@ -45,22 +47,27 @@ function SignIn() {
       
       const response = await api.post('sign', formData);
       
-      if(response === 'Incorrect password') {
-        setErrors({ password: 'Incorrect password' });
-      } else if(response === 'Mismatched details') {
-        setErrors({ general: 'Invalid credentials' });
-      } else if (response === 'set password'){
-        setShowUserSelect1(true);
-      } else {
-        localStorage.setItem("access", response.access);
-        localStorage.setItem("business", response.business);
-        localStorage.setItem("user", response.user);
-        localStorage.setItem('accesses', JSON.stringify(response.accesses));
-        navigate("/selectBusiness");
+      if (response.status === 'error') {
+        toast.error(response.message || 'Could not sign in. try again' );
+        return;
       }
+
+      if (response.status === 'set'){
+        setShowUserSelect1(true);
+        return;
+      }
+
+      toast.success(response.message);
+
+      localStorage.setItem("business", response.data.business);
+      localStorage.setItem("user", response.data.user);
+      localStorage.setItem('accesses', JSON.stringify(response.data.accesses));
+      navigate("/selectBusiness");
+    
     } catch(error) {
+      toast.error('An error occurred. Please try again.');
       console.error('Error:', error);
-      setErrors({ general: 'An error occurred. Please try again.' });
+      
     } finally {
       setLoading(false);
     }
@@ -68,6 +75,7 @@ function SignIn() {
 
   return (
     <div className="auth-container">
+      <ToastContainer position="top-right" autoClose={3000}/>
       <header className="header">
         <div className="container">
           <div className="logo-container">
@@ -187,13 +195,17 @@ function SignIn() {
                       const token = credentialResponse.credential;
 
                       try {
-                        if (localStorage.getItem('access')){
-                          localStorage.removeItem('access');
-                        }
                         const res = await api.post("sign_in_google", { token });
-                        const data = res;
 
-                        localStorage.setItem("access", data.access);
+                        if (res.status === 'error'){
+                          toast.error(res.message || 'Your profile could not proccessed')
+                          return;
+                        }
+
+                        toast.success(res.status);
+
+                        const data = res.data;
+
                         localStorage.setItem("business", data.business);
                         localStorage.setItem("user", data.user);
                         localStorage.setItem('accesses', JSON.stringify(data.accesses));
@@ -226,24 +238,35 @@ function SignIn() {
               <form onSubmit={async(e) => {
                 e.preventDefault();
                 try{
+
+                  if (!userInfo.newPassword){
+                    toast.info('password can not be empty');
+                    return;
+                  }
+
+                  if (userInfo.newPassword.length < 6){
+                    toast.info('password can not be less than six');
+                    return;
+                  }
+
                   const response = await api.post(
                     'set_password',
                     {password: userInfo.newPassword, name:formData.email, business: formData.company}
                   );
 
-                  if(response.status === 'done'){
-                    const data = response;
+                  if(response.status === 'success'){
+                    const data = response.data;
 
-                    localStorage.setItem("access", data.access);
                     localStorage.setItem("business", data.business);
                     localStorage.setItem("user", data.user);
                     localStorage.setItem('accesses', JSON.stringify(data.accesses));
                     navigate("/selectBusiness");
                   } else{
-                    setpassError('Wrong Password!');
+                    toast.error(response.message || 'Wrong Password!');
                   }
                 }
                 catch(error){
+                  toast.error('An error occurred while setting password')
                   console.log(error)
                 }
                 

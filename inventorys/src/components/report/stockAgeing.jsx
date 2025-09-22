@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, PieChart, Pie, XAxis, YAxis, 
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell 
@@ -9,16 +9,15 @@ import {
   faClock,
   faChartBar,
   faChartPie,
-  faFilter,
-  faSearch,
-  faFileExport,
   faChevronDown,
   faExclamationTriangle,
-  faBoxes
+  faBoxes,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
+import { Link } from 'react-router-dom';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -209,10 +208,14 @@ const StockAging = ({ business, user }) => {
   return (
     <div className="dashboard-main">
       <div className="journal-header">
-        <h3>
-          <FontAwesomeIcon icon={faClock} className="header-icon" />
-          Stock Aging Analysis
-        </h3>
+        <div className='header-back'>
+          <Link to="../" className='back-link'>
+            <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+          </Link>
+          <h2>
+            Stock Aging Analysis
+          </h2>
+        </div>
       </div>
 
       <div className="journal-filters">

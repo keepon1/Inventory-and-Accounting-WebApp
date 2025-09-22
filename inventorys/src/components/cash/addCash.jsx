@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import { faEdit } from "@fortawesome/free-regular-svg-icons";
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
 import api from "../api";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import enableKeyboardScrollFix from "../../utils/scroll";
+import { toast } from "react-toastify";
 
 const AddCashReceipt = ({business, user}) => {
     const [entry, setEntry] = useState({
@@ -41,6 +42,11 @@ const AddCashReceipt = ({business, user}) => {
                     'fetch_accounts',
                     { business, user},
                 );
+
+                if (response.status === 'error') {
+                    toast.error(response.message || 'Failed to fetch accounts');
+                    return;
+                }
                 
                 const formattedAccounts = response.filter(acc => acc.account_type__code === '10100' || acc.account_type__code === '10200' || acc.account_type__code === '10500')
                 .map(acc => ({
@@ -50,6 +56,8 @@ const AddCashReceipt = ({business, user}) => {
                 
                 setAccounts(formattedAccounts);
             } catch (error) {
+                toast.error('An error occurred while fetching accounts'); 
+                console.error('Fetch error:', error);
                 if (error.response?.status === 401) {
                     localStorage.removeItem('access');
                     navigate('/sign_in');
@@ -57,8 +65,7 @@ const AddCashReceipt = ({business, user}) => {
             }
         };
         fetchAccounts();
-        const cleanup = enableKeyboardScrollFix();
-        return cleanup;
+
     }, []);
 
     const handleChange = (e) => {
@@ -86,27 +93,27 @@ const AddCashReceipt = ({business, user}) => {
         setFormError('');
 
         if (!entry.debitAccount) {
-            setFormError('Debit account is required');
+            toast.info('Debit account is required');
             return;
         }
         
         if (!entry.creditAccount) {
-            setFormError('Credit account is required');
+            toast.info('Credit account is required');
             return;
         }
 
         if (entry.debitAccount.value === entry.creditAccount.value) {
-            setFormError('Debit and credit accounts must be different');
+            toast.info('Debit and credit accounts must be different');
             return;
         }
         
         if (!entry.referenceType) {
-            setFormError('Reference type is required');
+            toast.info('Reference type is required');
             return;
         }
         
         if (entry.amount <= 0) {
-            setFormError('Amount must be positive');
+            toast.info('Amount must be positive');
             return;
         }
 
@@ -135,7 +142,7 @@ const AddCashReceipt = ({business, user}) => {
     };
 
     const saveJournal = async () => {
-        console.log(entries)
+
         try {
             const payload = {
                 entries: entries.map(entry => ({
@@ -151,12 +158,17 @@ const AddCashReceipt = ({business, user}) => {
                 business,
                 user
             };
-
+            
             const response = await api.post('add_cash_receipts', payload);
-            if(response === 'done'){
+            console.log("Save response:", response);
+            if(response.status === 'success'){
+                toast.success(response.message || 'Cash receipt journal posted successfully');
                 navigate(-1);
+            }else{
+                toast.error(response.message || 'Failed to save journal');
             }
         } catch (error) {
+            toast.error('An error occurred while saving journal');
             console.error("Save error:", error);
             if (error.response?.status === 401) {
                 localStorage.removeItem('access');
@@ -173,15 +185,11 @@ const AddCashReceipt = ({business, user}) => {
         <div className="ivi_display_mainbox">
             <div className="ia_submain_box">
                 <div className="ia_description_box">
-                    <div className="ia_description">
-                        <span className="ia_description_word">Cash Receipt Journal</span>
-                    </div>
-                    <div className="inner_close">
-                        <FontAwesomeIcon 
-                            onClick={() => navigate(-1)} 
-                            className="close-button" 
-                            icon={faTimesCircle} 
-                        />
+                    <div className="header-back">
+                        <Link to="../" className="back-link">
+                            <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+                        </Link>
+                        <h2 className="ia_description_word">Cash Receipt Journal</h2>
                     </div>
                 </div>
 
@@ -196,7 +204,6 @@ const AddCashReceipt = ({business, user}) => {
                                     value={entry.date} 
                                     onChange={handleChange} 
                                     className="ivi_input" 
-                                    required 
                                 />
                             </div>
                             
@@ -208,7 +215,6 @@ const AddCashReceipt = ({business, user}) => {
                                     onChange={(selected) => handleAccountChange('debitAccount', selected)}
                                     className="ivi_select" 
                                     classNamePrefix="ivi_select"
-                                    required
                                 />
                             </div>
 
@@ -233,7 +239,6 @@ const AddCashReceipt = ({business, user}) => {
                                     onChange={(selected) => handleAccountChange('referenceType', selected)}
                                     className="ivi_select" 
                                     classNamePrefix="ivi_select"
-                                    required
                                 />
                             </div>
                             
@@ -252,7 +257,6 @@ const AddCashReceipt = ({business, user}) => {
                                     }}
                                     className="ivi_select" 
                                     classNamePrefix="ivi_select"
-                                    required
                                 />
                             </div>
 
@@ -279,7 +283,6 @@ const AddCashReceipt = ({business, user}) => {
                                     value={entry.amount} 
                                     onChange={handleChange} 
                                     className="ivi_input" 
-                                    required 
                                 />
                             </div>
 
@@ -291,7 +294,6 @@ const AddCashReceipt = ({business, user}) => {
                                     onChange={(selected) => handleAccountChange('creditAccount', selected)}
                                     className="ivi_select" 
                                     classNamePrefix="ivi_select"
-                                    required
                                 />
                             </div>
                         </div>

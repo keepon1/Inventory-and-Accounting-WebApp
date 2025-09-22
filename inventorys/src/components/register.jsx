@@ -8,6 +8,8 @@ import api from './api';
 import { Link, useNavigate } from "react-router-dom";
 import { GoogleLogin } from '@react-oauth/google';
 import './register.css';
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -36,31 +38,42 @@ function Register() {
   };
 
   const validateForm = () => {
-    const newErrors = {};
+
+    const newErrors = {}
     
     if (!formData.company.trim()) {
-      newErrors.company = 'Company name is required';
+      toast.info('Company name is required');
+      return false;
+    }
+
+    if (!formData.name.trim()) {
+      toast.info('User name is required');
+      return false;
     }
     
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      toast.info('Email is required');
+      return false;
     } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      toast.info('Please enter a valid email');
+      return false;
     }
     
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      toast.info('Password is required');
+      return false;
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      toast.info('Password must be at least 6 characters');
+      return false;
     }
-    
-    setErrors(newErrors);
+
     return Object.keys(newErrors).length === 0;
+
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -70,20 +83,20 @@ function Register() {
     try {
       const response = await api.post('register', formData);
       
-      if(response.status === 'done') {
+      if(response.status === 'success') {
+        toast.success(response.message || 'Your profile was created successfully');
         localStorage.setItem('access', response.data.access);
         localStorage.setItem("user", response.data.user);
         localStorage.setItem("business", response.data.business);
         localStorage.setItem('accesses', JSON.stringify(response.data.accesses));
         navigate("/selectBusiness");
-      } else if(response.status === 'name_exist') {
-        setErrors({company: 'Company name already exists'});
-      } else {
-        setErrors({email: 'Email already registered'});
+      } else{
+        toast.error(response.message || 'something went. try again');
+        return;
       }
     } catch(error) {
+      toast.error('An error occurred while creating your profile')
       console.error('Error:', error);
-      setErrors({general: 'An error occurred. Please try again.'});
     } finally {
       setLoading(false);
     }
@@ -91,6 +104,7 @@ function Register() {
 
   return (
     <div className="auth-container">
+      <ToastContainer position="top-right" autoClose={3000}/>
       <header className="header">
         <div className="container">
           <div className="logo-container">
@@ -241,7 +255,15 @@ function Register() {
                           localStorage.removeItem('access');
                         }
                         const res = await api.post("sign_in_google", { token });
-                        const data = res;
+
+                        if (res.status === 'error'){
+                          toast.error(res.message || 'Your profile could not proccessed')
+                          return;
+                        }
+
+                        toast.success(res.status);
+
+                        const data = res.data;
 
                         localStorage.setItem("access", data.access);
                         localStorage.setItem("business", data.business);

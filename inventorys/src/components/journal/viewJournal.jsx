@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimesCircle, faTachometer } from "@fortawesome/free-solid-svg-icons";
+import { faTimesCircle, faTachometer, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const ViewJournal = ({ journals, business, user, access }) => {
   const [journal, setjournal] = useState({
@@ -25,13 +26,20 @@ const ViewJournal = ({ journals, business, user, access }) => {
           'view_journal',
           { business, number: journals, user },
         );
+
+        if (response.status === 'error') {
+          toast.error(response.message || 'Failed to fetch journal details');
+          return;
+        }
         
-        const { customer, items } = response;
+        const { customer, items } = response.data;
         setjournal({
           ...customer,
           items,
         });
       } catch (error) {
+        toast.error('An error occurred while fetching journal details');
+        console.error('Error fetching journal details:', error);
         if (error.response?.status === 401) {
           localStorage.removeItem('access');
           navigate('/sign_in');
@@ -48,57 +56,62 @@ const ViewJournal = ({ journals, business, user, access }) => {
           { business, number: journal.number, user },
         );
 
-        if (response == 'done'){
+        if (response.status === 'success') {
+          toast.success(response.message || 'Journal reversed successfully');
           navigate(-1);
+        } else {
+          toast.error(response.message || 'Failed to reverse journal');
+          return;
         }
       }
-    catch{
-
+    catch(error) {
+      toast.error('An error occurred while reversing journal');
+      console.error('Error reversing journal:', error);
     }
   }
   return (
     <div className="ivi_display_mainbox">
       <div className="ia_submain_box">
         <div className="ia_description_box">
-          <h2>journal Invoice : {journal.number}</h2>
-          <FontAwesomeIcon 
-            icon={faTimesCircle} 
-            className="close-button"
-            onClick={() => navigate(-1)}
-          />
+          <div className="header-back">
+            <Link to="../" className="back-link">
+              <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+            </Link>
+            <h2>{journal.number}</h2>
+          </div>  
         </div>
 
         <div className="ivi_display_box">
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label>Entry Type</label>
-              <div className="ivi_input">{journal.type}</div>
+              <input className="ivi_input" value={journal.type} readOnly title={journal.type} />
             </div>
             <div className="ivi_holder_box">
               <label>Transaction Number</label>
-              <div className="ivi_input">{journal.transation_number}</div>
+              <input className="ivi_input" value={journal.transation_number} readOnly title={journal.transation_number} />
             </div>
           </div>
 
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label>Date</label>
-              <div className="ivi_input">{journal.date}</div>
+              <input className="ivi_input" value={journal.date} readOnly title={journal.date} />
             </div>
             <div className="ivi_holder_box">
               <label>Description</label>
-              <div className="ivi_input">{journal.description}</div>
+              <input className="ivi_input" value={journal.description} readOnly title={journal.description} />
             </div>
           </div>
 
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label>Total Amount</label>
-              <div className="ivi_input">{journal.amount}</div>
+              <input className="ivi_input" value={journal.amount} readOnly title={journal.amount} />
             </div>
             <div className="ivi_holder_box">
               <label>Created by</label>
-              <div className="ivi_input">{journal.by}</div>
+              <input className="ivi_input" value={journal.by} readOnly title={journal.by} />
             </div>
           </div>
         </div>
@@ -143,9 +156,7 @@ const ViewJournal = ({ journals, business, user, access }) => {
             </div>
           )}
           </>
-        ):(
-          <></>
-        )}
+        ):(<></>)}
 
       </div>
     </div>

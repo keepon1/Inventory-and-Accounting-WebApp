@@ -1,10 +1,10 @@
 import React, {useEffect, useRef, useState} from "react";
 import api from "../api";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import Select from "react-select";
 import './editItem.css';
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 const EditItem = ({item, business, user, access, item_view_control, state}) => {
@@ -172,15 +172,11 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
 
             <div className="ia_submain_box">
                 <div className="ia_description_box">
-                    <div className="ia_description">
-                        <span className="ia_description_word">Edit Item</span>
-                    </div>
-                    <div className="inner_close">
-                        <FontAwesomeIcon 
-                            onClick={() => navigate(-1)}
-                            className="close-button"
-                            icon={faTimesCircle} 
-                        />
+                    <div className="header-back">
+                        <Link to="../" className="back-link">
+                            <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+                        </Link>
+                        <h2 className="ia_description_word">Edit Item</h2>
                     </div>
                 </div>
 

@@ -4,11 +4,13 @@ import {
   faSearch,
   faRuler,
   faTimesCircle,
-  faEdit
+  faEdit,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
-import {useNavigate} from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
 import api from '../api';
 import enableKeyboardScrollFix from '../../utils/scroll';
+import { toast } from 'react-toastify';
 
 const MeasurementUnit = ({ business, user }) => {
     const [units, setUnits] = useState([]);
@@ -38,11 +40,18 @@ const MeasurementUnit = ({ business, user }) => {
         try {
             const response = await api.post(
             'fetch_measurement_units',
-            { business: business},
+            { business, user },
             );
-            setUnits(response);
+
+            if (response.status === 'error') {
+                toast.error(response.message || 'An error occurred while fetching measurement units.');
+                return;
+            }
+            setUnits(response.data || []);
 
         } catch (error) {
+            toast.error('An error occurred while fetching measurement units.');
+            console.error('Error fetching measurement units:', error);
             if (error.response?.status === 401) {
             localStorage.removeItem('access');
             navigate('/sign_in');
@@ -51,8 +60,6 @@ const MeasurementUnit = ({ business, user }) => {
         };
 
         fetchItems();
-        const cleanup = enableKeyboardScrollFix();
-        return cleanup;
     }, []);
 
     const handleCreateOverlay = (e) => {
@@ -69,15 +76,12 @@ const MeasurementUnit = ({ business, user }) => {
 
     const openEdit = async (unit) => {
         try {
-            const response = await api.post(
-                'get_measurement_unit',
-                { business, unit: unit},
-            );
+
             setEditData({
-                originalName: unit,
-                name: response.name,
-                suffix: response.suffix,
-                description: response.description,
+                originalName: unit.name,
+                name: unit.name,
+                suffix: unit.suffix,
+                description: unit.description,
             });
             setShowEdit(true);
             document.addEventListener('mousedown', handleEditOverlay);
@@ -90,12 +94,12 @@ const MeasurementUnit = ({ business, user }) => {
 
     const addUnit = async() => {
         if (!detail.name || detail.name === ''){
-            setErrors('Name can not be empty');
+            toast.info('Name can not be empty');
             return;
         };
 
         if (!detail.suffix || detail.suffix === ''){
-            setErrors('Suffix can not be empty');
+            toast.info('Suffix can not be empty');
             return;
         };
 
@@ -106,27 +110,42 @@ const MeasurementUnit = ({ business, user }) => {
         }
 
         try{
-            const response = await api.post('add_measurement_unit', {business, detail:data});
-            if (response === 'done'){
+            const response = await api.post('add_measurement_unit', {business, detail:data, user});
+            if (response.status === 'success'){
+                toast.success(response.message || 'Measurement unit added successfully');
                 setShowCreate(false);
                 document.addEventListener('mousedown', handleCreateOverlay);
 
-                const response = await api.post('fetch_measurement_units',{ business: business});
-                setUnits(response);
-                };
-        }catch{
+                setDetail({name: '', suffix: '', description:'' });
 
+                const update = await api.post('fetch_measurement_units',{ business, user});
+
+                if (update.status === 'error') {
+                    toast.error(update.message || 'An error occurred while fetching measurement units.');
+                    return;
+                }
+                setUnits(update.data || []);
+                
+            }else{
+                toast.error(response.message || 'An error occurred while adding the measurement unit.');
+            }
+        }catch(error){
+            toast.error('An error occurred while adding the measurement unit.');
+            console.error('Error adding measurement unit:', error);
+            if (error.response?.status === 401) {
+                navigate('/sign_in');
+            }
         };
     };
 
     const editUnit = async () => {
         if (!editData.name || editData.name === ''){
-            setErrors('Name can not be empty');
+            toast.info('Name can not be empty');
             return;
         };
 
         if (!editData.suffix || editData.suffix === ''){
-            setErrors('Suffix can not be empty');
+            toast.info('Suffix can not be empty');
             return;
         };
 
@@ -138,39 +157,52 @@ const MeasurementUnit = ({ business, user }) => {
         }
 
         try{
-            const response = await api.post('edit_measurement_unit', {business, detail:data});
-            if (response === 'done'){
+            const response = await api.post('edit_measurement_unit', {business, detail:data, user});
+
+            if (response.status === 'success'){
+                toast.success(response.message || 'Measurement unit updated successfully');
                 setShowEdit(false);
                 document.addEventListener('mousedown', handleEditOverlay);
 
-                const response = await api.post('fetch_measurement_units',{ business: business});
-                setUnits(response);
-                };
-        }catch{
+                setEditData({ originalName: '', name: '', suffix: '', description:'' });
 
+                const update = await api.post('fetch_measurement_units',{ business, user });
+
+                if (update.status === 'error') {
+                    toast.error(update.message || 'An error occurred while fetching measurement units.');
+                    return;
+                }
+                setUnits(update.data || []);
+            }else{
+                toast.error(response.message || 'An error occurred while updating the measurement unit.');
+            }
+        }catch(error){
+            toast.error('An error occurred while updating the measurement unit.');
+            console.error('Error updating measurement unit:', error);
+            if (error.response?.status === 401) {
+                localStorage.removeItem('access');
+                navigate('/sign_in');
+            }
         };
     };
 
     return (
         <div className="journal-container">
             <div className="journal-header">
-                <h1>
-                    <FontAwesomeIcon icon={faRuler} className="header-icon" />
-                    Measurement Units
-                </h1>
-                <div className="journal-controls">
-                    <FontAwesomeIcon 
-                        icon={faTimesCircle} 
-                        className="close-button"
-                        onClick={() => navigate(-1)}
-                    />
+                <div className='header-back'>
+                    <Link to="../" className='back-link'>
+                        <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+                    </Link>
+                    <h2>
+                        Measurement Units
+                    </h2>
                 </div>
             </div>
 
             <div className="journal-filters">
                 <div className="filter-groups-left">
                     <div>
-                        <button className="add-item-button" onClick={() => {
+                        <button className="btn btn-outline" onClick={() => {
                             setShowCreate(true);
                             document.addEventListener('mousedown', handleCreateOverlay);
                         }}>
@@ -178,15 +210,16 @@ const MeasurementUnit = ({ business, user }) => {
                         </button>
                     </div>
                 </div>
-                <div className="filter-groups-right">
-                    <div className="filter-group1">
-                        <FontAwesomeIcon icon={faSearch} />
-                        <input onChange={handleSearch} type="text" placeholder="Search units..." />
+                <div className="ivi_display_box1">
+                    <div className="ivi_subboxes1">
+                        <div className="ivi_holder_box1">
+                            <input onChange={handleSearch} className='ivi_input' type="text" placeholder="Search units..." />
+                        </div>
                     </div>
                 </div>
-                </div>
+            </div>
 
-                <div className="items-table-box">
+            <div className="items-table-box">
                 <table className="items-table">
                     <thead className="table-header">
                         <tr>
@@ -200,7 +233,7 @@ const MeasurementUnit = ({ business, user }) => {
                         {filteredItems.map((unit, index) => (
                             <tr key={unit.name} id={`row-${index}`} className="table-row">
                             <td className="table-row">
-                                <button className="action-button" onClick={() => openEdit(unit.name)}>
+                                <button className="action-button" onClick={() => openEdit(unit)}>
                                     <FontAwesomeIcon icon={faEdit} />
                                 </button>
                             </td>

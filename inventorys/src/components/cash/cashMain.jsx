@@ -1,8 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faBookOpen, faFilter, faSearch,
-  faExchangeAlt, faBox, faShoppingCart,
   faFileExport, faUndo,
   faEye,
   faPaperPlane,
@@ -14,6 +12,7 @@ import { Link, Route, Routes, useLocation, useNavigate, useParams } from 'react-
 import api from '../api';
 import { handleDateSearch, isCompleteInput } from '../../utils/dateformat';
 import { format } from 'date-fns';
+import { toast } from 'react-toastify';
 
 const CashMain = ({ business, user, access }) => {
   const [payment, setPayment] = useState([]);
@@ -72,13 +71,16 @@ const CashMain = ({ business, user, access }) => {
           'fetch_cash_receipts',
           { business, page, searchQuery, parsed, user},
         );
-        if (typeof response == 'object'){
-          setPayment(prev => page === 1 ? response.payment : [...prev, ...response.payment]);
-          setHasNext(response.has_more);
+        if (response.status === 'success') {
+          setPayment(prev => page === 1 ? response.data.payment : [...prev, ...response.data.payment]);
+          setHasNext(response.data.has_more);
         }else{
-          return(<div>{response}</div>);
+          toast.error(response.message || 'Failed to fetch data');
+          return;
         }
       } catch (error) {
+        toast.error('An error occurred while fetching data'); 
+        console.error('Fetch error:', error);
         if (error.response?.status === 401) {
           localStorage.removeItem('access');
           navigate('/sign_in');
@@ -177,6 +179,7 @@ const CashMain = ({ business, user, access }) => {
                     <th>Debit</th>
                     <th>Credit</th>
                     <th>Amount</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -195,6 +198,7 @@ const CashMain = ({ business, user, access }) => {
                       <td>{entry.to_account}</td>
                       <td>{entry.from_account}</td>
                       <td>{entry.amount}</td>
+                      <td>{entry.is_reversed? 'Reversed' : 'Completed'}</td>
                     </tr>
                   ))}
                 </tbody>

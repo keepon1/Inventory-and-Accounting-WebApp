@@ -11,6 +11,8 @@ import { Link, Route, Routes, useLocation, useNavigate, useParams } from 'react-
 import api from '../api';
 import GeneralJournal from './addJournal';
 import { format } from 'date-fns';
+import { toast } from 'react-toastify';
+import { handleDateSearch, isCompleteInput } from '../../utils/dateformat';
 
 const JournalMain = ({ business, user, access }) => {
   const [journal, setJournal] = useState([]);
@@ -69,13 +71,16 @@ const JournalMain = ({ business, user, access }) => {
           {business, page, searchQuery, parsed, user},
         );
 
-        if (typeof response == 'object'){
-          setJournal(prev => page === 1 ? response.journals : [...prev, ...response.journals]);
-          setHasNext(response.has_more);
+        if (response.status == 'success') {
+          setJournal(prev => page === 1 ? response.data.journals : [...prev, ...response.data.journals]);
+          setHasNext(response.data.has_more);
         }else{
-          return(<div>{response}</div>);
+          toast.error(response.message || 'Failed to fetch journals');
+          return;
         }
       } catch (error) {
+        console.error('Error fetching journals:', error);
+        toast.error('An error occurred while fetching journals');
         if (error.response?.status === 401) {
           localStorage.removeItem('access');
           navigate('/sign_in');
@@ -172,6 +177,7 @@ const JournalMain = ({ business, user, access }) => {
                     <th>Description</th>
                     <th>User</th>
                     <th>Amount</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -198,6 +204,7 @@ const JournalMain = ({ business, user, access }) => {
                       <td>{entry.description}</td>
                       <td>{entry.created_by__user_name}</td>
                       <td>{entry.amount}</td>
+                      <td>{entry.reversed? 'Reversed' : 'Completed'}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -5,12 +5,14 @@ import {
   faEnvelope, faEdit,
   faAddressBook,
   faAudioDescription,
-  faTimesCircle
+  faTimesCircle,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../api';
 import './info.css';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import enableKeyboardScrollFix from '../../utils/scroll';
+import { toast } from 'react-toastify';
 
 const BusinessInfo = ({ business, user }) => {
   const [imagePreview, setImagePreview] = useState(null);
@@ -24,8 +26,14 @@ const BusinessInfo = ({ business, user }) => {
   useEffect(() => {
     const fetch = async() =>{
       try{
-        const response = await api.post('view_business', {business:business});
-        setInfo(response);
+        const response = await api.post('view_business', {business, user});
+
+        if (response.status === 'error'){
+          toast.error(response.message || 'Error occured while fetching data');
+          return;
+        }
+
+        setInfo(response.data);
         if (business.image) {
             setImagePreview(business.image);
         }
@@ -55,12 +63,25 @@ const BusinessInfo = ({ business, user }) => {
     }
     try {
         const response = await api.post('edit_business', {data:detail, business, user});
-        if(response === 'done'){
-        const response = await api.post('view_business', {business:detail.name});
-        setInfo(response);
-        setShowEdit(false);
+
+        if(response.status === 'success'){
+          toast.success(response.message || 'Updated info successfully');
+
+          const response1 = await api.post('view_business', {business:detail.name, user});
+          if(response.status === 'success'){
+            setInfo(response1.data);
+            setShowEdit(false);
+          }else{
+            toast.error(response1.message || 'Error occured while fetching data');
+            return;
+          }
+        }else{
+          toast.error(response.message || 'Error updating business info');
+          return;
         }
+
     } catch (error) {
+      toast.error('Error updating business info');
       console.error('Error updating business info:', error);
     }
   };
@@ -75,15 +96,12 @@ const BusinessInfo = ({ business, user }) => {
   return (
     <div className="info-container">
         <div className="settings-header">
-            <FontAwesomeIcon icon={faBuilding} className="header-icon" />
-            <h1>Business Information</h1>
-
-            <FontAwesomeIcon 
-                        icon={faTimesCircle} 
-                        className="close-button"
-                        onClick={() => navigate(-1)}
-            />
-
+          <div className='header-back'>
+            <Link to="../" className='back-link'>
+              <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+            </Link>
+            <h2>Business Information</h2>
+          </div>
         </div>
 
         <div className="item-header">

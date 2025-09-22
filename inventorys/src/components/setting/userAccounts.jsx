@@ -2,16 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faSearch,
-  faUser,
   faTimesCircle,
   faEdit,
   faUserShield,
-  faUserCheck
+  faUserCheck,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import enableKeyboardScrollFix from '../../utils/scroll';
 import { set } from 'date-fns';
+import { toast } from 'react-toastify';
 
 const UserAccount = ({ business, user }) => {
     const [users, setUsers] = useState([]);
@@ -47,9 +48,16 @@ const UserAccount = ({ business, user }) => {
         const fetchData = async () => {
             try {
                 const usersResponse = await api.post('fetch_users', { business, user });
-                setUsers(usersResponse);
+
+                if (usersResponse.status === 'error'){
+                    toast.error(usersResponse.message || 'Error fetching users');
+                    return;
+                }
+                setUsers(usersResponse.data || []);
 
             } catch (error) {
+                console.error(error);
+                toast.error('An error occurred while fetching users');
                 if (error.response?.status === 401) {
                     localStorage.removeItem('access');
                     navigate('/sign_in');
@@ -57,8 +65,7 @@ const UserAccount = ({ business, user }) => {
             }
         };
         fetchData();
-        const cleanup = enableKeyboardScrollFix();
-        return cleanup;
+
     }, []);
 
     const handleCreateOverlay = (e) => {
@@ -75,11 +82,10 @@ const UserAccount = ({ business, user }) => {
 
     const openEdit = async (username) => {
         try {
-            const response = await api.post('get_user_detail', { business, username });
             setEditData({
-                originalName: username,
-                user_name: response.user_name,
-                admin: response.admin,
+                originalName: username.user_name,
+                user_name: username.user_name,
+                admin: username.admin,
             });
             setShowEdit(true);
             document.addEventListener('mousedown', handleEditOverlay);
@@ -93,40 +99,60 @@ const UserAccount = ({ business, user }) => {
     const addUser = async () => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!detail.user_name || detail.user_name === '') {
-            setErrors('Username cannot be empty');
+            toast.info('Username cannot be empty');
             return;
         };
 
         if (!emailRegex.test(detail.email)){
-            setErrors1('Invalid Email');
+            toast.info('Invalid Email');
             return;
         }
 
         try {
             const response = await api.post('add_user', { business, detail, user });
-            if (response === 'done') {
+
+            if (response.status === 'success') {
+                toast.success(response.message || 'User created successfully');
                 setShowCreate(false);
                 document.removeEventListener('mousedown', handleCreateOverlay);
 
-                const usersResponse = await api.post('fetch_users', { business });
-                setUsers(usersResponse);
-            } else if (response === 'exist'){
-                setErrors('User Exist');
-            }else if (response === 'email_exist'){
-                setErrors1('Email Exist');
-            }else if (response === 'email_error'){
-                setErrors1('Invalid Email');
+                setDetail({ 
+                    user_name: '',
+                    email:'',
+                    admin: false,  
+                });
+
+                const usersResponse = await api.post('fetch_users', { business, user });
+                
+                if (usersResponse.status === 'error'){
+                    toast.error(usersResponse.message || 'Error fetching users');
+                    return;
+                }
+                setUsers(usersResponse.data || []);
+            } else{
+                toast.error(response.message || 'Error creating user');
             }
         } catch (error) {
             console.error(error);
+            toast.error('An error occurred while creating user');
+            if (error.response?.status === 401) {
+                localStorage.removeItem('access');
+                navigate('/sign_in');
+            }
         }
     };
 
     const editUser = async () => {
         if (!editData.user_name || editData.user_name === '') {
-            setErrors('Username cannot be empty');
+            toast.info('Username cannot be empty');
             return;
         };
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (editData.email && !emailRegex.test(editData.email)){
+            toast.info('Invalid Email');
+            return;
+        }
 
         const data = {
             original: editData.originalName,
@@ -135,39 +161,56 @@ const UserAccount = ({ business, user }) => {
         };
 
         try {
-            const response = await api.post('edit_user', { business, detail: data });
-            if (response === 'done') {
+            const response = await api.post('edit_user', { business, detail: data, user });
+
+            if (response.status === 'success') {
+                toast.success(response.message || 'User updated successfully');
                 setShowEdit(false);
                 document.removeEventListener('mousedown', handleEditOverlay);
 
-                const usersResponse = await api.post('fetch_users', { business });
-                setUsers(usersResponse);
+                setEditData({ 
+                    originalName: '', 
+                    user_name: '', 
+                    admin: false,  
+                });
+
+                const usersResponse = await api.post('fetch_users', { business, user });
+
+                if (usersResponse.status === 'error'){
+                    toast.error(usersResponse.message || 'Error fetching users');
+                    return;
+                }
+                setUsers(usersResponse.data || []);
+            }else{
+                toast.error(response.message || 'Error updating user');
             }
         } catch (error) {
             console.error(error);
+            toast.error('An error occurred while updating user');
+            if (error.response?.status === 401) {
+                localStorage.removeItem('access');
+                navigate('/sign_in');
+            }
         }
     };
 
     return (
         <div className="journal-container">
             <div className="journal-header">
-                <h1>
-                    <FontAwesomeIcon icon={faUser} className="header-icon" />
-                    User Accounts
-                </h1>
-                <div className="journal-controls">
-                    <FontAwesomeIcon 
-                        icon={faTimesCircle} 
-                        className="close-button"
-                        onClick={() => navigate(-1)}
-                    />
+                <div className='header-back'>
+                    <Link to="../" className='back-link'>
+                        <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+                    </Link>
+                    <h2>
+                        User Accounts
+                    </h2>
                 </div>
             </div>
 
             <div className="journal-filters">
-                <div className="filter-groups-left">
-                    <div>
-                        <button className="add-item-button" onClick={() => {
+                <div className="create_access">
+                    <div >
+                        <button className="btn btn-outline" onClick={() => {
                             setShowCreate(true);
                             document.addEventListener('mousedown', handleCreateOverlay);
                         }}>
@@ -175,10 +218,11 @@ const UserAccount = ({ business, user }) => {
                         </button>
                     </div>
                 </div>
-                <div className="filter-groups-right">
-                    <div className="filter-group1">
-                        <FontAwesomeIcon icon={faSearch} />
-                        <input onChange={handleSearch} type="text" placeholder="Search users..." />
+                <div className="ivi_display_box1">
+                    <div className="ivi_subboxes1">
+                        <div className="ivi_holder_box1">
+                            <input onChange={handleSearch} className='ivi_input' type="text" placeholder="Search users..." />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -193,16 +237,16 @@ const UserAccount = ({ business, user }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredItems.map((user, index) => (
-                            <tr key={user.user_name} id={`row-${index}`} className="table-row">
+                        {filteredItems.map((users, index) => (
+                            <tr key={users.user_name} id={`row-${index}`} className="table-row">
                                 <td className="table-row">
-                                    <button className="action-button" onClick={() => openEdit(user.user_name)}>
+                                    <button className="action-button" onClick={() => openEdit(users)}>
                                         <FontAwesomeIcon icon={faEdit} />
                                     </button>
                                 </td>
-                                <td>{user.user_name}</td>
+                                <td>{users.user_name}</td>
                                 <td>
-                                    {user.admin ? (
+                                    {users.admin ? (
                                         <>
                                             <FontAwesomeIcon icon={faUserShield} className="admin-icon" />
                                             <span> Admin</span>

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def fetch_transfer_main_view(search, date_search, business, company, page, user, page_quantity=30):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
        
         if not user_query.admin and not user_query.transfer_access:
@@ -81,7 +81,7 @@ def create_transfer(items, business, user, company, description, date, source, d
         if source.strip() == destination.strip():
             return {"status": "error", "message": "Source and destination cannot be the same"}
         
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
         source_query = models.inventory_location.objects.get(bussiness_name=business_query, location_name=source)
         destination_query = models.inventory_location.objects.get(bussiness_name=business_query, location_name=destination)
@@ -154,7 +154,7 @@ def create_transfer(items, business, user, company, description, date, source, d
 
 def view_transfer(business, transfer_no, company):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         transfer_query = models.inventory_transfer.objects.get(code=transfer_no, bussiness_name=business_query)
         items = models.transfer_history.objects.filter(transfer=transfer_query, bussiness_name=business_query)
 
@@ -198,7 +198,7 @@ def view_transfer(business, transfer_no, company):
 
 def reject_transfer(business, user, company, number):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.admin and not user_query.edit_access:
@@ -241,7 +241,7 @@ def reject_transfer(business, user, company, number):
 
 def receive_transfer(business, user, company, number):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.admin and not user_query.edit_access:

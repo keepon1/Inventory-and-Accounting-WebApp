@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import { faTimesCircle as redcircle, faEdit } from "@fortawesome/free-regular-svg-icons";
 import './addItem.css';
 import Select from 'react-select';
 import api from "../api";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import enableKeyboardScrollFix from "../../utils/scroll";
 import { toast } from "react-toastify";
 
@@ -160,11 +160,11 @@ const AddItem = (props) => {
         <div className="ivi_display_mainbox">
             <div className="ia_submain_box">
                 <div className="ia_description_box">
-                    <div className="ia_description">
-                        <span className="ia_description_word">Add Items</span>
-                    </div>
-                    <div className="inner_close">
-                        <FontAwesomeIcon onClick={() => navigate(-1)} className="close-button" icon={faTimesCircle} />
+                    <div className="header-back">
+                        <Link to="../" className="back-link">
+                            <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+                        </Link>
+                        <h2 className="ia_description_word">Add Inventory Items</h2>
                     </div>
                 </div>
 

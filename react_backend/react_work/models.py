@@ -1,10 +1,11 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.contrib.auth.hashers import make_password, check_password
 from datetime import date, datetime
 from decimal import Decimal
 import calendar
 from django.utils.translation import gettext_lazy as _
+from django.db.models import Index
 
 class company_info(models.Model):
     company_name = models.CharField(max_length = 100)
@@ -17,6 +18,11 @@ class company_info(models.Model):
 
     def __str__(self):
         return self.company_name
+
+    class Meta:
+        indexes = [
+            Index(fields=['company_name']),
+        ]
     
 class bussiness(models.Model):
     image = models.ImageField(upload_to='items')
@@ -34,21 +40,27 @@ class bussiness(models.Model):
 
     def __str__(self):
         return self.bussiness_name
-    
+
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name']),
+            Index(fields=['company']),
+        ]
+
 class current_user(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="current")
     user_name = models.CharField(max_length=100, default='')
-    email = models.CharField(max_length=100, default='')
+    email = models.EmailField(max_length=100, default='')
     google = models.BooleanField(default=False)
     creation_date = models.DateTimeField(auto_now_add=True)
-    bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
-    password = models.CharField(max_length=128)
+    bussiness_name = models.ForeignKey('bussiness', on_delete=models.CASCADE)
     admin = models.BooleanField(default=False)
     per_location_access = models.JSONField(default=list)
     theme = models.JSONField(default=list)
     create_access = models.BooleanField(default=False)
     reverse_access = models.BooleanField(default=False)
     journal_access = models.BooleanField(default=False)
-    coa_acess = models.BooleanField(default=False)
+    coa_access = models.BooleanField(default=False)
     item_access = models.BooleanField(default=False)
     transfer_access = models.BooleanField(default=False)
     sales_access = models.BooleanField(default=False)
@@ -67,12 +79,13 @@ class current_user(models.Model):
     give_access = models.BooleanField(default=False)
     info_access = models.BooleanField(default=False)
 
-    def set_password(self, data):
-        self.password = make_password(data)
-        self.save()
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name']),
+            Index(fields=['creation_date']),
+            Index(fields=['email']),
+        ]
 
-    def checks_password(self, data):
-        return check_password(data, self.password)
     
 class tracking_history(models.Model):
     user = models.ForeignKey(current_user, on_delete=models.PROTECT)
@@ -81,11 +94,22 @@ class tracking_history(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','date']),
+            Index(fields=['user']),
+        ]
+
 class currency(models.Model):
     name = models.CharField(max_length=100)
     symbol = models.CharField(max_length=100)
     rate = models.DecimalField(decimal_places=2, default=0.00, blank=True, null=True, max_digits=20)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
+
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','name']),
+        ]
 
 class supplier(models.Model):
     name = models.CharField(max_length=100)
@@ -133,6 +157,13 @@ class supplier(models.Model):
                 }
             )
 
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','id']),
+            Index(fields=['account']),
+            Index(fields=['name']),
+        ]
+
 class customer(models.Model):
     name = models.CharField(max_length=100)
     account = models.CharField(max_length=20, unique=True, blank=True)
@@ -179,6 +210,13 @@ class customer(models.Model):
                 }
             )
 
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','id']),
+            Index(fields=['account']),
+            Index(fields=['name']),
+        ]
+
 class taxes_levies(models.Model):
     name = models.CharField(max_length=100, default='')
     rate = models.FloatField(default=0)
@@ -186,6 +224,11 @@ class taxes_levies(models.Model):
     description = models.CharField(max_length=100, default='')
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
     
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','name']),
+        ]
+
 class inventory_location(models.Model):
     location_name = models.CharField(max_length=100, default='')
     description = models.CharField(max_length=150, default='')
@@ -193,17 +236,33 @@ class inventory_location(models.Model):
     created_by = models.ForeignKey(current_user, on_delete=models.PROTECT)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','location_name']),
+            Index(fields=['creation_date']),
+        ]
+
 class inventory_category(models.Model):
     name = models.CharField(max_length=100)
     description = models.CharField(max_length=100)
     creation_date = models.DateField(auto_now_add=True)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','name']),
+        ]
+
 class inventory_unit(models.Model):
     name = models.CharField(max_length=100)
     suffix = models.CharField(max_length=100)
     description = models.CharField(max_length=100)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
+
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','name']),
+        ]
 
 class items(models.Model):
     image = models.ImageField(upload_to='items')
@@ -260,6 +319,15 @@ class items(models.Model):
                 }
             )
 
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','creation_date']),
+            Index(fields=['code']),
+            Index(fields=['item_name']),
+            Index(fields=['category']),
+            Index(fields=['created_by']),
+        ]
+    
 class location_items(models.Model):
     item_name = models.ForeignKey(items, on_delete=models.CASCADE)
     reorder_level = models.FloatField(default=0)
@@ -276,8 +344,13 @@ class location_items(models.Model):
 
     def __str__(self):
         return self.item_name
-    
 
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','location']),
+            Index(fields=['item_name']),
+        ]
+    
 class inventory_transfer(models.Model):
     image = models.ImageField()
     code = models.CharField(max_length=20, unique=True, blank=True)
@@ -303,6 +376,13 @@ class inventory_transfer(models.Model):
             self.code = self.generate_next_code()
         super().save(*args, **kwargs)
 
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','creation_date']),
+            Index(fields=['code']),
+            Index(fields=['from_loc','to_loc']),
+        ]
+
 class transfer_history(models.Model):
 
     transfer = models.ForeignKey(inventory_transfer, on_delete=models.CASCADE)
@@ -312,6 +392,11 @@ class transfer_history(models.Model):
 
     class Meta:
         unique_together = [('item_name', 'transfer')]
+        indexes = [
+            Index(fields=['transfer']),
+            Index(fields=['item_name']),
+            Index(fields=['bussiness_name']),
+        ]
     
 class sale(models.Model):
 
@@ -339,9 +424,10 @@ class sale(models.Model):
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
     total_quantity = models.DecimalField(decimal_places=2, default=0, max_digits=10)
     cog = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    is_reversed = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.customer
+        return self.customer_name if hasattr(self, 'customer_name') else str(self.customer_info)
     
     def generate_next_code(self):
         id = self.bussiness_name.id
@@ -354,6 +440,14 @@ class sale(models.Model):
         if not self.code:
             self.code = self.generate_next_code()
         super().save(*args, **kwargs)
+
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','creation_date']),
+            Index(fields=['code']),
+            Index(fields=['customer_info']),
+            Index(fields=['created_by']),
+        ]
     
 class sale_history(models.Model):
 
@@ -364,6 +458,13 @@ class sale_history(models.Model):
     sales_price = models.FloatField()
     purchase_price = models.FloatField()
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
+
+    class Meta:
+        indexes = [
+            Index(fields=['sales']),
+            Index(fields=['item_name']),
+            Index(fields=['bussiness_name']),
+        ]
 
 class purchase(models.Model):
 
@@ -388,9 +489,10 @@ class purchase(models.Model):
     creation_date = models.DateTimeField(auto_now_add = True)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
     total_quantity = models.DecimalField(decimal_places=2, default=0, max_digits=10)
+    is_reversed = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.supplier
+        return str(self.supplier)
     
     def generate_next_code(self):
         id = self.bussiness_name.id
@@ -403,6 +505,14 @@ class purchase(models.Model):
         if not self.code:
             self.code = self.generate_next_code()
         super().save(*args, **kwargs)
+
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','creation_date']),
+            Index(fields=['code']),
+            Index(fields=['supplier']),
+            Index(fields=['created_by']),
+        ]
     
 class purchase_history(models.Model):
 
@@ -412,10 +522,23 @@ class purchase_history(models.Model):
     purchase_price = models.DecimalField(max_digits=10, default=0.00, decimal_places=2)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
+    class Meta:
+        indexes = [
+            Index(fields=['purchase']),
+            Index(fields=['item_name']),
+            Index(fields=['bussiness_name']),
+        ]
+
 class account(models.Model):
     name = models.CharField(max_length=100)
     code = models.BigIntegerField(default=0)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
+
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','code']),
+            Index(fields=['name']),
+        ]
 
 
 class sub_account(models.Model):
@@ -443,6 +566,12 @@ class sub_account(models.Model):
         if not self.code:
             self.code = self.generate_code()
         super().save(*args, **kwargs)
+
+    class Meta:
+        indexes = [
+            Index(fields=['account_type','bussiness_name','code']),
+            Index(fields=['bussiness_name','name']),
+        ]
 
 
 class real_account(models.Model):
@@ -493,6 +622,12 @@ class real_account(models.Model):
                 }
             )
 
+    class Meta:
+        indexes = [
+            Index(fields=['account_type','bussiness_name','code']),
+            Index(fields=['bussiness_name','name']),
+        ]
+
 
 class journal_head(models.Model):
     date = models.DateField(auto_now_add=True)
@@ -516,6 +651,13 @@ class journal_head(models.Model):
         if not self.code:
             self.code = self.generate_next_code()
         super().save(*args, **kwargs)
+
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','date']),
+            Index(fields=['code']),
+            Index(fields=['created_by']),
+        ]
 
 class year_period(models.Model):
     year = models.CharField(max_length=100, default=date.today().year)
@@ -545,6 +687,11 @@ class year_period(models.Model):
                 bussiness_name=self.bussiness_name
             )
             quarter.create_months()
+
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','year']),
+        ]
 
 class quarter_period(models.Model):
     name = models.CharField(max_length=100)
@@ -583,6 +730,11 @@ class quarter_period(models.Model):
                 break
             current = date(current.year, current.month + 1, 1)
 
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','start','end']),
+        ]
+
 class month_period(models.Model):
     business = models.ForeignKey(bussiness, on_delete=models.CASCADE)
     name = models.CharField(max_length=50, default='')
@@ -601,6 +753,12 @@ class month_period(models.Model):
         if not self.name:
             self.name = self.generate_month_name()
         super().save(*args, **kwargs)
+
+    class Meta:
+        indexes = [
+            Index(fields=['business','start','end','is_closed']),
+            Index(fields=['business','start']),
+        ]
 
 class asset_ledger(models.Model):
     head = models.ForeignKey(journal_head, on_delete=models.PROTECT)
@@ -624,6 +782,12 @@ class asset_ledger(models.Model):
         self.balance = prev_balance + (self.debit or 0) - (self.credit or 0)
         self.save()
 
+    class Meta:
+        indexes = [
+            Index(fields=['account','period','bussiness_name','date','id']),
+            Index(fields=['bussiness_name','date']),
+        ]
+
 class liabilities_ledger(models.Model):
     head = models.ForeignKey(journal_head, on_delete=models.PROTECT)
     account = models.ForeignKey(real_account, on_delete=models.PROTECT)
@@ -645,6 +809,11 @@ class liabilities_ledger(models.Model):
         prev_balance = previous.balance if previous else 0
         self.balance = prev_balance + (self.credit or 0) - (self.debit or 0)
         self.save()
+
+    class Meta:
+        indexes = [
+            Index(fields=['account','period','bussiness_name','date','id']),
+        ]
 
 class equity_ledger(models.Model):
     head = models.ForeignKey(journal_head, on_delete=models.PROTECT)
@@ -668,6 +837,11 @@ class equity_ledger(models.Model):
         self.balance = prev_balance + (self.credit or 0) - (self.debit or 0)
         self.save()
 
+    class Meta:
+        indexes = [
+            Index(fields=['account','period','bussiness_name','date','id']),
+        ]
+
 class revenue_ledger(models.Model):
     head = models.ForeignKey(journal_head, on_delete=models.PROTECT)
     account = models.ForeignKey(real_account, on_delete=models.PROTECT)
@@ -690,6 +864,11 @@ class revenue_ledger(models.Model):
         self.balance = prev_balance + (self.credit or 0) - (self.debit or 0)
         self.save()
 
+    class Meta:
+        indexes = [
+            Index(fields=['account','period','bussiness_name','date','id']),
+        ]
+
 class expenses_ledger(models.Model):
     head = models.ForeignKey(journal_head, on_delete=models.PROTECT)
     account = models.ForeignKey(real_account, on_delete=models.PROTECT)
@@ -711,6 +890,11 @@ class expenses_ledger(models.Model):
         prev_balance = previous.balance if previous else 0
         self.balance = prev_balance + (self.debit or 0) - (self.credit or 0)
         self.save()
+
+    class Meta:
+        indexes = [
+            Index(fields=['account','period','bussiness_name','date','id']),
+        ]
 
 
 class customer_ledger(models.Model):
@@ -740,6 +924,11 @@ class customer_ledger(models.Model):
 
         super().save(*args, **kwargs)
 
+    class Meta:
+        indexes = [
+            Index(fields=['account','bussiness_name','period','date','id']),
+        ]
+
 class supplier_ledger(models.Model):
     account = models.ForeignKey(supplier, on_delete=models.CASCADE)
     head = models.ForeignKey(journal_head, on_delete=models.PROTECT)
@@ -767,6 +956,11 @@ class supplier_ledger(models.Model):
 
         super().save(*args, **kwargs)
 
+    class Meta:
+        indexes = [
+            Index(fields=['account','bussiness_name','period','date','id']),
+        ]
+
 
 class journal(models.Model):
     date = models.DateField(auto_now_add=True)
@@ -778,6 +972,12 @@ class journal(models.Model):
     credit = models.CharField(max_length=100, default='')
     amount = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
+
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','date']),
+            Index(fields=['head']),
+        ]
 
 class payment(models.Model):
     date = models.DateField(auto_now_add=True)
@@ -792,6 +992,7 @@ class payment(models.Model):
     status = models.CharField(max_length=100, default=True)
     amount = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
+    is_reversed = models.BooleanField(default=False)
 
     def generate_next_code(self):
         id = self.bussiness_name.id
@@ -804,6 +1005,13 @@ class payment(models.Model):
         if not self.code:
             self.code = self.generate_next_code()
         super().save(*args, **kwargs)
+
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','date']),
+            Index(fields=['code']),
+            Index(fields=['created_by']),
+        ]
 
 class cash_receipt(models.Model):
     date = models.DateField(auto_now_add=True)
@@ -818,6 +1026,7 @@ class cash_receipt(models.Model):
     status = models.CharField(max_length=100, default=True)
     amount = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
+    is_reversed = models.BooleanField(default=False)
 
     def generate_next_code(self):
         id = self.bussiness_name.id
@@ -831,7 +1040,12 @@ class cash_receipt(models.Model):
             self.code = self.generate_next_code()
         super().save(*args, **kwargs)
 
-
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','date']),
+            Index(fields=['code']),
+            Index(fields=['created_by']),
+        ]
 
 
 class item_balance(models.Model):
@@ -847,6 +1061,11 @@ class item_balance(models.Model):
     opening_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     closing_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
+    class Meta:
+        indexes = [
+            Index(fields=['item','business','period']),
+        ]
+
 class account_balance(models.Model):
     account = models.ForeignKey(real_account, on_delete=models.PROTECT)
     business = models.ForeignKey(bussiness, on_delete=models.PROTECT)
@@ -855,6 +1074,11 @@ class account_balance(models.Model):
     closing_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     debit_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     credit_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        indexes = [
+            Index(fields=['account','business','period']),
+        ]
 
 class customer_balance(models.Model):
     customer = models.ForeignKey(customer, on_delete=models.PROTECT)
@@ -865,6 +1089,11 @@ class customer_balance(models.Model):
     debit_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     credit_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
 
+    class Meta:
+        indexes = [
+            Index(fields=['customer','business','period']),
+        ]
+
 class supplier_balance(models.Model):
     supplier = models.ForeignKey(supplier, on_delete=models.PROTECT)
     business = models.ForeignKey(bussiness, on_delete=models.PROTECT)
@@ -873,3 +1102,8 @@ class supplier_balance(models.Model):
     closing_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     debit_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     credit_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        indexes = [
+            Index(fields=['supplier','business','period']),
+        ]

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def fetch_items_for_report(business, company, user, location):
     try:
-        business_obj = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_obj = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_obj, user_name=user)
 
         if not user_query.report_access and not user_query.admin:
@@ -105,7 +105,7 @@ def fetch_items_for_report(business, company, user, location):
     
 def fetch_data_for_report_movements(business, company, user, location, start, end):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.report_access and not user_query.admin:
@@ -165,7 +165,7 @@ def fetch_data_for_report_movements(business, company, user, location, start, en
     
 def fetch_data_for_sales_performance(business, company, user, location, start, end, reference):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.report_access and not user_query.admin:
@@ -221,6 +221,18 @@ def fetch_data_for_sales_performance(business, company, user, location, start, e
                 end=end
             ).fetch_purchase()
 
+        elif reference == 'sales_records':
+            sales_data = report_class.Report_Data(
+                business=business_query,
+                company=company,
+                user=user_query,
+                location_access=locations_access,
+                start=start,
+                end=end
+            ).fetch_sales_records()
+
+            print(sales_data)
+
         locs = [{'value': 'All Locations', 'label': 'All Locations'}]
 
         if user_query.admin:
@@ -245,7 +257,7 @@ def fetch_data_for_sales_performance(business, company, user, location, start, e
         return "User not found"
     
     except ValueError as value:
-        logger.info(value)
+        logger.warning(value)
         return 'error'  
     
     except Exception as error:
@@ -255,7 +267,7 @@ def fetch_data_for_sales_performance(business, company, user, location, start, e
     
 def fetch_data_for_dashboard(business, company, user, location):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.report_access and not user_query.admin:
@@ -323,7 +335,7 @@ def fetch_data_for_dashboard(business, company, user, location):
     
 def fetch_pl_report(business, user, start, end, period_type, company):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.report_access and not user_query.admin:
@@ -347,7 +359,7 @@ def fetch_pl_report(business, user, start, end, period_type, company):
     
 def fetch_iv_report(business, user, start, end, category, company):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.report_access and not user_query.admin:
@@ -371,7 +383,7 @@ def fetch_iv_report(business, user, start, end, category, company):
     
 def fetch_tb_report(business, user, start, end, company):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.report_access and not user_query.admin:

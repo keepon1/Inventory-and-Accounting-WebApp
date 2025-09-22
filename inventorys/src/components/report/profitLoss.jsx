@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, 
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell 
@@ -8,19 +8,16 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faChartPie,
   faDollarSign,
-  faArrowUp,
   faArrowDown,
-  faFilter,
-  faSearch,
-  faFileExport,
-  faChevronDown,
-  faChartLine
+  faChartLine,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import './itemSummary.css';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -150,10 +147,14 @@ const ProfitAndLoss = ({ business, user }) => {
   return (
     <div className="dashboard-main">
       <div className="journal-header">
-        <h3>
-          <FontAwesomeIcon icon={faChartPie} className="header-icon" />
-          Profit & Loss Statement
-        </h3>
+        <div className='header-back'>
+          <Link to="../" className='back-link'>
+            <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+          </Link>
+          <h2>
+            Profit & Loss Statement
+          </h2>
+        </div>
       </div>
 
       <div className="journal-filters">

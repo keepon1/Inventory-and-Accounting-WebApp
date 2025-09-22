@@ -7,18 +7,15 @@ import Select from 'react-select';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faMoneyBillWave,
-  faArrowUp,
   faArrowDown,
   faChartLine,
-  faFilter,
-  faSearch,
-  faFileExport,
-  faChevronDown
+  faArrowLeft,
 } from '@fortawesome/free-solid-svg-icons';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import './itemSummary.css';
+import { Link } from 'react-router-dom';
 
 const CashFlow = ({ business, user }) => {
   const [cashFlow, setCashFlow] = useState([]);
@@ -141,10 +138,14 @@ const CashFlow = ({ business, user }) => {
   return (
     <div className="dashboard-main">
       <div className="journal-header">
-        <h3>
-          <FontAwesomeIcon icon={faMoneyBillWave} className="header-icon" />
-          Cash Flow Statement
-        </h3>
+        <div className='header-back'>
+          <Link to="../" className='back-link'>
+            <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+          </Link>
+          <h2>
+            Cash Flow Statement
+          </h2>
+        </div>
       </div>
 
       <div className="journal-filters">

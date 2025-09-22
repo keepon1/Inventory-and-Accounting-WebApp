@@ -13,6 +13,7 @@ import api from '../api';
 import PaymentJournal from './addPayment';
 import { handleDateSearch, isCompleteInput } from '../../utils/dateformat';
 import { format } from 'date-fns';
+import { toast } from 'react-toastify';
 
 const PaymentMain = ({ business, user, access }) => {
   const [payment, setPayment] = useState([]);
@@ -70,13 +71,17 @@ const PaymentMain = ({ business, user, access }) => {
           'fetch_payments',
           {business, page, searchQuery, parsed, user},
         );
-        if (typeof response == 'object'){
-          setPayment(prev => page === 1 ? response.payment : [...prev, ...response.payment]);
-          setHasNext(response.has_more);
+        if (response.status === 'success') {
+          setPayment(prev => page === 1 ? response.data.payment : [...prev, ...response.data.payment]);
+          setHasNext(response.data.has_more);
         }else{
-          return(<div>{response}</div>);
+          toast.error(response.message || 'Failed to fetch payments');
+          return;
         }
       } catch (error) {
+        toast.error('An error occurred while fetching payments'); 
+        console.error('Fetch error:', error);
+        
         if (error.response?.status === 401) {
           localStorage.removeItem('access');
           navigate('/sign_in');
@@ -175,6 +180,7 @@ const PaymentMain = ({ business, user, access }) => {
                     <th>Debit</th>
                     <th>Credit</th>
                     <th>Amount</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -193,6 +199,7 @@ const PaymentMain = ({ business, user, access }) => {
                       <td>{entry.to_account}</td>
                       <td>{entry.from_account}</td>
                       <td>{entry.amount}</td>
+                      <td>{entry.is_reversed? 'Reversed' : 'Completed'}</td>
                     </tr>
                   ))}
                 </tbody>

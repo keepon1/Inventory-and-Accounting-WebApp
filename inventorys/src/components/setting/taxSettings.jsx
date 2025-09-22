@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {faSearch,
-  faFileExport,
-  faEye,
   faPercent,
   faTimesCircle,
-  faEdit
+  faEdit,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
-import {useNavigate} from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
 import Select from 'react-select';
 import api from '../api';
 import enableKeyboardScrollFix from '../../utils/scroll';
+import { toast } from 'react-toastify';
 
 const TaxMain = ({ business, user }) => {
     const [taxes, setTaxes] = useState([]);
@@ -31,7 +31,8 @@ const TaxMain = ({ business, user }) => {
 
     const filteredItems = taxes.filter(item =>
         item.name.toLowerCase().includes(searchQuery) ||
-        item.value.toLowerCase().includes(searchQuery) ||
+        item.type.toLowerCase().includes(searchQuery) ||
+        item.rate.toString().toLowerCase().includes(searchQuery) ||
         item.description.toLowerCase().includes(searchQuery)
     );
 
@@ -40,11 +41,18 @@ const TaxMain = ({ business, user }) => {
         try {
             const response = await api.post(
             'fetch_taxes',
-            { business: business},
+            { business, user},
             );
-            setTaxes(response);
+
+            if (response.status === 'error'){
+                toast.error(response.message || 'Error occurred while fetching data');
+                return;
+            }
+            setTaxes(response.data || []);
 
         } catch (error) {
+            toast.error('Error occurred while fetching data');
+            console.error('Error fetching items:', error);
             if (error.response?.status === 401) {
             localStorage.removeItem('access');
             navigate('/sign_in');
@@ -71,16 +79,12 @@ const TaxMain = ({ business, user }) => {
 
     const openEdit = async (tax) => {
         try {
-            const response = await api.post(
-                'get_tax',
-                { business, tax: tax},
-            );
             setEditData({
-                originalName: tax,
-                name: response.name,
-                rate: response.rate,
-                type: response.type,
-                description: response.description,
+                originalName: tax.name,
+                name: tax.name,
+                rate: tax.rate,
+                type: {'value': tax.type, 'label': tax.type},
+                description: tax.description,
             });
             setShowEdit(true);
             document.addEventListener('mousedown', handleEditOverlay);
@@ -93,17 +97,17 @@ const TaxMain = ({ business, user }) => {
 
     const addTax = async() => {
         if (!detail.name || detail.name === ''){
-            setErrors('Name can not be empty');
+            toast.info('Name can not be empty');
             return;
         };
 
         if (!detail.type){
-            setErrors('A type has to be selected');
+            toast.info('A type has to be selected');
             return;
         };
 
         if (detail.rate < 0.01){
-            setErrors('Rate can not be less 0.01');
+            toast.info('Rate can not be less 0.01');
             return;
         };
 
@@ -115,32 +119,49 @@ const TaxMain = ({ business, user }) => {
         }
 
         try{
-            const response = await api.post('add_tax', {business, detail:data});
-            if (response === 'done'){
+            const response = await api.post('add_tax', {business, detail:data, user});
+
+            if (response.status === 'success'){
+                toast.success(response.message || `${data.name} added successfully`);
                 setShowCreate(false);
                 document.addEventListener('mousedown', handleCreateOverlay);
 
-                const response = await api.post('fetch_taxes',{ business: business});
-                setTaxes(response);
-                };
-        }catch{
+                setDetail({ name: '', rate: 0, type: null, description:''});
 
+                const response1 = await api.post('fetch_taxes',{ business, user});
+                
+                if (response1.status === 'error'){
+                    toast.error(response1.message || 'Error occurred while fetching data');
+                    return;
+                }
+                setTaxes(response1.data || []);
+            }else{
+                toast.error(response.message || 'Error occurred while adding tax');
+            }
+
+        }catch(error){
+            toast.error('Error occurred while adding tax');
+            console.error('Error adding tax:', error);
+            if (error.response?.status === 401) {
+                localStorage.removeItem('access');
+                navigate('/sign_in');
+            }
         };
     };
 
     const editTax = async () => {
         if (!editData.name || editData.name === ''){
-            setErrors('Name can not be empty');
+            toast.info('Name can not be empty');
             return;
         };
 
         if (!editData.type){
-            setErrors('A type has to be selected');
+            toast.info('A type has to be selected');
             return;
         };
 
         if (editData.rate < 0.01){
-            setErrors('Rate can not be less 0.01');
+            toast.info('Rate can not be less 0.01');
             return;
         };
 
@@ -153,39 +174,52 @@ const TaxMain = ({ business, user }) => {
         }
 
         try{
-            const response = await api.post('edit_tax', {business, detail:data});
-            if (response === 'done'){
+            const response = await api.post('edit_tax', {business, detail:data, user});
+            if (response.status === 'success'){
+                toast.success(response.message || `${data.name} updated successfully`);
                 setShowEdit(false);
                 document.addEventListener('mousedown', handleEditOverlay);
 
-                const response = await api.post('fetch_taxes',{ business: business});
-                setTaxes(response);
-                };
-        }catch{
+                setEditData({ originalName: '', name: '', rate: 0, type: null, description:'' });
 
+                const response1 = await api.post('fetch_taxes',{ business, user });
+
+                if (response1.status === 'error'){
+                    toast.error(response1.message || 'Error occurred while fetching data');
+                    return;
+                }
+                setTaxes(response1.data || []);
+            }else{
+                toast.error(response.message || 'Error occurred while editing tax');
+            }
+
+        }catch(error){
+            toast.error('Error occurred while editing tax');
+            console.error('Error editing tax:', error);
+            if (error.response?.status === 401) {
+                localStorage.removeItem('access');
+                navigate('/sign_in');
+            }
         };
     };
 
     return (
         <div className="journal-container">
             <div className="journal-header">
-                <h1>
-                    <FontAwesomeIcon icon={faPercent} className="header-icon" />
-                    Taxes & Levies
-                </h1>
-                <div className="journal-controls">
-                    <FontAwesomeIcon 
-                        icon={faTimesCircle} 
-                        className="close-button"
-                        onClick={() => navigate(-1)}
-                    />
+                <div className='header-back'>
+                    <Link to="../" className='back-link'>
+                        <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+                    </Link>
+                    <h2>
+                        Taxes & Levies
+                    </h2>
                 </div>
             </div>
 
             <div className="journal-filters">
                 <div className="filter-groups-left">
                     <div>
-                        <button className="add-item-button" onClick={() => {
+                        <button className="btn btn-outline" onClick={() => {
                             setShowCreate(true);
                             document.addEventListener('mousedown', handleCreateOverlay);
                         }}>
@@ -193,15 +227,16 @@ const TaxMain = ({ business, user }) => {
                         </button>
                     </div>
                 </div>
-                <div className="filter-groups-right">
-                    <div className="filter-group1">
-                        <FontAwesomeIcon icon={faSearch} />
-                        <input onChange={handleSearch} type="text" placeholder="Search taxes..." />
+                <div className="ivi_display_box1">
+                    <div className="ivi_subboxes1">
+                        <div className="ivi_holder_box1">
+                            <input onChange={handleSearch} type="text" className='ivi_input' placeholder="Search taxes..." />
+                        </div>
                     </div>
                 </div>
-                </div>
+            </div>
 
-                <div className="items-table-box">
+            <div className="items-table-box">
                 <table className="items-table">
                     <thead className="table-header">
                         <tr>
@@ -216,7 +251,7 @@ const TaxMain = ({ business, user }) => {
                         {filteredItems.map((tax, index) => (
                             <tr key={tax.name} id={`row-${index}`} className="table-row">
                             <td className="table-row">
-                                <button className="action-button" onClick={() => openEdit(tax.name)}>
+                                <button className="action-button" onClick={() => openEdit(tax)}>
                                     <FontAwesomeIcon icon={faEdit} />
                                 </button>
                             </td>

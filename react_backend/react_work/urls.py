@@ -2,6 +2,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('refresh/', views.refresh_view, name='token_refresh'),
+    path('me/', views.me, name='me'),
     path('register/', views.register, name='register'),
     path('sign/', views.sign, name='sign'),
     path('sign_in_google/', views.sign_in_google, name='sign_in_google'),
@@ -109,10 +111,15 @@ urlpatterns = [
     path('fetch_items_for_report/', views.fetch_items_for_report, name='fetch_items_for_report'),
     path('fetch_report_data_movements/', views.fetch_report_data_movements, name='fetch_report_data_movements'),
     path('fetch_report_data_sales_performance/', views.fetch_report_data_sales_performance, name='fetch_report_data_sales_performance'),
+    path('fetch_sales_records/', views.fetch_sales_records, name='fetch_sales_records'),
     path('fetch_customer_aging/', views.fetch_customer_aging, name='fetch_customer_aging'),
     path('fetch_supplier_performance/', views.fetch_supplier_performance, name='fetch_supplier_performance'),
     path('fetch_profit_loss/', views.fetch_profit_loss, name='fetch_profit_loss'),
     path('fetch_inventory_valuation/', views.fetch_inventory_valuation, name='fetch_inventory_valuation'),
     path('fetch_trial_balance/', views.fetch_trial_balance, name='fetch_trial_balance'),
     path('fetch_report_data_purchase_metric/', views.fetch_report_data_purchase_metric, name='fetch_report_data_purchase_metric'),
+    path('fetch_item_history/', views.fetch_item_history, name='fetch_item_history'),
+    path('fetch_customer_history/', views.fetch_customer_history, name='fetch_customer_history'),
+    path('fetch_supplier_history/', views.fetch_supplier_history, name='fetch_supplier_history'),
+    path('fetch_account_history/', views.fetch_account_history, name='fetch_account_history'),
 ]

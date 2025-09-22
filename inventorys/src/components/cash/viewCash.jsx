@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimesCircle, faTachometer } from "@fortawesome/free-solid-svg-icons";
+import { faTimesCircle, faTachometer, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const ViewCash = ({ payments, user, business, access }) => {
   const [journal, setjournal] = useState({
@@ -28,11 +29,18 @@ const ViewCash = ({ payments, user, business, access }) => {
           'view_cash_receipt',
           { business, number: payments, user },
         );
+
+        if (response.status === 'error') {
+          toast.error(response.message || 'Failed to fetch cash receipt details');
+          return;
+        }
         
         setjournal({
-          ...response
+          ...response.data
         });
       } catch (error) {
+        toast.error('An error occurred while fetching cash receipt details'); 
+        console.error('Fetch error:', error);
         if (error.response?.status === 401) {
           localStorage.removeItem('access');
           navigate('/sign_in');
@@ -49,39 +57,41 @@ const ViewCash = ({ payments, user, business, access }) => {
           { business, number: journal.number, user },
         );
 
-        if (response == 'done'){
+        if (response.status === 'success') {
+          toast.success(response.message || 'Cash receipt reversed successfully');
           navigate(-1);
         }
       }
-    catch{
-
+    catch(error){
+      toast.error('An error occurred while reversing cash receipt'); 
+      console.error('Fetch error:', error);
     }
   }
   return (
     <div className="ivi_display_mainbox">
       <div className="ia_submain_box">
         <div className="ia_description_box">
-          <h2>Cash Receipt Number : {journal.number}</h2>
-          <FontAwesomeIcon 
-            icon={faTimesCircle} 
-            className="close-button"
-            onClick={() => navigate(-1)}
-          />
+          <div className="header-back">
+            <Link to="../" className="back-link">
+                <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+            </Link>
+            <h2>{journal.number}</h2>
+          </div>
         </div>
 
         <div className="ivi_display_box">
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label>Reference Number</label>
-              <div className="ivi_input">{journal.transation_number}</div>
+              <input className="ivi_input" value={journal.transation_number} readOnly title={journal.transation_number} />
             </div>
             <div className="ivi_holder_box">
               <label>Transaction Date</label>
-              <div className="ivi_input">{journal.date}</div>
+              <input className="ivi_input" value={journal.date} readOnly title={journal.date} />
             </div>
             <div className="ivi_holder_box">
               <label>User</label>
-              <div className="ivi_input">{journal.by}</div>
+              <input className="ivi_input" value={journal.by} readOnly title={journal.by} />
             </div>
             <div className="ivi_holder_box">
               <label>Status</label>
@@ -92,31 +102,31 @@ const ViewCash = ({ payments, user, business, access }) => {
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label>Description</label>
-              <div className="ivi_input">{journal.description}</div>
+              <input className="ivi_input" value={journal.description} readOnly title={journal.description} />
             </div>
             
             <div className="ivi_holder_box">
               <label>Reference Type</label>
-              <div className="ivi_input">{journal.ref_type}</div>
+              <input className="ivi_input" value={journal.ref_type} readOnly title={journal.ref_type} />
             </div>
             <div className="ivi_holder_box">
               <label>External No</label>
-              <div className="ivi_input">{journal.external}</div>
+              <input className="ivi_input" value={journal.external} readOnly title={journal.external} />
             </div>
           </div>
 
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label>Amount</label>
-              <div className="ivi_input">{journal.amount}</div>
+              <input className="ivi_input" value={journal.amount} readOnly title={journal.amount} />
             </div>
             <div className="ivi_holder_box">
               <label>From</label>
-              <div className="ivi_input">{journal.from}</div>
+              <input className="ivi_input" value={journal.from} readOnly title={journal.from} />
             </div>
             <div className="ivi_holder_box">
               <label>To</label>
-              <div className="ivi_input">{journal.to}</div>
+              <input className="ivi_input" value={journal.to} readOnly title={journal.to} />
             </div>
           </div>
         </div>

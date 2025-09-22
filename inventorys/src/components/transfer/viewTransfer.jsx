@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimesCircle, faReceipt, faTachometer, faPrint } from "@fortawesome/free-solid-svg-icons";
+import { faTimesCircle, faReceipt, faTachometer, faPrint, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 const ViewTransfer = (props) => {
@@ -133,53 +133,53 @@ const ViewTransfer = (props) => {
         <div className="ivi_display_mainbox">
           <div className="ia_submain_box">
             <div className="ia_description_box">
-              <h2 className="ia_description_word">Transfer Details</h2>
-              <FontAwesomeIcon
-                icon={faTimesCircle}
-                className="close-button"
-                onClick={() => navigate(-1)}
-              />
+              <div className="header-back">
+                <Link to="../" className="back-link">
+                  <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+                </Link>
+                <h2 className="ia_description_word">Transfer Details</h2>
+              </div>
             </div>
 
             <div className="ivi_display_box">
               <div className="ivi_subboxes">
                 <div className="ivi_holder_box">
                   <label className="ivi_label">Transfer Number</label>
-                  <div className="ivi_input">{transfer.number}</div>
+                  <input className="ivi_input" value={transfer.number} readOnly title={transfer.number} />
                 </div>
                 <div className="ivi_holder_box">
                   <label className="ivi_label">Description</label>
-                  <div className="ivi_input">{transfer.description}</div>
+                  <input className="ivi_input" value={transfer.description} readOnly title={transfer.description} />
                 </div>
                 <div className="ivi_holder_box">
                   <label className="ivi_label">Created by</label>
-                  <div className="ivi_input">{transfer.createdBy}</div>
+                  <input className="ivi_input" value={transfer.createdBy} readOnly title={transfer.createdBy} />
                 </div>
               </div>
 
               <div className="ivi_subboxes">
                 <div className="ivi_holder_box">
                   <label className="ivi_label">Date</label>
-                  <div className="ivi_input">{transfer.issueDate}</div>
+                  <input className="ivi_input" value={transfer.issueDate} readOnly title={transfer.issueDate} />
                 </div>
                 <div className="ivi_holder_box">
                   <label className="ivi_label">Total Quantity</label>
-                  <div className="ivi_input">{transfer.total}</div>
+                  <input className="ivi_input" value={transfer.total} readOnly title={transfer.total} />
                 </div>
                 <div className="ivi_holder_box">
                   <label className="ivi_label">Status</label>
-                  <div className="ivi_input">{transfer.status}</div>
+                  <input className="ivi_input" value={transfer.status} readOnly title={transfer.status} />
                 </div>
               </div>
 
               <div className="ivi_subboxes">
                 <div className="ivi_holder_box">
                   <label className="ivi_label">Source Location</label>
-                  <div className="ivi_input">{transfer.from}</div>
+                  <input className="ivi_input" value={transfer.from} readOnly title={transfer.from} />
                 </div>
                 <div className="ivi_holder_box">
                   <label className="ivi_label">To Location</label>
-                  <div className="ivi_input">{transfer.to}</div>
+                  <input className="ivi_input" value={transfer.to} readOnly title={transfer.to} />
                 </div>
               </div>
             </div>

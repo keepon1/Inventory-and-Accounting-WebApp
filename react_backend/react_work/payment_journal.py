@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 def fetch_payment_for_main_view(search, date_search, business, company, page, user, page_quantity=30):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
        
         if not user_query.admin and not user_query.payment_access:
-            return 'user has no access'
+            return {'status':'error', 'message':f'user {user} has no access to payment module'}
 
         payment = models.payment.objects.filter(bussiness_name=business_query)
 
@@ -50,7 +50,7 @@ def fetch_payment_for_main_view(search, date_search, business, company, page, us
                     payment = payment.filter(date__date__range=(start_date, end_date))
         
         payment = payment.order_by('-code').values(
-            'code', 'date', 'ref_type', 'external_no', 'description', 'transaction_number', 'from_account', 'to_account', 'amount', 'status',
+            'code', 'date', 'ref_type', 'external_no', 'description', 'transaction_number', 'from_account', 'to_account', 'amount', 'is_reversed',
         )
         
         paginator = Paginator(payment, page_quantity)
@@ -58,27 +58,27 @@ def fetch_payment_for_main_view(search, date_search, business, company, page, us
 
         result = {'payment':list(current_page.object_list), 'has_more':current_page.has_next()}
 
-        return result
+        return {'status':'success', 'data':result}
 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
-        return "Business not found"
+        return {'status': 'error', 'message': f'Business {business} not found'}
     
     except models.current_user.DoesNotExist:
         logger.warning(f"User '{user}' not found.")
-        return "User not found"
+        return {'status': 'error', 'message': f'User {user} not found'}
     
     except Exception as error:
         logger.exception('unhandled error')
-        return 'something happened'
+        return {'status': 'error', 'message': 'something happened'}
     
 def view_payment(business, user, company, code):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(user_name=user, bussiness_name=business_query)
 
         if not user_query.admin and not user_query.payment_access:
-            return 'no access'
+            return {'status':'error', 'message':f'user {user} has no access to payment module'}
         
         payment = models.payment.objects.get(bussiness_name=business_query, code=code)
         
@@ -88,31 +88,31 @@ def view_payment(business, user, company, code):
                  'transation_number':payment.transaction_number, 'ref_type':payment.ref_type, 'external':payment.external_no}
 
 
-        return payment
+        return {'status':'success', 'data':payment}
 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
-        return "Business not found"
+        return {'status': 'error', 'message': f'Business {business} not found'}
     
     except models.current_user.DoesNotExist:
         logger.warning(f"User '{user}' not found.")
-        return "User not found"
+        return {'status': 'error', 'message': f'User {user} not found'}
     
     except models.payment.DoesNotExist:
         logger.warning(f"Payment code '{code}' not found.")
-        return "Payment code not found"
+        return {'status': 'error', 'message': f'Payment code {code} not found'}
     
     except Exception as error:
         logger.exception('unhandled error')
-        return 'something happened'
+        return {'status': 'error', 'message': 'something happened'}
     
 def add_payment(company, user, business, data):
     try:
-        business_query = models.bussiness.objects.get(company_id=company, bussiness_name=business)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.admin and not user_query.create_access:
-            return 'no access'
+            return {'status':'error', 'message':f'user {user} has no access to create payment entry'}
         
         ledger_map = {
             'Assets': models.asset_ledger,
@@ -125,16 +125,16 @@ def add_payment(company, user, business, data):
         with transaction.Atomic(savepoint=False, durable=False, using='default'):
             for i in data:
                 validate_data = (isinstance(i['amount'], (float,str,int)) and isinstance(i['credit_account'], str) and isinstance(i['debit_account'], str) and
-                                 i['credit_account'] and i['debit_account'] and i['reference_type'].strip() and isinstance(i['reference_type'], str))
+                                 i['credit_account'].strip() and i['debit_account'].strip() and i['reference_type'].strip() and isinstance(i['reference_type'], str))
                 
                 if not validate_data:
-                    raise ValueError('invalid data')
+                    return {'status':'error', 'message':'Invalid data was submitted'}
                 
                 current_date = datetime.strptime(i['date'], "%Y-%m-%d").date()
                 today = date.today()
 
                 if current_date.month != today.month:
-                    raise ValueError('can`t post to other period')
+                    return {'status':'error', 'message':'Transaction date must be within the current month'}
                 
                 accounts = {'payable':20101, 'debit':i['debit_account'], 'credit':i['credit_account'], 'discount':40201}
 
@@ -204,39 +204,40 @@ def add_payment(company, user, business, data):
 
                 models.tracking_history.objects.create(user=user_query, bussiness_name=business_query, area='Posted Payment', head=head.code)
 
-            return 'done'
+            return {'status':'success', 'message':'Payment entry added successfully'}
                 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
-        return "Business not found"
+        return {'status': 'error', 'message': f'Business {business} not found'}
     
     except models.current_user.DoesNotExist:
         logger.warning(f"User '{user}' not found.")
-        return "User not found"
+        return {'status': 'error', 'message': f'User {user} not found'}
     
     except ValueError as value:
         logger.warning(value)
-        return str(value)
+        return {'status': 'error', 'message': 'Invalid data was submitted'}
 
     except Exception as error:
         logger.exception('unhandled error')
-        return 'something happened'
+        return {'status': 'error', 'message': 'something happened'}
     
 def reverse_payment(company, user, number, business):
     try:    
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.admin and not user_query.create_access:
-            return 'no access'
+            return {'status':'error', 'message':f'user {user} has no access to reverse payment entry'}
         
         payment = models.payment.objects.get(code=number, bussiness_name=business_query)
 
         with transaction.atomic(durable=False, savepoint=False, using='default'):
             if payment.status == 'False':
-                return 'reversed'
+                return {'status':'error', 'message':'This payment entry has already been reversed'}
             
             payment.status = False
+            payment.is_reversed = True
             payment.save()
 
             journal_head = models.journal_head.objects.get(transaction_number=payment.code, bussiness_name=business_query)
@@ -349,28 +350,25 @@ def reverse_payment(company, user, number, business):
 
             models.tracking_history.objects.create(user=user_query, bussiness_name=business_query, area='Reversed Payment entry', head=journal_head.code)
 
-            return 'done'
+            return {'status':'success', 'message':'Payment entry reversed successfully'}
         
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
-        return "Business not found"
+        return {'status': 'error', 'message': f'Business {business} not found'}
     
     except models.current_user.DoesNotExist:
         logger.warning(f"User '{user}' not found.")
-        return "User not found"
+        return {'status': 'error', 'message': f'User {user} not found'}
     
-    except models.journal_head.DoesNotExist:
-        logger.warning(f"Cash receipt no. '{''}' not found.")
-        return "Cash receipt no. not found"
     
     except models.payment.DoesNotExist:
         logger.warning(f"payment no. '{number}' not found.")
-        return "payment no. not found"
+        return {'status': 'error', 'message': f'payment no. {number} not found'}
     
     except ValueError as value:
         logger.warning(value)
-        return value
+        return {'status': 'error', 'message': 'Invalid data was submitted'}
 
     except Exception as error:
-        logger.exception('unhandled error')
-        return 'something happened'
+        logger.exception(error)
+        return {'status': 'error', 'message': 'something happened'}

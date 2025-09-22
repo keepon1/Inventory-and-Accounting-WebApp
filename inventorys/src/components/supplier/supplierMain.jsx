@@ -3,7 +3,9 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSearch, faEye, faEdit, faTimesCircle, faMapMarkerAlt, faUser, faUserGroup,  } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import { useNavigate, Routes, Route, useParams, Link } from "react-router-dom";
-import enableKeyboardScrollFix from "../../utils/scroll";
+import { toast } from "react-toastify";
+import SupplierHistory from "./supplierHistory";
+import AccessDenied from "../access";
 
 const SupplierMain = ({ business, user, access }) => {
   const [suppliers, setsuppliers] = useState([]);
@@ -28,9 +30,15 @@ const SupplierMain = ({ business, user, access }) => {
           'fetch_suppliers',
           { business, user, page, searchQuery },
         );
-        setsuppliers(prev => page === 1 ? response.data : [...prev, ...response.data]);
-        setHasNext(response.has_more);
+
+        if (response.status === 'error') {
+          toast.error(response.message || 'An error occurred while fetching suppliers.');
+          return;
+        }
+        setsuppliers(prev => page === 1 ? response.data.data : [...prev, ...response.data.data]);
+        setHasNext(response.data.has_more);
       } catch (error) {
+        toast.error('An error occurred while fetching suppliers.');
         if (error.response?.status === 401) {
           localStorage.removeItem('access');
           navigate('/sign_in');
@@ -38,8 +46,6 @@ const SupplierMain = ({ business, user, access }) => {
       }
     };
     fetchLocations();
-    const cleanup = enableKeyboardScrollFix();
-    return cleanup;
   }, [page, searchQuery]);
 
   const handleSearch = (e) => {
@@ -104,7 +110,7 @@ const SupplierMain = ({ business, user, access }) => {
 
   const handleCreate = async () => {
     if (!currentsupplier.name) {
-      setErrors({ name: 'supplier`s Name can not be empty' });
+      toast.info('supplier`s Name can not be empty');
       return;
     }
 
@@ -114,21 +120,30 @@ const SupplierMain = ({ business, user, access }) => {
         { business, supplier: currentsupplier, user },
       );
 
-      if (response === 'exist') {
-        setErrors({ name: 'supplier already exist' });
+      if (response.status === 'error') {
+        toast.error(response.message || 'supplier already exist');
         return;
       }
 
+      toast.success(response.message || 'supplier created successfully');
       setShowCreate(false);
       const updated = await api.post(
         'fetch_suppliers',
         { business, user, page, searchQuery },
       );
-      setsuppliers(prev => page === 1 ? updated.data : [...prev, ...updated.data]);
-      setHasNext(updated.has_more);
-      setCurrentLocation({ name: '', address: '', contact: '',  email:''});
+
+      if (updated.status === 'error') {
+        toast.error(updated.message || 'An error occurred while fetching suppliers.');
+        return;
+      }
+
+      setsuppliers(prev => page === 1 ? updated.data.data : [...prev, ...updated.data.data]);
+      setHasNext(updated.data.has_more);
+      setCurrentsupplier({ name: '', address: '', contact: '',  email:''});
 
     } catch (error) {
+      toast.error('An error occurred while creating supplier.');
+      console.error(error);
       if (error.response?.status === 401) {
         navigate('/sign_in');
       }
@@ -147,21 +162,29 @@ const SupplierMain = ({ business, user, access }) => {
         },
       );
 
-      if (response === 'exist') {
-        setErrors({ names: 'supplier`s Name already exist' });
+      if (response.status === 'error') {
+        toast.info(response.message || 'supplier`s Name already exist');
         return;
       }
 
+      toast.success(response.message || 'supplier edited successfully');
       setShowEdit(false);
       const updated = await api.post(
         'fetch_suppliers',
         { business, user, page, searchQuery },
       );
-      setsuppliers(prev => page === 1 ? updated.data : [...prev, ...updated.data]);
-      setHasNext(updated.has_more);
+
+      if (updated.status === 'error') {
+        toast.error(updated.message || 'An error occurred while fetching suppliers.');
+        return;
+      }
+
+      setsuppliers(prev => page === 1 ? updated.data.data : [...prev, ...updated.data.data]);
+      setHasNext(updated.data.has_more);
       setEditData({ originalName: '', name: '', address: '', contact:'', email:'' });
 
     } catch (error) {
+      toast.error('An error occurred while editing supplier.');
       if (error.response?.status === 401) {
         navigate('/sign_in');
       }
@@ -240,9 +263,9 @@ const SupplierMain = ({ business, user, access }) => {
                       <td>{supplier.contact}</td>
                       <td>{supplier.address}</td>
                       <td>{supplier.email}</td>
-                      <td><Link>{supplier.debit}</Link></td>
-                      <td><Link>{supplier.credit}</Link></td>
-                      <td>{(supplier.debit - supplier.credit).toFixed(2) }</td>
+                      <td><Link to={`history/${supplier.account} - ${supplier.name}`} className="transaction-link">{supplier.credit}</Link></td>
+                      <td><Link to={`history/${supplier.account} - ${supplier.name}`} className="transaction-link">{supplier.debit}</Link></td>
+                      <td><Link to={`history/${supplier.account} - ${supplier.name}`} className="transaction-link">{(supplier.credit - supplier.debit).toFixed(2) }</Link></td>
                     </tr>
                   ))}
                 </tbody>
@@ -375,11 +398,17 @@ const SupplierMain = ({ business, user, access }) => {
             )}
 
           </>
-          } />
-        {/*<Route path="view/:itemCode" element={<ViewItemWrapper />} />*/}
+        } />
+        <Route path="history/:supplierName" element={<SupplierHistoryWrapper business={business} user={user} access={access} />} />
+        <Route path="*" element={<AccessDenied />} />
       </Routes>
     </div>
   );
+};
+
+const SupplierHistoryWrapper = ({ business, user, access }) => {
+  const { supplierName } = useParams();
+  return <SupplierHistory supplierName={supplierName} business={business} user={user} access={access} />;
 };
 
 export default SupplierMain;

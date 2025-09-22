@@ -6,6 +6,7 @@ import './locationMain.css';
 import LocationItem from "./locationItems";
 import { useNavigate, Routes, Route, useParams, Link } from "react-router-dom";
 import enableKeyboardScrollFix from "../../utils/scroll";
+import { toast } from "react-toastify";
 
 const LocationMain = ({ business, user, access }) => {
   const [locations, setLocations] = useState([]);
@@ -42,10 +43,11 @@ const LocationMain = ({ business, user, access }) => {
           'fetch_location',
           { business, searchQuery, user },
         );
-        if (typeof response == 'object'){
-          setLocations(response);
+        if (response.status == 'success'){
+          setLocations(response.data);
         }else{
-          return(<div>{response}</div>);
+          toast.error(response.message || 'Error fetching locations');
+          return;
         }
       } catch (error) {
         if (error.response?.status === 401) {
@@ -90,12 +92,12 @@ const LocationMain = ({ business, user, access }) => {
 
   const handleCreate = async () => {
     if (!currentLocation.name) {
-      setErrors({ name: 'Location Name can not be empty' });
+      toast.info('Location Name can not be empty');
       return;
     }
 
     if (!currentLocation.description) {
-      setErrors({ description: 'Description can not be empty' });
+      toast.info('Description can not be empty');
       return;
     }
     try {
@@ -104,20 +106,27 @@ const LocationMain = ({ business, user, access }) => {
         { business, loc: currentLocation, user },
       );
 
-      if (response === 'exist') {
-        setErrors({ name: 'Location already exist' });
+      if (response.status === 'error') {
+        toast.error(response.message || 'Location Name already exist');
         return;
       }
+
+      toast.success(response.message || 'Location created successfully');
 
       setShowCreate(false);
       const updated = await api.post(
         'fetch_location',
         { business, user,  searchQuery},
       );
-      setLocations(updated);
+      if (updated.status == 'error'){
+        toast.error(updated.message || 'Error fetching locations');
+        return;
+      }
+      setLocations(updated.data);
       setCurrentLocation({ name: '', descript: '', date: '' });
 
     } catch (error) {
+      toast.error('Error creating location');
       if (error.response?.status === 401) {
         navigate('/sign_in');
       }
@@ -136,17 +145,23 @@ const LocationMain = ({ business, user, access }) => {
         },
       );
 
-      if (response === 'exist') {
-        setErrors({ names: 'Location Name already exist' });
+      if (response.statue === 'error') {
+        toast.error(response.message || 'Location Name already exist');
         return;
       }
+
+      toast.success(response.message || 'Location updated successfully');
 
       setShowEdit(false);
       const updated = await api.post(
         'fetch_location',
         { business, searchQuery, user },
       );
-      setLocations(updated);
+      if (updated.status == 'error'){
+        toast.error(updated.message || 'Error fetching locations');
+        return;
+      }
+      setLocations(updated.data);
       setEditData({ originalName: '', name: '', descript: '' });
 
     } catch (error) {

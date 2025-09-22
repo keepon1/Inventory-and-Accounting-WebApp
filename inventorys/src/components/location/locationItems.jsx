@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEdit, faBox, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEdit, faBox, faTimesCircle, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import Select from "react-select";
 import { useNavigate, Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const LocationItem = ({location, business, user, access }) => {
   const [items, setItems] = useState([]);
@@ -41,11 +42,12 @@ const LocationItem = ({location, business, user, access }) => {
           'fetch_items',
           { business, page, searchQuery, user, location},
         );
-        if (typeof response == 'object'){
+        if (response.status === 'success'){
           setItems(prev => page === 1 ? response.data.items : [...prev, ...response.data.items]);
           setHasNext(response.has_more);
         }else{
-          return(<div>{response}</div>);
+          toast.error(response.message || 'Error fetching items');
+          return;
         }
       } catch (error) {
         if (error.response?.status === 401) {
@@ -97,25 +99,35 @@ const LocationItem = ({location, business, user, access }) => {
         item:detail.name, price:detail.price, reorder:detail.reorder
       });
 
-      if (response === 'done'){
+      if (response.status === 'success'){
+        toast.success(response.message || 'Item updated successfully');
         setShowEdit(false);
         setDetail({name:'', category:'', price:0, reorder:0});
 
-        const response = await api.post(
+        const updated = await api.post(
           'fetch_items',
           { business, page, searchQuery, user, location},
         );
-        if (typeof response == 'object'){
-          setItems(prev => page === 1 ? response.items : [...prev, ...response.items]);
-          setHasNext(response.has_more);
+        if (updated.status === 'success'){
+          setItems(prev => page === 1 ? updated.data.items : [...prev, ...updated.data.items]);
+          setHasNext(updated.data.has_more);
         }else{
-          return(<div>{response}</div>);
+          toast.error(updated.message || 'Error fetching items');
+          return;
         }
+      }else{
+        toast.error(updated.message || 'Error updating item');
+        return;
       }
-
     }
-    catch{
-
+    catch(error){
+      if (error.response?.status === 401) {
+        localStorage.removeItem('access');
+        navigate('/sign_in');
+      }
+      toast.error('An error occurred while updating the item');
+      console.error('Error details:', error);
+      return;
     }
   }
 
@@ -124,9 +136,14 @@ const LocationItem = ({location, business, user, access }) => {
       <div className="item-header">
         <div className="create_access">
           {(access.create_access || access.admin) && (
-            <h2 >
-              {location}
-            </h2>
+            <div className="header-back">
+              <Link to="../" className="back-link">
+                <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+              </Link>
+              <h2 >
+                {location}
+              </h2>
+            </div>
           )}
         </div>
 

@@ -13,10 +13,12 @@ import {
   faFilter,
   faSearch,
   faFileExport,
-  faChevronDown
+  faChevronDown,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../api';
 import './itemSummary.css';
+import { Link } from 'react-router-dom';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -127,14 +129,13 @@ const ChartOfAccounts = ({ business, user }) => {
   return (
     <div className="dashboard-main">
       <div className="journal-header">
-        <h1>
-          <FontAwesomeIcon icon={faBook} className="header-icon" />
-          Chart of Accounts
-        </h1>
-        <div className="header-controls">
-          <button className="btn btn-outline">
-            <FontAwesomeIcon icon={faFileExport} /> Export
-          </button>
+        <div className='header-back'>
+          <Link to="../" className='back-link'>
+            <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+          </Link>
+          <h2>
+            Chart of Accounts
+          </h2>
         </div>
       </div>
 

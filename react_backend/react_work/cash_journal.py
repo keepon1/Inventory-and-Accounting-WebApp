@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 def fetch_cash_for_main_view(search, date_search, business, company, page, user, page_quantity=30):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
        
         if not user_query.admin and not user_query.payment_access:
-            return 'user has no access'
+            return {'status':'error', 'message':f'User {user} has no access to cash journal'}
 
         payment = models.cash_receipt.objects.filter(bussiness_name=business_query)
 
@@ -49,7 +49,7 @@ def fetch_cash_for_main_view(search, date_search, business, company, page, user,
                     payment = payment.filter(date__date__range=(start_date, end_date))
         
         payment = payment.order_by('-code').values(
-            'code', 'date', 'ref_type', 'external_no', 'description', 'transaction_number', 'from_account', 'to_account', 'amount', 'status',
+            'code', 'date', 'ref_type', 'external_no', 'description', 'transaction_number', 'from_account', 'to_account', 'amount', 'is_reversed',
         )
         
         paginator = Paginator(payment, page_quantity)
@@ -57,27 +57,27 @@ def fetch_cash_for_main_view(search, date_search, business, company, page, user,
 
         result = {'payment':list(current_page.object_list), 'has_more':current_page.has_next()}
 
-        return result
+        return {'status':'success', 'data':result}
 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
-        return "Business not found"
+        return {'status': 'error', 'message': f'Business {business} not found'}
     
     except models.current_user.DoesNotExist:
         logger.warning(f"User '{user}' not found.")
-        return "User not found"
+        return {'status': 'error', 'message': f'User {user} not found'}
     
     except Exception as error:
-        logger.exception('unhandled error')
-        return 'something happened'
+        logger.exception(error)
+        return {'status': 'error', 'message': 'something happened'}
     
 def view_cash_receipt(business, user, company, code):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(user_name=user, bussiness_name=business_query)
 
         if not user_query.admin and not user_query.cash_access:
-            return 'no access'
+            return {'status':'error', 'message':f'User {user} has no access to view cash receipt'}
         
         payment = models.cash_receipt.objects.get(bussiness_name=business_query, code=code)
 
@@ -86,31 +86,31 @@ def view_cash_receipt(business, user, company, code):
                  'transation_number':payment.transaction_number, 'ref_type':payment.ref_type, 'external':payment.external_no}
 
 
-        return payment
+        return {'status':'success', 'data':payment}
 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
-        return "Business not found"
+        return {'status': 'error', 'message': f'Business {business} not found'}
     
     except models.current_user.DoesNotExist:
         logger.warning(f"User '{user}' not found.")
-        return "User not found"
+        return {'status': 'error', 'message': f'User {user} not found'}
     
     except models.cash_receipt.DoesNotExist:
         logger.warning(f"Payment receipt code '{code}' not found.")
-        return "Payment receipt code not found"
+        return {'status': 'error', 'message': f'Payment receipt code {code} not found'}
     
     except Exception as error:
-        logger.exception('unhandled error')
-        return 'something happened'
+        logger.exception(error)
+        return {'status': 'error', 'message': 'something happened'}
     
 def add_cash_receipt(company, user, business, data):
     try:
-        business_query = models.bussiness.objects.get(company_id=company, bussiness_name=business)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.admin and not user_query.create_access:
-            return 'no access'
+            return {'status':'error', 'message':f'User {user} has no access to create cash receipt'}
         
         ledger_map = {
             'Assets': models.asset_ledger,
@@ -122,17 +122,20 @@ def add_cash_receipt(company, user, business, data):
         
         with transaction.Atomic(savepoint=False, durable=False, using='default'):
             for i in data:
-                validate_data = (isinstance(i['amount'], float) and isinstance(i['credit_account'], str) and isinstance(i['debit_account'], str) and
-                                 i['credit_account'].strip() and i['debit_account'].strip() and i['reference_type'].strip() and isinstance(i['reference_type'], str))
+                print(i)
+                validate_data = (isinstance(i['amount'], (float, int)) and isinstance(i['credit_account'], str) and isinstance(i['debit_account'], str) and
+                                 i['credit_account'].strip() and i['debit_account'].strip() and i['reference_type'].strip() and isinstance(i['reference_type'], str) and
+                                 isinstance(i['date'], str) and i['date'].strip() and isinstance(i['description'], str) and isinstance(i['reference'], str)
+                )
                 
                 if not validate_data:
-                    raise ValueError('invalid data')
+                    return {'status': 'error', 'message': 'Invalid data was submitted'}
                 
                 current_date = datetime.strptime(i['date'], "%Y-%m-%d").date()
                 today = date.today()
 
                 if current_date.month != today.month:
-                    raise ValueError('can`t post to other period')
+                    return {'status': 'error', 'message': 'Transaction date must be within the current month'}
                 
                 accounts = {'receivable':10401, 'debit':i['debit_account'], 'credit':i['credit_account'], 'discount':50801}
 
@@ -202,39 +205,41 @@ def add_cash_receipt(company, user, business, data):
 
                 models.tracking_history.objects.create(user=user_query, bussiness_name=business_query, area='Posted Cash Receipt', head=head.code)
 
-                return 'done'
+                return {'status': 'success', 'message': f'Cash receipt {cash.code} created successfully'}
                 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
-        return "Business not found"
+        return {'status': 'error', 'message': f'Business {business} not found'}
     
     except models.current_user.DoesNotExist:
         logger.warning(f"User '{user}' not found.")
-        return "User not found"
+        return {'status': 'error', 'message': f'User {user} not found'}
     
     except ValueError as value:
+        print(str(value))
         logger.warning(value)
-        return str(value)
+        return {'status': 'error', 'message': 'Invalid data was submitted'}
 
     except Exception as error:
-        logger.exception('unhandled error')
-        return 'something happened'
+        logger.exception(error)
+        return {'status': 'error', 'message': 'something happened'}
     
 def reverse_cash_receipt(company, user, number, business):
     try:    
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.admin and not user_query.create_access:
-            return 'no access'
+            return {'status':'error', 'message':f'User {user} has no access to reverse cash receipt'}
         
         cash = models.cash_receipt.objects.get(code=number, bussiness_name=business_query)
 
         with transaction.atomic(durable=False, savepoint=False, using='default'):
-            if cash.status == 'False':
-                return 'reversed'
+            if cash.is_reversed:
+                return {'status': 'error', 'message': f'Cash receipt {number} has already been reversed'}
             
             cash.status = False
+            cash.is_reversed = True
             cash.save()
 
             journal_head = models.journal_head.objects.get(transaction_number=cash.code, bussiness_name=business_query)
@@ -347,28 +352,28 @@ def reverse_cash_receipt(company, user, number, business):
 
             models.tracking_history.objects.create(user=user_query, bussiness_name=business_query, area='Reversed Cash Receipt entry', head=journal_head.code)
 
-            return 'done'
+            return {'status': 'success', 'message': f'Cash receipt {number} reversed successfully'}
         
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
-        return "Business not found"
+        return {'status': 'error', 'message': f'Business {business} not found'}
     
     except models.current_user.DoesNotExist:
         logger.warning(f"User '{user}' not found.")
-        return "User not found"
+        return {'status': 'error', 'message': f'User {user} not found'}
     
     except models.journal_head.DoesNotExist:
-        logger.warning(f"journal no. '{''}' not found.")
-        return "journal no. not found"
+        logger.warning(f"journal no. '{cash.code}' not found.")
+        return {'status': 'error', 'message': f'Journal head {cash.code} not found'}
     
     except models.cash_receipt.DoesNotExist:
         logger.warning(f"Cash receipt no. '{number}' not found.")
-        return "Cash receipt no. not found"
+        return {'status': 'error', 'message': f'Cash receipt {number} not found'}
     
     except ValueError as value:
         logger.warning(value)
-        return value
+        return {'status': 'error', 'message': 'Invalid data was submitted'}
 
     except Exception as error:
-        logger.exception('unhandled error')
-        return 'something happened'
+        logger.exception(error)
+        return {'status': 'error', 'message': 'something happened'}

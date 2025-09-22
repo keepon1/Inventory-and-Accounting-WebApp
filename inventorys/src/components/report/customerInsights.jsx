@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, 
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, 
@@ -12,16 +12,13 @@ import {
   faUsers,
   faDollarSign,
   faShoppingCart,
-  faCalendarAlt,
-  faFilter,
-  faSearch,
-  faFileExport,
-  faChevronDown
+  faArrowLeft,
 } from '@fortawesome/free-solid-svg-icons';
 import DatePicker from 'react-datepicker';
 import api from '../api';
 import './itemSummary.css';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -260,10 +257,14 @@ const CustomerInsights = ({ business, user }) => {
   return (
     <div className="stock-summary-container">
       <div className="summary-header">
-        <h3>
-          <FontAwesomeIcon icon={faUsers} className="header-icon" />
-          Customer Insights
-        </h3>
+        <div className='header-back'>
+          <Link to="../" className='back-link'>
+            <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+          </Link>
+          <h3>
+            Customer Insights
+          </h3>
+        </div>
       </div>
 
       <div className="journal-filters">

@@ -9,7 +9,8 @@ import Select from "react-select";
 import { useNavigate, Routes, Route, useParams, Link } from "react-router-dom";
 import "./itemMain.css";
 import AccessDenied from "../access";
-import { toast, ToastContainer } from "react-toastify";
+import ItemHistory from "./itemHistory";
+import { toast} from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const ItemMain = ({ business, user, access }) => {
@@ -153,7 +154,7 @@ const ItemMain = ({ business, user, access }) => {
                       <td>{item.code}</td>
                       <td>{item.model}</td>
                       <td>{item.item_name}</td>
-                      <td>{item.quantity}</td>
+                      <td><Link to={`history/${item.item_name}`} className="quantity-link">{item.quantity}</Link></td>
                       <td>{item.unit__suffix}</td>
                       {(access.admin || access.purchase_price_access) && (
                         <td>₵{item.purchase_price}</td>
@@ -171,6 +172,7 @@ const ItemMain = ({ business, user, access }) => {
           <Route path="add" element={<AddItem business={business} user={user} />} />
         }
         <Route path="view/:itemCode" element={<ViewItemWrapper access={access} user={user} business={business}/>} />
+        <Route path="history/:itemCode" element={<ItemHistoryWrapper business={business} user={user} access={access} location={location.value} />} />
         {(access.admin || access.edit_access) &&
           <Route path="edit/:itemCode" element={<EditItemWrapper business={business} user={user} access={access} />} />
         }
@@ -188,6 +190,11 @@ const ViewItemWrapper = ({ access, user, business }) => {
 const EditItemWrapper = ({ business, user, access }) => {
   const { itemCode } = useParams();
   return <EditItem item={itemCode} business={business} user={user} access={access} />;
+};
+
+const ItemHistoryWrapper = ({ business, user, access, location }) => {
+  const { itemCode } = useParams();
+  return <ItemHistory itemCode={itemCode} business={business} user={user} access={access} location={location} />;
 };
 
 export default ItemMain;

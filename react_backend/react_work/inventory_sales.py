@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def fetch_sales_for_main_view(search, date_search, business, company, page, user, page_quantity=30):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.admin and not user_query.sales_access:
@@ -78,7 +78,7 @@ def fetch_sales_for_main_view(search, date_search, business, company, page, user
 
 def post_and_save_sales(business, user, company, location, data, totals, items, levy, real_levy):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.admin and not user_query.create_access and not user_query.sales_access:
@@ -119,7 +119,7 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
                     return {"status": "error", "message": "Customer 'Regular Customer' not found", "data": {}}
 
                 from_account = customer_query.account
-                sale_info = models.sale.objects.create(
+                sale_info = models.sale(
                     code=new_code, created_by=user_query, bussiness_name=business_query,
                     customer_name=data.get('customer', ''), date=data['date'], customer_info=customer_query,
                     due_date=data.get('dueDate', ''), location_address=location_query,
@@ -137,7 +137,7 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
                     return {"status": "error", "message": f"Customer '{data.get('customer', '')}' not found", "data": {}}
 
                 from_account = customer_query.account
-                sale_info = models.sale.objects.create(
+                sale_info = models.sale(
                     code=new_code, created_by=user_query, bussiness_name=business_query,
                     customer_info=customer_query, date=data['date'], amount_paid=amount_paid,
                     due_date=data.get('dueDate', ''), location_address=location_query,
@@ -154,6 +154,7 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
             cogs = Decimal("0")
             total_sales = 0.0
             total_quantity = 0.0
+            histories = []
 
             for raw_item in items:
                 try:
@@ -167,40 +168,55 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
                 except models.items.DoesNotExist:
                     logger.warning(f"Item '{item.get('name', '')}' not found for business '{business}'.")
                     return {"status": "error", "message": f"Item '{item.get('name', '')}' not found", "data": {}}
+                
+                try:
+                    loc_item = models.location_items.objects.get(item_name=item_info, location=location_query, bussiness_name=business_query)
+                    
+                except models.location_items.DoesNotExist:
+                    logger.warning(f"Location item for '{item.get('name', '')}' not found at location '{location}'.")
+                    return {"status": "error", "message": f"Item '{item.get('name', '')}' not found in location '{location}'", "data": {}}
 
-                models.sale_history.objects.create(
-                    item_name=item_info, sales=sale_info, quantity=item['qty'], sales_price=item['price'],
-                    purchase_price=item_info.purchase_price, bussiness_name=business_query
-                )
 
-                if (item_info.quantity - float(item['qty'])) < 0:
+                if (loc_item.quantity - Decimal(str(item['qty']))) < 0:
                     logger.warning(f"Insufficient stock for item '{item.get('name', '')}'.")
-                    return {"status": "error", "message": f"{item_info.item_name} does not have enough quantity", "data": {}}
+                    return {"status": "error", "message": f"{item_info.item_name} does not have enough quantity at {location}", "data": {}}
+                
                 else:
                     item_info.quantity -= float(item['qty'])
                     item_info.sales_price = float(item['price'])
                     item_info.last_sales = data['date']
-                    item_info.save()
 
                     cogs += Decimal(str(item['qty'])) * item_info.purchase_price
                     total_quantity += float(item['qty'])
                     total_sales += float(item['qty']) * float(item['price'])
-
-                    try:
-                        loc_item = models.location_items.objects.get(item_name=item_info, location=location_query, bussiness_name=business_query)
-                    except models.location_items.DoesNotExist:
-                        logger.warning(f"Location item for '{item.get('name', '')}' not found at location '{location}'.")
-                        return {"status": "error", "message": f"Item '{item.get('name', '')}' not found in location '{location}'", "data": {}}
+                    
+                    histories.append({
+                        "item_name": item_info,
+                        "quantity": item['qty'],
+                        "sales_price": item['price'],
+                        "purchase_price": item_info.purchase_price,
+                        "bussiness_name": business_query,
+                    })
 
                     loc_item.quantity -= Decimal(str(item['qty']))
                     loc_item.sales_price = float(item['price'])
                     loc_item.purchase_price = Decimal(str(item_info.purchase_price))
                     loc_item.last_sales = data['date']
+                    item_info.save()
                     loc_item.save()
 
             sale_info.total_quantity = total_quantity
             sale_info.cog = cogs
             sale_info.save()
+
+            sale_histories = [
+                models.sale_history(
+                    sales=sale_info,
+                    **h
+                )
+                for h in histories
+            ]
+            models.sale_history.objects.bulk_create(sale_histories)
 
             discount = total_sales * (float(data.get('discount', 0)) / 100.0)
             taxable_amount = total_sales - discount
@@ -467,7 +483,7 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
 
 def reverse_sales(business, user, company, number):
     try:
-        business_query = models.bussiness.objects.get(bussiness_name=business, company_id=company)
+        business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
         if not user_query.admin and not user_query.reverse_access:
@@ -479,8 +495,9 @@ def reverse_sales(business, user, company, number):
             logger.warning(f"Sales no. '{number}' not found for business '{business}'.")
             return {"status": "error", "message": f"Sales no. '{number}' not found", "data": {}}
 
-        if sale.status and sale.status.lower() == 'reversed':
+        if sale.is_reversed:
             return {"status": "error", "message": "Already reversed", "data": {}}
+    
 
         history = models.sale_history.objects.filter(sales=sale, bussiness_name=business_query)
 
@@ -504,7 +521,7 @@ def reverse_sales(business, user, company, number):
                     customer = models.customer.objects.filter(name='Regular Customer', bussiness_name=business_query).first()
 
                 else:
-                    customer = models.customer.objects.filter(name=sale.customer_info, bussiness_name=business_query).first()
+                    customer = models.customer.objects.filter(pk=sale.customer_info.pk, bussiness_name=business_query).first()
 
                 customer.credit += sale.gross_total
                 customer.save()
@@ -611,15 +628,16 @@ def reverse_sales(business, user, company, number):
             payments = models.cash_receipt.objects.filter(transaction_number=sale.code, bussiness_name=business_query, status=True)
             for pay in payments:
                 pay.status = False
+                pay.is_reversed = True
                 pay.save()
 
-            if sale.type == 'registered':
-                total_paid = sum(p.amount for p in payments)
-                customer = models.customer.objects.get(name=sale.customer, bussiness_name=business_query)
-                customer.debit += Decimal(str(total_paid))
-                customer.save()
+            total_paid = sum(p.amount for p in payments)
+            customer = models.customer.objects.get(pk=customer.pk, bussiness_name=business_query)
+            customer.debit += Decimal(str(total_paid))
+            customer.save()
 
             sale.status = 'Reversed'
+            sale.is_reversed = True
             sale.save()
 
         models.tracking_history.objects.create(user=user_query, head=sale.code, area='Reverse sales', bussiness_name=business_query)

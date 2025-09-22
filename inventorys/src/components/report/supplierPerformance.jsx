@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
@@ -8,20 +8,16 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faTruck,
   faDollarSign,
-  faBoxes,
   faCalendarAlt,
   faChartBar,
-  faChartPie,
-  faFilter,
-  faSearch,
-  faFileExport,
-  faChevronDown
+  faArrowLeft,
 } from '@fortawesome/free-solid-svg-icons';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import './itemSummary.css';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -236,10 +232,14 @@ const SupplierPerformance = ({ business, user }) => {
   return (
     <div className="stock-summary-container">
       <div className="summary-header">
-        <h3>
-          <FontAwesomeIcon icon={faTruck} className="header-icon" />
-          Supplier Insights
-        </h3>
+        <div className='header-back'>
+          <Link to="../" className='back-link'>
+            <FontAwesomeIcon icon={faArrowLeft} className='back-icon' />
+          </Link>
+          <h2>
+            Supplier Insights
+          </h2>
+        </div>
       </div>
 
       <div className="journal-filters">

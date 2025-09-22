@@ -4,11 +4,13 @@ import {
   faSearch,
   faDollarSign,
   faTimesCircle,
-  faEdit
+  faEdit,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
-import {useNavigate} from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
 import api from '../api';
 import enableKeyboardScrollFix from '../../utils/scroll';
+import { toast } from 'react-toastify';
 
 const CurrencyMain = ({ business, user }) => {
     const [currencies, setCurrencies] = useState([]);
@@ -37,11 +39,20 @@ const CurrencyMain = ({ business, user }) => {
         try {
             const response = await api.post(
             'fetch_currencies',
-            { business: business},
+            { business, user },
             );
-            setCurrencies(response);
+
+            if (response.status === 'error') {
+                toast.error(response.message || 'An error occurred while fetching currencies.');
+                return;
+            }
+
+            setCurrencies(response.data || []);
 
         } catch (error) {
+            toast.error('An error occurred while fetching currencies.');
+            console.error('Error fetching currencies:', error);
+
             if (error.response?.status === 401) {
             localStorage.removeItem('access');
             navigate('/sign_in');
@@ -50,8 +61,6 @@ const CurrencyMain = ({ business, user }) => {
         };
 
         fetchItems();
-        const cleanup = enableKeyboardScrollFix();
-        return cleanup;
     }, []);
 
     const handleCreateOverlay = (e) => {
@@ -68,15 +77,11 @@ const CurrencyMain = ({ business, user }) => {
 
     const openEdit = async (currency) => {
         try {
-            const response = await api.post(
-                'get_currency',
-                { business, currency: currency},
-            );
             setEditData({
-                originalName: currency,
-                name: response.name,
-                symbol: response.symbol,
-                rate:response.rate,
+                originalName: currency.name,
+                name: currency.name,
+                symbol: currency.symbol,
+                rate:currency.rate,
             });
             setShowEdit(true);
             document.addEventListener('mousedown', handleEditOverlay);
@@ -89,12 +94,12 @@ const CurrencyMain = ({ business, user }) => {
 
     const addCurrency = async() => {
         if (!detail.name || detail.name === ''){
-            setErrors('Name can not be empty');
+            toast.info('Name can not be empty');
             return;
         };
 
         if (!detail.symbol || detail.symbol === ''){
-            setErrors('Symbol can not be empty');
+            toast.info('Symbol can not be empty');
             return;
         };
 
@@ -105,14 +110,25 @@ const CurrencyMain = ({ business, user }) => {
         }
 
         try{
-            const response = await api.post('add_currency', {business, detail:data});
-            if (response === 'done'){
+            const response = await api.post('add_currency', {business, detail:data, user});
+
+            if (response.status === 'success'){
+                toast.success(response.message || 'Currency added successfully');
                 setShowCreate(false);
                 document.addEventListener('mousedown', handleCreateOverlay);
 
-                const response = await api.post('fetch_currencies',{ business: business});
-                setCurrencies(response);
-                };
+                setDetail({ name: '', symbol: '', rate:0});
+
+                const update = await api.post('fetch_currencies',{ business, user});
+
+                if (update.status === 'error') {
+                    toast.error(update.message || 'An error occurred while fetching currencies.');
+                    return;
+                }
+                setCurrencies(update.data || []);
+            }else{
+                toast.error(response.message || 'An error occurred while adding the currency.');
+            };
         }catch{
 
         };
@@ -120,12 +136,12 @@ const CurrencyMain = ({ business, user }) => {
 
     const editCurrency = async () => {
         if (!editData.name || editData.name === ''){
-            setErrors('Name can not be empty');
+            toast.info('Name can not be empty');
             return;
         };
 
         if (!editData.symbol || editData.symbol === ''){
-            setErrors('Symbol can not be empty');
+            toast.info('Symbol can not be empty');
             return;
         };
 
@@ -137,39 +153,51 @@ const CurrencyMain = ({ business, user }) => {
         }
 
         try{
-            const response = await api.post('edit_currency', {business, detail:data});
-            if (response === 'done'){
+            const response = await api.post('edit_currency', {business, detail:data, user});
+
+            if (response.status === 'success'){
+                toast.success(response.message || 'Currency edited successfully');
                 setShowEdit(false);
                 document.addEventListener('mousedown', handleEditOverlay);
 
-                const response = await api.post('fetch_currencies',{ business: business});
-                setCurrencies(response);
-                };
-        }catch{
+                setEditData({ originalName: '', name: '', symbol: '', rate:0});
 
+                const update = await api.post('fetch_currencies', { business, user});
+                
+                if (update.status === 'error') {
+                    toast.error(update.message || 'An error occurred while fetching currencies.');
+                    return;
+                }
+                setCurrencies(update.data || []);
+            }else{
+                toast.error(response.message || 'An error occurred while editing the currency.');
+            };
+        }catch(error){
+            console.error('Error editing currency:', error);
+            toast.error('An error occurred while editing the currency.');
+            if (error.response?.status === 401) {
+                navigate('/sign_in');
+            }
         };
     };
 
     return (
         <div className="journal-container">
             <div className="journal-header">
-                <h1>
-                    <FontAwesomeIcon icon={faDollarSign} className="header-icon" />
-                    Currencies
-                </h1>
-                <div className="journal-controls">
-                    <FontAwesomeIcon 
-                        icon={faTimesCircle} 
-                        className="close-button"
-                        onClick={() => navigate(-1)}
-                    />
+                <div className='header-back'>
+                    <Link to="../" className='back-link'>
+                        <FontAwesomeIcon icon={faArrowLeft} className='back-icon'/>
+                    </Link>
+                    <h1>
+                        Currencies
+                    </h1>
                 </div>
             </div>
 
             <div className="journal-filters">
                 <div className="filter-groups-left">
                     <div>
-                        <button className="add-item-button" onClick={() => {
+                        <button className="btn btn-outline" onClick={() => {
                             setShowCreate(true);
                             document.addEventListener('mousedown', handleCreateOverlay);
                         }}>
@@ -177,15 +205,16 @@ const CurrencyMain = ({ business, user }) => {
                         </button>
                     </div>
                 </div>
-                <div className="filter-groups-right">
-                    <div className="filter-group1">
-                        <FontAwesomeIcon icon={faSearch} />
-                        <input onChange={handleSearch} type="text" placeholder="Search currencies..." />
+                <div className="ivi_display_box1">
+                    <div className="ivi_subboxes1">
+                        <div className="ivi_holder_box1">
+                            <input onChange={handleSearch} className='ivi_input' type="text" placeholder="Search currencies..." />
+                        </div>
                     </div>
                 </div>
-                </div>
+            </div>
 
-                <div className="items-table-box">
+            <div className="items-table-box">
                 <table className="items-table">
                     <thead className="table-header">
                         <tr>
@@ -199,7 +228,7 @@ const CurrencyMain = ({ business, user }) => {
                         {filteredItems.map((currency, index) => (
                             <tr key={currency.name} id={`row-${index}`} className="table-row">
                                 <td className="table-row">
-                                    <button className="action-button" onClick={() => openEdit(currency.name)}>
+                                    <button className="action-button" onClick={() => openEdit(currency)}>
                                         <FontAwesomeIcon icon={faEdit} />
                                     </button>
                                 </td>

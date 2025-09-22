@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimesCircle, faEdit } from "@fortawesome/free-solid-svg-icons";
+import { faTimesCircle, faEdit, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import Select from 'react-select';
 import AsyncSelect from "react-select/async";
 import api from "../api";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import enableKeyboardScrollFix from "../../utils/scroll";
 import { itemsLoadOptions, sourceLocationsLoadOptions, supplierLoadOptions, taxLevyLoadOptions } from "../../utils/fetchData";
 import { toast } from "react-toastify";
@@ -193,12 +193,12 @@ const CreatePurchase = ({ business, user, access }) => {
     <div className="ivi_display_mainbox">
       <div className="ia_submain_box">
         <div className="ia_description_box">
-          <h2 className="ia_description_word">Create Purchase Invoice</h2>
-          <FontAwesomeIcon 
-            icon={faTimesCircle} 
-            className="close-button"
-            onClick={() => navigate(-1)}
-          />
+          <div className="header-back">
+            <Link to="../" className="back-link">
+                <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+            </Link>
+            <h2 className="ia_description_word">Create Purchase Invoice</h2>
+          </div>
         </div>
 
         <div className="ivi_display_box">
