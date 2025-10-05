@@ -6,18 +6,16 @@ import {
 import Select from 'react-select';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faClock,
   faChartBar,
   faChartPie,
   faChevronDown,
   faExclamationTriangle,
-  faBoxes,
   faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
-import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import { Link } from 'react-router-dom';
+import { format } from 'date-fns';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -169,7 +167,7 @@ const StockAging = ({ business, user }) => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
-              <Tooltip formatter={(value) => [`$${value.toFixed(2)}`, "Inventory Value"]} />
+              <Tooltip formatter={(value) => [`GHS ${value.toFixed(2)}`, "Inventory Value"]} />
               <Legend />
               <Bar dataKey="value" name="Inventory Value" fill="#ff7300" />
             </BarChart>
@@ -328,7 +326,7 @@ const StockAging = ({ business, user }) => {
                   <div className="alert-details">
                     <span>Days in Stock: {calculateDaysInStock(item)}</span>
                     <span>Quantity: {item.quantity}</span>
-                    <span>Value: ${(item.quantity * item.purchase_price).toFixed(2)}</span>
+                    <span>Value: GHS {(item.quantity * item.purchase_price).toFixed(2)}</span>
                     <span>Location: {location.value === "All Locations" ? "Overall" : location.value}</span>
                   </div>
                 </div>
@@ -373,7 +371,7 @@ const StockAging = ({ business, user }) => {
                   <td>{item.last_sales ? new Date(item.last_sales).toLocaleDateString() : 'N/A'}</td>
                   <td>{daysInStock}</td>
                   <td>{item.quantity}</td>
-                  <td>${(item.quantity * item.purchase_price).toFixed(2)}</td>
+                  <td>GHS {(item.quantity * item.purchase_price).toFixed(2)}</td>
                   <td>{bucket}</td>
                 </tr>
               );

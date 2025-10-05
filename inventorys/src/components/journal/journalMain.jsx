@@ -203,7 +203,7 @@ const JournalMain = ({ business, user, access }) => {
                       <td>{entry.transaction_number}</td>
                       <td>{entry.description}</td>
                       <td>{entry.created_by__user_name}</td>
-                      <td>{entry.amount}</td>
+                      <td>GHS {entry.amount}</td>
                       <td>{entry.reversed? 'Reversed' : 'Completed'}</td>
                     </tr>
                   ))}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimesCircle, faEdit, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import Select from 'react-select';
@@ -6,8 +6,8 @@ import AsyncSelect from "react-select/async";
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
 import { customerLoadOptions, itemsLoadOptions, sourceLocationsLoadOptions, taxLevyLoadOptions } from "../../utils/fetchData";
-import enableKeyboardScrollFix from "../../utils/scroll";
 import { toast } from "react-toastify";
+import { set } from "date-fns";
 
 
 const CreateSales = ({ business, user, access }) => {
@@ -35,6 +35,7 @@ const CreateSales = ({ business, user, access }) => {
   const [salesItems, setSalesItems] = useState([]);
   const [termOption, setTermOption] = useState({account:false, amount:false, due:false});
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSaleTypeChange = (type) => {
@@ -90,8 +91,6 @@ const CreateSales = ({ business, user, access }) => {
       }
     };
     fetchData();
-    const cleanup = enableKeyboardScrollFix();
-    return cleanup;
   }, []);
 
   const calculateTotals = () => {
@@ -138,6 +137,16 @@ const CreateSales = ({ business, user, access }) => {
       return;
     }
 
+    if (currentItem.price < 0) {
+      toast.info('Price cannot be negative');
+      return;
+    }
+
+    if (loading) {
+      toast.info('Please wait... adding item');
+      return;
+    }
+
     try {
       const matchingItems = salesItems.filter(
       item => item.name === currentItem.item.item_name
@@ -147,6 +156,8 @@ const CreateSales = ({ business, user, access }) => {
       (sum, item) => sum + parseFloat(item.qty), 0
       );
       const totalQty = existingQty + parseFloat(currentItem.qty);
+
+      setLoading(true);
       const verificationResponse = await api.post(
         'verify_sales_quantity',
         {
@@ -156,6 +167,7 @@ const CreateSales = ({ business, user, access }) => {
 
       if (verificationResponse.status === 'error') {
         toast.error(verificationResponse.message || 'Insufficient quantity in location');
+        setLoading(false);
         return;
       }
 
@@ -176,6 +188,8 @@ const CreateSales = ({ business, user, access }) => {
 
     } catch (error) {
       toast.error("An error occurred while adding the item.");
+      setLoading(false);
+      console.error('Fetch error:', error);
       if (error.response?.status === 401) navigate('/sign_in');
     }
   };
@@ -184,6 +198,21 @@ const CreateSales = ({ business, user, access }) => {
     e.preventDefault();
     if (!salesItems.length) {
       toast.info('Please add at least one item');
+      return;
+    }
+
+    if (!sales.location) {
+      toast.info('Please select a location');
+      return;
+    }
+
+    if (!sales.customer) {
+      toast.info('Please select Customer');
+      return;
+    }
+
+    if (loading) {
+      toast.info('Please wait... submitting');
       return;
     }
 
@@ -212,17 +241,25 @@ const CreateSales = ({ business, user, access }) => {
     });
     
     try {
+      setLoading(true);
       const response = await api.post(
         'add_sales',
         formData,
       );
 
       if (response.status === 'success'){toast.success(response.message || 'Sales was created successfully'); navigate(-1);}
-      else{toast.error(response.message || 'Failed to create sales invoice');}
+      else{
+        toast.error(response.message || 'Failed to create sales invoice');
+        setLoading(false);
+        return;
+      }
       
     } catch (error) {
       toast.error("An error occurred while creating the sales invoice.");
-      if (error.response?.status === 401) navigate('/sign_in');
+      setLoading(false);
+      console.error('Fetch error:', error);
+      if (error.response?.status === 401) 
+        navigate('/sign_in');
     }
   };
 
@@ -572,8 +609,8 @@ const CreateSales = ({ business, user, access }) => {
                   <td>{item.name}</td>
                   <td>{item.qty}</td>
                   <td>{item.unit__suffix}</td>
-                  <td>{item.price}</td>
-                  <td>{(item.qty * item.price).toFixed(2)}</td>
+                  <td>GHS {item.price}</td>
+                  <td>GHS {(item.qty * item.price).toFixed(2)}</td>
                   <td>
                     <FontAwesomeIcon
                       icon={faEdit}
@@ -602,16 +639,16 @@ const CreateSales = ({ business, user, access }) => {
         <div className="ivi_display_box totals-section">
           <div className="total-row">
             <span>Subtotal:</span>
-            <span>{totals.subtotal.toFixed(2)}</span>
+            <span>GHS {totals.subtotal.toFixed(2)}</span>
           </div>
           <div className="total-row">
             <span>Discount ({sales.discount}%):</span>
-            <span>-{totals.discountAmount.toFixed(2)}</span>
+            <span>- GHS {totals.discountAmount.toFixed(2)}</span>
           </div>
           {sales.selectedLevi.map(levy => (
             <div className="total-row" key={levy.value}>
               <span>{levy.label}:</span>
-              <span>+{(totals.netTotal * (levy.rate/100)).toFixed(2)}</span>
+              <span>+ GHS {(totals.netTotal * (levy.rate/100)).toFixed(2)}</span>
             </div>
           ))}
           <div className="total-row grand-total">

@@ -78,7 +78,7 @@ const SalesPerformance = ({ business, user }) => {
         name: sale.code,
         customer: sale.customer_info__name,
         revenue: sale.gross_total,
-        profit: sale.gross_total - sale.cog,
+        profit: (sale.gross_total - sale.cog).toFixed(2),
       }));
   };
 
@@ -338,12 +338,12 @@ const SalesPerformance = ({ business, user }) => {
           <tbody>
             {filteredSales.map(sale => (
               <tr key={sale.code}>
-                <td>{new Date(sale.date).toLocaleDateString()}</td>
+                <td>{format(sale.date, 'dd/MM/yyyy')}</td>
                 <td>{sale.code}</td>
                 <td>{sale.customer_info__name}</td>
                 <td>{sale.total_quantity}</td>
-                <td>${sale.gross_total}</td>
-                <td>${(sale.gross_total - sale.cog).toFixed(2)}</td>
+                <td>GHS {sale.gross_total}</td>
+                <td>GHS {(sale.gross_total - sale.cog).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>

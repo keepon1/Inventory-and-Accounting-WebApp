@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faBook, faSearch,
-  faFileExport, faChevronDown, faChevronRight,
+  faBook,
+  faChevronDown, faChevronRight,
   faTimesCircle,
 } from '@fortawesome/free-solid-svg-icons';
 import './coaMain.css';
@@ -13,6 +13,7 @@ import api from '../api';
 import { toast } from 'react-toastify';
 import AccountHistory from './coaHistory';
 import AccessDenied from '../access';
+import { set } from 'date-fns';
 
 const AccountMain = ({ business, user, access }) => {
   const [accountsData, setAccountsData] = useState([]);
@@ -21,6 +22,7 @@ const AccountMain = ({ business, user, access }) => {
   const [formError, setFormError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedAccounts, setExpandedAccounts] = useState({});
+  const [loading, setLoading] = useState(false);
   const overlayRef = useRef(null);
 
   useEffect(() => {
@@ -127,7 +129,13 @@ const AccountMain = ({ business, user, access }) => {
       description: detail.description || '',
     }
 
+    if (loading){
+      toast.info('Please wait, creating account');
+      return;
+    }
+
     try{
+      setLoading(true);
       const response = await api.post('create_account', data);
       
       if (response.status === 'success'){
@@ -139,9 +147,11 @@ const AccountMain = ({ business, user, access }) => {
         setAccountsData(refreshResponse || []);
       }else{
         toast.error(response.message || 'Failed to create account');
+        setLoading(false);
         return;
       }
     } catch(error) {
+      setLoading(false);
       toast.error("Failed to create account");
       console.error("Error creating account:", error);
     }
@@ -212,9 +222,9 @@ const AccountMain = ({ business, user, access }) => {
                           {account.code}
                         </td>
                         <td>{account.name}</td>
-                        <td className="text-right"><Link to={`history/${account.code} - ${account.name}`} className="transaction-link">{formatAmount(account.total_debit)}</Link></td>
-                        <td className="text-right"><Link to={`history/${account.code} - ${account.name}`} className="transaction-link">{formatAmount(account.total_credit)}</Link></td>
-                        <td className="text-right"><Link to={`history/${account.code} - ${account.name}`} className="transaction-link">{formatAmount(account.balance)}</Link></td>
+                        <td className="text-right"><Link to={`history/${account.code} - ${account.name}`} className="transaction-link">GHS {formatAmount(account.total_debit)}</Link></td>
+                        <td className="text-right"><Link to={`history/${account.code} - ${account.name}`} className="transaction-link">GHS {formatAmount(account.total_credit)}</Link></td>
+                        <td className="text-right"><Link to={`history/${account.code} - ${account.name}`} className="transaction-link">GHS {formatAmount(account.balance)}</Link></td>
                         <td>
                           <button 
                             className="btn-icon"
@@ -233,9 +243,9 @@ const AccountMain = ({ business, user, access }) => {
                               {sub.code}
                             </td>
                             <td>{sub.name}</td>
-                            <td className="text-right"><Link to={`history/${sub.code} - ${sub.name}`} className="transaction-link">{formatAmount(sub.total_debit)}</Link></td>
-                            <td className="text-right"><Link to={`history/${sub.code} - ${sub.name}`} className="transaction-link">{formatAmount(sub.total_credit)}</Link></td>
-                            <td className="text-right"><Link to={`history/${sub.code} - ${sub.name}`} className="transaction-link">{formatAmount(sub.balance)}</Link></td>
+                            <td className="text-right"><Link to={`history/${sub.code} - ${sub.name}`} className="transaction-link">GHS {formatAmount(sub.total_debit)}</Link></td>
+                            <td className="text-right"><Link to={`history/${sub.code} - ${sub.name}`} className="transaction-link">GHS {formatAmount(sub.total_credit)}</Link></td>
+                            <td className="text-right"><Link to={`history/${sub.code} - ${sub.name}`} className="transaction-link">GHS {formatAmount(sub.balance)}</Link></td>
                             <td></td>
                           </tr>
                           
@@ -246,9 +256,9 @@ const AccountMain = ({ business, user, access }) => {
                                 {real.code}
                               </td>
                               <td>{real.name}</td>
-                              <td className="text-right"><Link to={`history/${real.code} - ${real.name}`} className="transaction-link">{formatAmount(real.debit)}</Link></td>
-                              <td className="text-right"><Link to={`history/${real.code} - ${real.name}`} className="transaction-link">{formatAmount(real.credit)}</Link></td>
-                              <td className="text-right"><Link to={`history/${real.code} - ${real.name}`} className="transaction-link">{formatAmount(real.balance)}</Link></td>
+                              <td className="text-right"><Link to={`history/${real.code} - ${real.name}`} className="transaction-link">GHS {formatAmount(real.debit)}</Link></td>
+                              <td className="text-right"><Link to={`history/${real.code} - ${real.name}`} className="transaction-link">GHS {formatAmount(real.credit)}</Link></td>
+                              <td className="text-right"><Link to={`history/${real.code} - ${real.name}`} className="transaction-link">GHS {formatAmount(real.balance)}</Link></td>
                               <td></td>
                             </tr>
                           ))}

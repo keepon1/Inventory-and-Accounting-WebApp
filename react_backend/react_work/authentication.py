@@ -2,6 +2,10 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 class CookieJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
+
+        if request.path.endswith("/refresh/"):
+            return None  
+
         access_token = request.COOKIES.get("access")
         if not access_token:
             return None

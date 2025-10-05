@@ -367,7 +367,7 @@ const StockMovement = ({ business, user }) => {
                   <div className="detail-header">
                     {getTypeIcon(item.type)}
                     <span className="item-date">{item.code}</span>
-                    <span className="item-code">{new Date(item.date).toLocaleDateString()}</span>
+                    <span className="item-code">{format(item.date, 'dd/MM/yyyy')}</span>
                   </div>
                   <div className="detail-body">
                     <p className="item-description">{item.description || 'No description'}</p>
@@ -391,7 +391,7 @@ const StockMovement = ({ business, user }) => {
                         </div>
                       )}
                       <span>Quantity: {item.total_quantity}</span>
-                      <span>Value: ${(item.net_total || item.gross_total || 0).toFixed(2)}</span>
+                      <span>Value: GHS {(item.net_total || item.gross_total || 0).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

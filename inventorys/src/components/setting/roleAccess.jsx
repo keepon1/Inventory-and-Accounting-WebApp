@@ -27,8 +27,8 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import Select from 'react-select';
 import api from '../api';
-import enableKeyboardScrollFix from '../../utils/scroll';
 import { toast } from 'react-toastify';
+import { set } from 'date-fns';
 
 const RolePermission = ({ business, user }) => {
     const [users, setUsers] = useState([]);
@@ -63,6 +63,7 @@ const RolePermission = ({ business, user }) => {
     });
     const [errors, setErrors] = useState();
     const editOverlayRef = useRef(null);
+    const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
 
@@ -192,6 +193,21 @@ const RolePermission = ({ business, user }) => {
     };
 
     const editUser = async () => {
+        if (!editData.user_name) {
+            setErrors('Username is required');
+            return;
+        }
+
+        if (!editData.admin && editData.per_location_access.length === 0) {
+            toast.info('Please select at least one location or grant admin privileges');
+            return;
+        }
+
+        if (loading){
+            toast.info('Please wait... update in progress');
+            return;
+        }
+
         const data = {
             user_name: editData.user_name,
             admin: editData.admin,
@@ -222,6 +238,7 @@ const RolePermission = ({ business, user }) => {
         };
 
         try {
+            setLoading(true);
             const response = await api.post('edit_user_permissions', { business, detail: data, user });
 
             if (response.status === 'success') {
@@ -236,12 +253,16 @@ const RolePermission = ({ business, user }) => {
                     return;
                 }
                 setUsers(usersResponse.data || []);
+            }else{
+                toast.error(response.message || 'Error updating permissions');
+                setLoading(false);
+                return;
             }
         } catch (error) {
             console.error(error);
             toast.error('An error occurred while updating permissions');
+            setLoading(false);
             if (error.response?.status === 401) {
-                localStorage.removeItem('access');
                 navigate('/sign_in');
             }
         }

@@ -231,7 +231,6 @@ def fetch_data_for_sales_performance(business, company, user, location, start, e
                 end=end
             ).fetch_sales_records()
 
-            print(sales_data)
 
         locs = [{'value': 'All Locations', 'label': 'All Locations'}]
 

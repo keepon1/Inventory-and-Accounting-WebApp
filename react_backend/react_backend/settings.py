@@ -10,8 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+from curses.ascii import EM
 from pathlib import Path
 import os
+from telnetlib import DO
+from tkinter import E
 
 import environ
 
@@ -53,6 +56,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'react_work.apps.ReactWorkConfig',
+    'djoser',
 ]
 
 MIDDLEWARE = [
@@ -166,6 +170,23 @@ CACHES = {
         }
     }
 }
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_PORT = env("EMAIL_PORT")
+EMAIL_USE_TLS = env("EMAIL_USE_TLS")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
+
+DOMAIN = env("DOMAIN")
+SITE_NAME = env("SITE_NAME")
+
+DJOSER = {
+    'SEND_ACTIVATION_EMAIL': False,
+    'SEND_CONFIRMATION_EMAIL': False,
+    'PASSWORD_RESET_CONFIRM_URL': 'password-reset-confirm/{uid}/{token}',
+}    
 
 
 # Internationalization

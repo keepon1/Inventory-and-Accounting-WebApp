@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faEye, faEdit, faTimesCircle, faMapMarkerAlt,  } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEdit, faTimesCircle, faMapMarkerAlt,  } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import './locationMain.css';
 import LocationItem from "./locationItems";
 import { useNavigate, Routes, Route, useParams, Link } from "react-router-dom";
 import enableKeyboardScrollFix from "../../utils/scroll";
 import { toast } from "react-toastify";
+import { format, set } from "date-fns"
 
 const LocationMain = ({ business, user, access }) => {
   const [locations, setLocations] = useState([]);
@@ -20,6 +21,7 @@ const LocationMain = ({ business, user, access }) => {
   const [editData, setEditData] = useState({ originalName: '', name: '', description: '' });
   const overlayRef = useRef(null);
   const editOverlayRef = useRef(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSearch = (e) => {
@@ -100,7 +102,18 @@ const LocationMain = ({ business, user, access }) => {
       toast.info('Description can not be empty');
       return;
     }
+
+    if (currentLocation.name.length > 50) {
+      toast.info('Location Name should be less than 50 characters');
+      return;
+    }
+
+    if (loading){
+      toast.info('Please wait... creating location');
+      return;
+    }
     try {
+      setLoading(true);
       const response = await api.post(
         'add_location',
         { business, loc: currentLocation, user },
@@ -108,6 +121,7 @@ const LocationMain = ({ business, user, access }) => {
 
       if (response.status === 'error') {
         toast.error(response.message || 'Location Name already exist');
+        setLoading(false);
         return;
       }
 
@@ -127,6 +141,8 @@ const LocationMain = ({ business, user, access }) => {
 
     } catch (error) {
       toast.error('Error creating location');
+      setLoading(false);
+      console.error('Error details:', error);
       if (error.response?.status === 401) {
         navigate('/sign_in');
       }
@@ -134,7 +150,18 @@ const LocationMain = ({ business, user, access }) => {
   };
 
   const handleEdit = async () => {
+    if (!editData.name) {
+      toast.info('Location Name can not be empty');
+      return;
+    }
+
+    if (loading){
+      toast.info('Please wait... saving changes');
+      return;
+    }
+
     try {
+      setLoading(true);
       const response = await api.post(
         'edit_location',
         { 
@@ -147,6 +174,7 @@ const LocationMain = ({ business, user, access }) => {
 
       if (response.statue === 'error') {
         toast.error(response.message || 'Location Name already exist');
+        setLoading(false);
         return;
       }
 
@@ -165,6 +193,10 @@ const LocationMain = ({ business, user, access }) => {
       setEditData({ originalName: '', name: '', descript: '' });
 
     } catch (error) {
+      toast.error('Error updating location');
+      setLoading(false);
+      console.error('Error details:', error);
+      
       if (error.response?.status === 401) {
         navigate('/sign_in');
       }
@@ -240,9 +272,9 @@ const LocationMain = ({ business, user, access }) => {
                       </td>
                       <td>{location.loc}</td>
                       <td>{location.description}</td>
-                      <td>{new Date(location.date).toLocaleDateString()}</td>
+                      <td>{format(location.date, 'dd/MM/yyyy')}</td>
                       <td>{location.qty}</td>
-                      <td>&#8373; {location.value}</td>
+                      <td>GHS {location.value}</td>
                     </tr>
                   ))}
                 </tbody>

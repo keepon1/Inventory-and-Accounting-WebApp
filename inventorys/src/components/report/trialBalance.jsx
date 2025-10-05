@@ -112,13 +112,13 @@ const TrialBalance = ({ business, user }) => {
 
   const renderTable = () => (
     <div className="stock-table">
-      <table>
+      <table className='ia_main_table'>
         <thead>
           <tr>
             <th>Account</th>
-            <th>Debit ($)</th>
-            <th>Credit ($)</th>
-            <th>Balance ($)</th>
+            <th>Debit (GHS)</th>
+            <th>Credit (GHS)</th>
+            <th>Balance (GHS)</th>
           </tr>
         </thead>
         <tbody>
@@ -136,21 +136,21 @@ const TrialBalance = ({ business, user }) => {
                   </button>
                   {accountType.name}
                 </td>
-                <td>{accountType.debit.toFixed(2)}</td>
-                <td>{accountType.credit.toFixed(2)}</td>
+                <td>GHS {accountType.debit.toFixed(2)}</td>
+                <td>GHS {accountType.credit.toFixed(2)}</td>
                 <td>
-                  {accountType.name === 'Assets' || accountType.name === 'Expenses' 
+                  GHS {accountType.name === 'Assets' || accountType.name === 'Expenses' 
                     ? (accountType.debit - accountType.credit).toFixed(2)
                     : (accountType.credit - accountType.debit).toFixed(2)}
                 </td>
               </tr>
               
               {expandedAccounts[accountType.name] && accountType.accounts.map((account) => (
-                <tr key={account.id} className="account-detail-row">
+                <tr key={account.real_account} className="account-detail-row">
                   <td>{account.real_account || account.sub_account?.name}</td>
-                  <td>{account.debit?.toFixed(2) || '0.00'}</td>
-                  <td>{account.credit?.toFixed(2) || '0.00'}</td>
-                  <td>{account.balance.toFixed(2)}</td>
+                  <td>GHS {account.debit?.toFixed(2) || '0.00'}</td>
+                  <td>GHS {account.credit?.toFixed(2) || '0.00'}</td>
+                  <td>GHS {account.balance.toFixed(2)}</td>
                 </tr>
               ))}
             </React.Fragment>
@@ -159,14 +159,14 @@ const TrialBalance = ({ business, user }) => {
           <tr className="totals-row">
             <td><strong>Totals</strong></td>
             <td>
-              <strong>{filteredData.reduce((sum, type) => sum + type.debit, 0).toFixed(2)}</strong>
+              <strong>GHS {filteredData.reduce((sum, type) => sum + type.debit, 0).toFixed(2)}</strong>
             </td>
             <td>
-              <strong>{filteredData.reduce((sum, type) => sum + type.credit, 0).toFixed(2)}</strong>
+              <strong>GHS {filteredData.reduce((sum, type) => sum + type.credit, 0).toFixed(2)}</strong>
             </td>
             <td className={getUnbalancedAccounts() ? 'low-stock' : ''}>
               <strong>
-                {(
+                GHS {(
                   filteredData.reduce((sum, type) => {
                     if (type.name === 'Assets' || type.name === 'Expenses') {
                       return sum + (type.debit - type.credit);
@@ -282,9 +282,9 @@ const TrialBalance = ({ business, user }) => {
                 <span className="item-name">Unbalanced Trial</span>
               </div>
               <div className="alert-details">
-                <span>Total Debits: ${filteredData.reduce((sum, type) => sum + type.debit, 0).toFixed(2)}</span>
-                <span>Total Credits: ${filteredData.reduce((sum, type) => sum + type.credit, 0).toFixed(2)}</span>
-                <span>Difference: ${Math.abs(
+                <span>Total Debits:GHS {filteredData.reduce((sum, type) => sum + type.debit, 0).toFixed(2)}</span>
+                <span>Total Credits:GHS {filteredData.reduce((sum, type) => sum + type.credit, 0).toFixed(2)}</span>
+                <span>Difference: GHS {Math.abs(
                   filteredData.reduce((sum, type) => sum + type.debit, 0) -
                   filteredData.reduce((sum, type) => sum + type.credit, 0)
                 ).toFixed(2)}</span>

@@ -11,7 +11,6 @@ import {
   faBox,
   faArrowLeft,
   faFilter,
-  faExclamationTriangle,
   faChevronDown
 } from '@fortawesome/free-solid-svg-icons';
 import DatePicker from 'react-datepicker';
@@ -19,6 +18,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import './itemSummary.css';
 import { Link } from 'react-router-dom';
+import { format } from 'date-fns';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -55,8 +55,7 @@ const SalesRecords = ({ business, user }) => {
         startDate: startDate.toISOString().split('T')[0], 
         endDate: endDate.toISOString().split('T')[0] 
       });
-
-      console.log('Sales Records Response:', response);
+      
       setSalesData(response.sales || { records: [], summary: {}, charts: {} });
       setFilteredRecords(response.sales.records || []);
       setLocations(response.locations || []);
@@ -76,7 +75,8 @@ const SalesRecords = ({ business, user }) => {
       result = result.filter(record =>
         record.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         record.invoice_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        record.customer_name.toLowerCase().includes(searchQuery.toLowerCase())
+        record.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.customer.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
@@ -110,7 +110,7 @@ const SalesRecords = ({ business, user }) => {
                       return [value, "Quantity"];
                     }
                     if (dataKey === "revenue") {
-                      return [`$${value}`, "Revenue"];
+                      return [`GHS ${value}`, "Revenue"];
                     }
                     return value;
                   }}
@@ -158,10 +158,23 @@ const SalesRecords = ({ business, user }) => {
               <BarChart data={salesData.charts.dailyTrend || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip formatter={(value) => [`$${value}`, 'Revenue']} />
+                <YAxis yAxisId="revenue" />
+                <YAxis yAxisId="profit" orientation="right" />
+                <Tooltip
+                  formatter={(value, name) => {
+                    const labelMap = {
+                      revenue: "Revenue",
+                      cost: "Cost",
+                      profit: "Profit",
+                    };
+                    return [`GHS ${value.toFixed(2)}`, labelMap[name] || name];
+                  }}
+                  labelFormatter={(label) => `Date: ${label}`}
+                />
                 <Legend />
-                <Bar dataKey="revenue" name="Revenue" fill="#8884d8" />
+                <Bar dataKey="revenue" name="Revenue" fill="#8884d8" yAxisId="revenue" />
+                <Bar dataKey="cost" name="Cost" fill="#82ca9d" yAxisId="revenue" />
+                <Bar dataKey="profit" name="Profit" fill="#ffc658" yAxisId="profit" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -174,14 +187,14 @@ const SalesRecords = ({ business, user }) => {
               <BarChart data={salesData.charts.profitByItem || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
-                <YAxis yAxisId="left" tickFormatter={val => `$${val}`} />
+                <YAxis yAxisId="left" tickFormatter={val => `GHS ${val}`} />
                 <YAxis yAxisId="right" orientation="right" tickFormatter={val => `${val}%`} />
                 
                 <Tooltip
                   formatter={(value, dataKey) => {
-                    if (dataKey === "profit") return [`$${value}`, "Profit"];
-                    if (dataKey === "margin") return [`${value}%`, "Margin"];
-                    return [value, dataKey];
+                    if (dataKey === "profit") return [`GHS ${value}`, "Profit"];
+                    if (dataKey === "margin") return [`${value.toFixed(2)}%`, "Margin"];
+                    return [value.toFixed(2), dataKey];
                   }}
                 />
                 <Legend />
@@ -203,6 +216,7 @@ const SalesRecords = ({ business, user }) => {
         invoice_code: record.invoice_code,
         sale_date: record.sale_date,
         customer_name: record.customer_name,
+        customer: record.customer,
         total_amount: 0,
         total_profit: 0,
         items: []
@@ -357,13 +371,13 @@ const SalesRecords = ({ business, user }) => {
             {invoiceList.map(inv => (
               <div className="detail-item" key={inv.invoice_code}>
                 <div className="detail-header">
-                  <span>{inv.customer === ''}</span>
+                  <span>{inv.customer === 'Regular Customer' ? inv.customer_name : inv.customer}</span>
                   <span>{inv.invoice_code}</span>
                 </div>
                 <div className="alert-details">
-                  <span>Date: {new Date(inv.sale_date).toLocaleDateString()}</span><br />
-                  <span>Total: ${inv.total_amount.toFixed(2)}</span><br />
-                  <span>Profit: ${inv.total_profit.toFixed(2)}</span><br />
+                  <span>Date: {format(inv.sale_date, 'dd/MM/yyyy')}</span><br />
+                  <span>Total: GHS {inv.total_amount.toFixed(2)}</span><br />
+                  <span>Profit: GHS {inv.total_profit.toFixed(2)}</span><br />
                   <span>Items: {inv.items.length}</span>
                 </div>
               </div>
@@ -395,17 +409,17 @@ const SalesRecords = ({ business, user }) => {
                   const profit = item.total_price - cost;
                   return (
                     <tr key={`${inv.invoice_code}-${item.item_name1}`}>
-                      <td>{new Date(inv.sale_date).toLocaleDateString()}</td>
+                      <td>{format(inv.sale_date, 'dd/MM/yyyy')}</td>
                       <td>{inv.invoice_code}</td>
-                      <td>{inv.customer_name}</td>
+                      <td>{inv.customer === 'Regular Customer' ? inv.customer_name : inv.customer}</td>
                       <td>{item.item_name1}</td>
                       <td>{item.category}</td>
                       <td>{item.quantity1}</td>
-                      <td>${item.unit_price.toFixed(2)}</td>
-                      <td>${item.total_price.toFixed(2)}</td>
-                      <td>${cost.toFixed(2)}</td>
+                      <td>GHS {item.unit_price.toFixed(2)}</td>
+                      <td>GHS {item.total_price.toFixed(2)}</td>
+                      <td>GHS {cost.toFixed(2)}</td>
                       <td className={profit >= 0 ? 'profit-positive' : 'profit-negative'}>
-                        ${profit.toFixed(2)}
+                        GHS {profit.toFixed(2)}
                       </td>
                     </tr>
                   );
@@ -417,10 +431,10 @@ const SalesRecords = ({ business, user }) => {
                 <td colSpan="5" style={{ textAlign: 'right', fontWeight: 'bold' }}>Totals:</td>
                 <td>{totals.quantity}</td>
                 <td></td>
-                <td>${totals.totalPrice.toFixed(2)}</td>
-                <td>${totals.cost.toFixed(2)}</td>
+                <td>GHS {totals.totalPrice.toFixed(2)}</td>
+                <td>GHS {totals.cost.toFixed(2)}</td>
                 <td className={totals.profit >= 0 ? 'profit-positive' : 'profit-negative'}>
-                  ${totals.profit.toFixed(2)}
+                  GHS {totals.profit.toFixed(2)}
                 </td>
               </tr>
             </tfoot>

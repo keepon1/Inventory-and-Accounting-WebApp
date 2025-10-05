@@ -4,6 +4,7 @@ import { faTimesCircle, faTachometer, faArrowLeft } from "@fortawesome/free-soli
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { format } from "date-fns";
 
 const ViewCash = ({ payments, user, business, access }) => {
   const [journal, setjournal] = useState({
@@ -11,7 +12,7 @@ const ViewCash = ({ payments, user, business, access }) => {
     number: '',
     from: '',
     to: '',
-    date: '',
+    date: null,
     description: '',
     amount: 0,
     transation_number: 0,
@@ -87,7 +88,7 @@ const ViewCash = ({ payments, user, business, access }) => {
             </div>
             <div className="ivi_holder_box">
               <label>Transaction Date</label>
-              <input className="ivi_input" value={journal.date} readOnly title={journal.date} />
+              <input className="ivi_input" value={format(journal.date, 'dd/MM/yyyy')} readOnly title={journal.date} />
             </div>
             <div className="ivi_holder_box">
               <label>User</label>
@@ -118,7 +119,7 @@ const ViewCash = ({ payments, user, business, access }) => {
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label>Amount</label>
-              <input className="ivi_input" value={journal.amount} readOnly title={journal.amount} />
+              <input className="ivi_input" value={`GHS ${journal.amount}`} readOnly title={journal.amount} />
             </div>
             <div className="ivi_holder_box">
               <label>From</label>

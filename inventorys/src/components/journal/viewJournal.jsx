@@ -1,21 +1,24 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimesCircle, faTachometer, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { faTachometer, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { format } from "date-fns";
 
 const ViewJournal = ({ journals, business, user, access }) => {
   const [journal, setjournal] = useState({
     by: '',
     number: '',
     type: '',
-    date: '',
+    date: null,
     description: '',
     amount: 0,
     transation_number: 0,
     items: [],
   });
+
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -50,22 +53,32 @@ const ViewJournal = ({ journals, business, user, access }) => {
   }, []);
 
   const reverse = async() => {
-    try {
-        const response = await api.post(
-          'reverse_journal',
-          { business, number: journal.number, user },
-        );
+    if (loading) {
+      toast.info('Please wait... reversing in progress');
+      return;
+    }
 
-        if (response.status === 'success') {
-          toast.success(response.message || 'Journal reversed successfully');
-          navigate(-1);
-        } else {
-          toast.error(response.message || 'Failed to reverse journal');
-          return;
-        }
+    try {
+      setLoading(true);
+      const response = await api.post(
+        'reverse_journal',
+        { business, number: journal.number, user },
+      );
+
+      if (response.status === 'success') {
+        toast.success(response.message || 'Journal reversed successfully');
+        navigate(-1);
+
+      } else {
+        toast.error(response.message || 'Failed to reverse journal');
+        setLoading(false);
+        return;
       }
+    }
+
     catch(error) {
       toast.error('An error occurred while reversing journal');
+      setLoading(false);
       console.error('Error reversing journal:', error);
     }
   }
@@ -96,7 +109,7 @@ const ViewJournal = ({ journals, business, user, access }) => {
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label>Date</label>
-              <input className="ivi_input" value={journal.date} readOnly title={journal.date} />
+              <input className="ivi_input" value={format(journal.date, 'dd/MM/yyyy')} readOnly title={journal.date} />
             </div>
             <div className="ivi_holder_box">
               <label>Description</label>
@@ -107,7 +120,7 @@ const ViewJournal = ({ journals, business, user, access }) => {
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label>Total Amount</label>
-              <input className="ivi_input" value={journal.amount} readOnly title={journal.amount} />
+              <input className="ivi_input" value={`GHS ${journal.amount}`} readOnly title={journal.amount} />
             </div>
             <div className="ivi_holder_box">
               <label>Created by</label>
@@ -131,10 +144,10 @@ const ViewJournal = ({ journals, business, user, access }) => {
             <tbody>
               {journal.items.map((item, index) => (
                 <tr key={index}>
-                  <td>{item.date}</td>
+                  <td>{format(item.date, 'dd/MM/yyyy')}</td>
                   <td>{item.type}</td>
                   <td>{item.description}</td>
-                  <td>{item.amount}</td>
+                  <td>GHS {item.amount}</td>
                   <td>{item.debit}</td>
                   <td>{item.credit}</td>
                 </tr>

@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimesCircle, faReceipt, faTachometer, faPrint, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { faReceipt, faTachometer, faPrint, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { set } from "date-fns";
 
 const ViewTransfer = (props) => {
   const [transfer, setTransfer] = useState({
@@ -21,6 +22,7 @@ const ViewTransfer = (props) => {
   });
   const [items, setItems] = useState([]);
   const [printData, setPrintData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
   const transferNumber = props.transfer;
@@ -76,7 +78,18 @@ const ViewTransfer = (props) => {
   }, [printData]);
 
   const receive = async () => {
+    if (transfer.status === "Received") {
+      toast.info("This transfer has already been received.");
+      return;
+    }
+
+    if (loading) {
+      toast.info('Please wait... receiving in progress');
+      return;
+    }
+
     try {
+      setLoading(true);
       const response = await api.post("receive_transfer", {
         business,
         number: transfer.number,
@@ -88,14 +101,29 @@ const ViewTransfer = (props) => {
         navigate(-1);
       } else {
         toast.error(response.message || "Failed to receive transfer");
+        setLoading(false);
+        return;
       }
     } catch {
       toast.error("Error receiving transfer");
+      setLoading(false);
+      console.error('Error receiving transfer');
     }
   };
 
   const reject = async () => {
+    if (transfer.status === "Received") {
+      toast.info("Cannot reject a transfer that has been received.");
+      return;
+    }
+
+    if (loading) {
+      toast.info('Please wait... rejecting in progress');
+      return;
+    }
+
     try {
+      setLoading(true);
       const response = await api.post("reject_transfer", {
         business,
         number: transfer.number,
@@ -107,9 +135,13 @@ const ViewTransfer = (props) => {
         navigate(-1);
       } else {
         toast.error(response.message || "Failed to reject transfer");
+        setLoading(false);
+        return;
       }
     } catch {
       toast.error("Error rejecting transfer");
+      setLoading(false);
+      console.error('Error rejecting transfer');
     }
   };
 

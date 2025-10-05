@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faSearch,
   faTimesCircle,
   faEdit,
   faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
-import enableKeyboardScrollFix from '../../utils/scroll';
 import { toast } from 'react-toastify';
+import { set } from 'date-fns';
 
 const CategoryMain = ({ business, user }) => {
     const [categories, setCategories] = useState([]);
@@ -21,6 +20,7 @@ const CategoryMain = ({ business, user }) => {
     const [errors, setErrors] = useState();
     const overlayRef = useRef(null);
     const editOverlayRef = useRef(null);
+    const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
 
@@ -50,7 +50,6 @@ const CategoryMain = ({ business, user }) => {
                 toast.error('An error occurred while fetching categories');
                 console.error(error);
                 if (error.response?.status === 401) {
-                    localStorage.removeItem('access');
                     navigate('/sign_in');
                 }
             }
@@ -93,12 +92,23 @@ const CategoryMain = ({ business, user }) => {
             return;
         };
 
+        if (categories.some(cat => cat.name.toLowerCase() === detail.name.toLowerCase())) {
+            toast.error('Category name must be unique');
+            return;
+        }
+
+        if (loading){
+            toast.info('Please wait... creation in progress');
+            return;
+        }
+
         const data = {
             name: detail.name,
             description: detail.description,
         };
 
         try {
+            setLoading(true);
             const response = await api.post('add_category', { business, detail: data, user });
 
             if (response.status === 'success') {
@@ -117,12 +127,13 @@ const CategoryMain = ({ business, user }) => {
                 setCategories(update.data || []);
             }else{
                 toast.error(response.message || 'Error adding category');
+                setLoading(false);
             }
         } catch (error) {
             toast.error('An error occurred while adding the category');
+            setLoading(false);
             console.error(error);
             if (error.response?.status === 401) {
-                localStorage.removeItem('access');
                 navigate('/sign_in');
             }
         };
@@ -134,6 +145,11 @@ const CategoryMain = ({ business, user }) => {
             return;
         };
 
+        if (loading){
+            toast.info('Please wait... update in progress');
+            return;
+        }
+
         const data = {
             original: editData.originalName,
             name: editData.name,
@@ -141,6 +157,7 @@ const CategoryMain = ({ business, user }) => {
         };
 
         try {
+            setLoading(true);
             const response = await api.post('edit_category', { business, detail: data, user });
 
             if (response.status === 'success') {
@@ -160,8 +177,12 @@ const CategoryMain = ({ business, user }) => {
                 setCategories(update.data || []);
             }else{
                 toast.error(response.message || 'Error updating category');
+                setLoading(false);
+                return
             }
         } catch (error) {
+            toast.error('An error occurred while updating the category');
+            setLoading(false);
             console.error(error);
         };
     };

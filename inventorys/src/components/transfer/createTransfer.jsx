@@ -9,8 +9,8 @@ import {
   locationsLoadOptions,
   sourceLocationsLoadOptions,
 } from "../../utils/fetchData";
-import enableKeyboardScrollFix from "../../utils/scroll";
 import { toast } from "react-toastify";
+import { set } from "date-fns";
 
 const CreateTransfer = ({ business, user, access }) => {
   const [transfer, setTransfer] = useState({
@@ -23,6 +23,7 @@ const CreateTransfer = ({ business, user, access }) => {
   const [locations, setLocations] = useState([]);
   const [sourceLocations, setSourceLocations] = useState([]);
   const [currentItem, setCurrentItem] = useState({ item: null, qty: 1 });
+  const [loading, setLoading] = useState(false);
   const [transferItems, setTransferItems] = useState([]);
   const [printData, setPrintData] = useState(null);
 
@@ -58,8 +59,6 @@ const CreateTransfer = ({ business, user, access }) => {
       }
     };
     fetchData();
-    const cleanup = enableKeyboardScrollFix();
-    return cleanup;
   }, []);
 
   const handleAddItem = async () => {
@@ -84,35 +83,55 @@ const CreateTransfer = ({ business, user, access }) => {
       return;
     }
 
-    const verificationResponse = await api.post("verify_transfer_quantity", {
-      business,
-      loc: transfer.from.value,
-      detail: { item: currentItem.item.item_name, qty: currentItem.qty },
-    });
-
-    if (verificationResponse.status === "error") {
-      toast.error(verificationResponse.message);
+    if (transferItems.find((i) => i.code === currentItem.item.code)) {
+      toast.error("Item already added");
       return;
     }
 
-    setTransferItems((prev) => [
-      ...prev,
-      {
-        code: currentItem.item.code,
-        name: currentItem.item.value,
-        item_name: currentItem.item.value,
-        value: currentItem.item.value,
-        label: currentItem.item.value,
-        brand: currentItem.item.brand,
-        qty: currentItem.qty,
-        category__name: currentItem.item.category__name,
-        model: currentItem.item.model,
-        unit__suffix: currentItem.item.unit__suffix,
-      },
-    ]);
+    if (loading) {
+      toast.info('Please wait... verification in progress');
+      return;
+    }
 
-    toast.success("Item added to transfer list");
-    setCurrentItem({ item: null, qty: 1 });
+    try {
+      setLoading(true);
+    
+      const verificationResponse = await api.post("verify_transfer_quantity", {
+        business,
+        loc: transfer.from.value,
+        detail: { item: currentItem.item.item_name, qty: currentItem.qty },
+      });
+
+      if (verificationResponse.status === "error") {
+        toast.error(verificationResponse.message);
+        setLoading(false);
+        return;
+      }
+
+      setTransferItems((prev) => [
+        ...prev,
+        {
+          code: currentItem.item.code,
+          name: currentItem.item.value,
+          item_name: currentItem.item.value,
+          value: currentItem.item.value,
+          label: currentItem.item.value,
+          brand: currentItem.item.brand,
+          qty: currentItem.qty,
+          category__name: currentItem.item.category__name,
+          model: currentItem.item.model,
+          unit__suffix: currentItem.item.unit__suffix,
+        },
+      ]);
+
+      toast.success("Item added to transfer list");
+      setCurrentItem({ item: null, qty: 1 });
+    } catch (error) {
+      toast.error("An error occurred while adding item");
+      setLoading(false);
+      console.error('Error adding item:', error);
+      if (error.response?.status === 401) navigate("/sign_in");
+    }
   };
 
   const submitTransfer = async (print = false) => {
@@ -122,6 +141,11 @@ const CreateTransfer = ({ business, user, access }) => {
     }
     if (transfer.from === transfer.to) {
       toast.error("Cannot transfer to the same location");
+      return;
+    }
+
+    if (loading) {
+      toast.info('Please wait... creation in progress');
       return;
     }
 
@@ -141,6 +165,7 @@ const CreateTransfer = ({ business, user, access }) => {
     });
 
     try {
+      setLoading(true);
       const response = await api.post("create_transfer", formData);
 
       if (response.status === "success") {
@@ -166,9 +191,13 @@ const CreateTransfer = ({ business, user, access }) => {
         }
       } else {
         toast.error(response.message || "Transfer failed");
+        setLoading(false);
+        return;
       }
     } catch (error) {
       toast.error("Something went wrong while creating transfer");
+      setLoading(false);
+      console.error('Error creating transfer:', error);
       if (error.response?.status === 401) navigate("/sign_in");
     }
   };

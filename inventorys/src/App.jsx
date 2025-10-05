@@ -6,6 +6,7 @@ import AddBusiness from "./components/addBusiness";
 import PrivateRoute from "./logicHandles";
 import Dashboard from "./components/dashboard";
 import './App.css';
+import PasswordResetConfirm from "./components/resetPassword";
 
 function App() {
   return (
@@ -15,6 +16,9 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/sign_in" element={<SignIn />} />
         <Route path="/register" element={<Register />} />
+
+        <Route path="/password-reset-confirm/:uid/:token" element={<PasswordResetConfirm />} />
+
         
         {/* Protected routes */}
         <Route path="/selectBusiness" element={<PrivateRoute element={AddBusiness} />} />
@@ -24,6 +28,7 @@ function App() {
 
         {/* Redirect base path to dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
       </Routes>
     </BrowserRouter>
   );

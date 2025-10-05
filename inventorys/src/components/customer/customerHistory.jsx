@@ -64,7 +64,7 @@ const CustomerHistory = ({ business, user }) => {
             </div>
             <div className="customer-info-item">
                 <span className="info-label">Balance:</span>
-                <span className="info-values">₵{customer?.balance?.toFixed(2)}</span>
+                <span className="info-values">GHS {customer?.balance?.toFixed(2)}</span>
             </div>
         </div>
 
@@ -121,8 +121,8 @@ const CustomerHistory = ({ business, user }) => {
                                   : "negative-amount"
                               }
                             >
-                              {transaction.t_type === "payment" ? "+" : "-"}₵
-                              {Math.abs(transaction.amount).toFixed(2)}
+                              {transaction.t_type === "payment" ? "+" : "-"}
+                              {` GHS ${Math.abs(transaction.amount).toFixed(2)}`}
                             </td>
                           </tr>
                     ))  

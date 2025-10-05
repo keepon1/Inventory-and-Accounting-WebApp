@@ -336,11 +336,11 @@ const PurchaseMetric = ({ business, user }) => {
           <tbody>
             {filteredSales.map(sale => (
               <tr key={sale.code}>
-                <td>{new Date(sale.date).toLocaleDateString()}</td>
+                <td>{format(sale.date, 'dd/MM/yyyy')}</td>
                 <td>{sale.code}</td>
                 <td>{sale.supplier__name}</td>
                 <td>{sale.total_quantity}</td>
-                <td>${sale.gross_total}</td>
+                <td>GHS {sale.gross_total}</td>
               </tr>
             ))}
           </tbody>

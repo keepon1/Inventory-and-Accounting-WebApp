@@ -19,6 +19,8 @@ function SignIn() {
   const [userInfo, setUserInfo] = useState({newPassword:''});
   const [showUserSelect1, setShowUserSelect1] = useState(false);
   const [passError, setpassError] = useState('');
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const userSelectRef = useRef(null);
   const navigate = useNavigate();
 
@@ -41,9 +43,6 @@ function SignIn() {
     setLoading(true);
     
     try {
-      if (localStorage.getItem('access')){
-        localStorage.removeItem('access');
-      }
       
       const response = await api.post('sign', formData);
       
@@ -68,6 +67,41 @@ function SignIn() {
       toast.error('An error occurred. Please try again.');
       console.error('Error:', error);
       
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPasswordSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    if (!forgotPasswordEmail) {
+      toast.error('Please enter your email address.');
+      setLoading(false);
+      return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(forgotPasswordEmail)) {
+      toast.error('Please enter a valid email address.');
+      setLoading(false);
+      return;
+    }
+
+    if (loading){
+      toast.info('A request is already in progress. Please wait.');
+      return;
+    }
+
+    try {
+      await api.post('auth/users/reset_password', { email: forgotPasswordEmail });
+
+      toast.info('If an account with that email exists, a reset link has been sent.');
+      setShowForgotPasswordModal(false);
+      setForgotPasswordEmail('');
+    } catch (error) {
+      toast.error('An error occurred. Please try again.');
+      console.error('Error:', error);
     } finally {
       setLoading(false);
     }
@@ -175,9 +209,13 @@ function SignIn() {
                 </div>
 
                 <div className="form-options">
-                  <Link to="/forgot-password" className="forgot-password">
+                  <button
+                    type="button"
+                    className="forgot-password"
+                    onClick={() => setShowForgotPasswordModal(true)}
+                  >
                     Forgot password?
-                  </Link>
+                  </button>
                 </div>
 
                 <button type="submit" className="btn btn-primary auth-submit" disabled={loading}>
@@ -287,6 +325,38 @@ function SignIn() {
 
                 <button type="submit" className="btn btn-primary">
                   Save
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Forgot Password Modal */}
+        {showForgotPasswordModal && (
+          <div className="modal-overlay">
+            <div className="modal">
+              <div className="modal-header">
+                <h3>Forgot Password</h3>
+                <button
+                  className="close-modal"
+                  onClick={() => setShowForgotPasswordModal(false)}
+                >
+                  &times;
+                </button>
+              </div>
+              <form onSubmit={handleForgotPasswordSubmit}>
+                <div className="form-group">
+                  <label htmlFor="forgot-password-email">Enter your email address</label>
+                  <input
+                    type="email"
+                    id="forgot-password-email"
+                    value={forgotPasswordEmail}
+                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? 'Sending...' : 'Send Reset Link'}
                 </button>
               </form>
             </div>

@@ -1,12 +1,11 @@
 import {useState, useEffect } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { faEdit, faTrashAlt } from "@fortawesome/free-regular-svg-icons";
 import Select from 'react-select';
-import CreatableSelect from 'react-select/creatable';
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
-import enableKeyboardScrollFix from "../../utils/scroll";
+import { format, set } from 'date-fns'
 import { toast } from "react-toastify";
 
 const GLJournal = ({business, user}) => {
@@ -22,6 +21,7 @@ const GLJournal = ({business, user}) => {
     const [accounts, setAccounts] = useState([]);
     const [entries, setEntries] = useState([]);
     const [formError, setFormError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -124,7 +124,18 @@ const GLJournal = ({business, user}) => {
     };
 
     const saveJournal = async () => {
+        if (loading) {
+            toast.info('Please wait, saving journal');
+            return;
+        }
+
         try {
+            setLoading(true);
+            if (entries.length === 0) {
+                toast.info('No journal entries to save');
+                return;
+            }
+
             const totalDebit = entries.reduce((sum, e) => sum + parseFloat(e.amount), 0);
             const totalCredit = entries.reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
@@ -153,12 +164,13 @@ const GLJournal = ({business, user}) => {
                 navigate(-1);
             }else{
                 toast.error(response.message || 'Failed to post journal');
+                setLoading(false);
             }
         } catch (error) {
+            setLoading(false);
             console.error("Save error:", error);
             toast.error('An error occurred while saving the journal');
             if (error.response?.status === 401) {
-                localStorage.removeItem('access');
                 navigate('/sign_in');
             }
         }
@@ -286,12 +298,12 @@ const GLJournal = ({business, user}) => {
                             {entries.length > 0 ? (
                                 entries.map((entry, index) => (
                                     <tr key={index}>
-                                        <td>{entry.date}</td>
+                                        <td>{format(entry.date, 'dd/MM/yyyy')}</td>
                                         <td>{entry.reference}</td>
                                         <td>{entry.description}</td>
                                         <td>{entry.debitAccount?.label}</td>
                                         <td>{entry.creditAccount?.label}</td>
-                                        <td className="text-right">${parseFloat(entry.amount).toFixed(2)}</td>
+                                        <td className="text-right">GHS {parseFloat(entry.amount).toFixed(2)}</td>
                                         <td>
                                             <FontAwesomeIcon 
                                                 onClick={() => editEntry(index)} 

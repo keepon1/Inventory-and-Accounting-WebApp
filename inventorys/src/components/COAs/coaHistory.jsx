@@ -5,6 +5,7 @@ import api from "../api";
 import { useParams, Link } from "react-router-dom";
 import "./accountHistory.css";
 import { toast } from "react-toastify";
+import {format} from 'date-fns';
 
 const AccountHistory = ({ business, user }) => {
   const [transactions, setTransactions] = useState([]);
@@ -69,7 +70,7 @@ const AccountHistory = ({ business, user }) => {
         <div className="account-info-item">
           <span className="info-label">Current Balance:</span>
           <span className={`info-values ${account?.balance < 0 ? 'negative-balance' : 'positive-balance'}`}>
-            ₵{Math.abs(account?.balance || 0).toFixed(2)}
+            GHS {Math.abs(account?.balance || 0).toFixed(2)}
             {account?.balance < 0 ? ' (Dr)' : ' (Cr)'}
           </span>
         </div>
@@ -113,7 +114,7 @@ const AccountHistory = ({ business, user }) => {
             {filteredTransactions.length > 0 ? (
               filteredTransactions.map((transaction, index) => (
                 <tr key={index} className="table-row">
-                  <td>{transaction.date}</td>
+                  <td>{format(transaction.date, 'dd/MM/yyyy')}</td>
                   <td>{transaction.hit_code} - {transaction.hit_name}</td>
                   <td>
                     <span className={`transaction-type ${transaction.type}`}>
@@ -123,10 +124,10 @@ const AccountHistory = ({ business, user }) => {
                   <td>{transaction.reference}</td>
                   <td>{transaction.description}</td>
                   <td className="debit-amount">
-                    {transaction.debit_amount}
+                    GHS {transaction.debit_amount}
                   </td>
                   <td className="credit-amount">
-                    {transaction.credit_amount}
+                    GHS {transaction.credit_amount}
                   </td>
                 </tr>
               ))

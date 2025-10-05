@@ -6,19 +6,14 @@ import {
 import Select from 'react-select';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faBook,
   faDollarSign,
-  faChartBar,
   faChartPie,
-  faFilter,
-  faSearch,
-  faFileExport,
-  faChevronDown,
   faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../api';
 import './itemSummary.css';
 import { Link } from 'react-router-dom';
+import { format } from 'date-fns';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -206,7 +201,7 @@ const ChartOfAccounts = ({ business, user }) => {
                 <td>{account.name}</td>
                 <td>{account.type}</td>
                 <td className={account.balance >= 0 ? 'positive' : 'negative'}>
-                  ${Math.abs(account.balance).toFixed(2)}
+                  GHS {Math.abs(account.balance).toFixed(2)}
                 </td>
                 <td>{account.description}</td>
               </tr>

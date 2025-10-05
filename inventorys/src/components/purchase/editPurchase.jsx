@@ -4,14 +4,15 @@ import { faTimesCircle, faEdit } from "@fortawesome/free-solid-svg-icons";
 import Select from 'react-select';
 import api from "../api";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns"
 
 const EditPurchase = ({ purchase, business, user }) => {
   const [purchaseData, setPurchaseData] = useState({
     supplier: '',
     address: '',
     contact: '',
-    issueDate: '',
-    dueDate: '',
+    issueDate: null,
+    dueDate: null,
     description: '',
     location: null,
     discount: 0,
@@ -242,7 +243,6 @@ const EditPurchase = ({ purchase, business, user }) => {
           </div>
         </div>
 
-        {/* Item Selection Section */}
         <div className="ivi_display_box" style={{ marginTop: '2rem' }}>
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">

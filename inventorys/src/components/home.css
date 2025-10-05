@@ -45,7 +45,7 @@ table, input {
 
 .btn {
   display: inline-block;
-  padding: 4px 14px;
+  padding: 8px 20px;
   border-radius: var(--border-radius);
   font-weight: 500;
   text-align: center;
@@ -104,7 +104,6 @@ table, input {
   font-size: 1.1rem;
 }
 
-/* Header Styles */
 .header {
   position: fixed;
   top: 0;
@@ -200,7 +199,6 @@ table, input {
   margin-left: 4px;
 }
 
-/* Hero Section */
 .hero {
   padding: 100px 0 80px;
   background: linear-gradient(135deg, #f5f7ff 0%, #f0f4ff 100%);
@@ -249,7 +247,6 @@ table, input {
   gap: 16px;
 }
 
-/* Features Section */
 .features {
   padding: 10px 0;
   background-color: white;
@@ -371,7 +368,6 @@ table, input {
   transform: scale(1.2);
 }
 
-/* Call to Action */
 .cta {
   padding: 40px 0;
   background-color: var(--primary);
@@ -384,7 +380,6 @@ table, input {
   margin-bottom: 30px;
 }
 
-/* Footer */
 .footer {
   background-color: var(--dark);
   color: white;
@@ -456,7 +451,6 @@ table, input {
   gap: 20px;
 }
 
-/* Responsive Styles */
 @media (max-width: 1024px) {
   .hero .container {
     flex-direction: column;

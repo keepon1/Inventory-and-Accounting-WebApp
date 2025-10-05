@@ -198,7 +198,7 @@ const PaymentMain = ({ business, user, access }) => {
                       <td>{entry.ref_type}</td>
                       <td>{entry.to_account}</td>
                       <td>{entry.from_account}</td>
-                      <td>{entry.amount}</td>
+                      <td>GHS {entry.amount}</td>
                       <td>{entry.is_reversed? 'Reversed' : 'Completed'}</td>
                     </tr>
                   ))}

@@ -149,7 +149,7 @@ const DashMain = ({business, user}) => {
             <FontAwesomeIcon icon={faDollarSign} />
           </div>
           <div className="metric-value">
-            €{metrics.totalSales.month.toLocaleString()} / €{metrics.totalSales.today.toLocaleString()}
+            GHS₵ {metrics.totalSales.month.toLocaleString()} / GHS₵ {metrics.totalSales.today.toLocaleString()}
             {renderTrendIcon(metrics.totalSales.trend)}
           </div>
           <div className="metric-label">Total Sales This Month / Today</div>
@@ -160,7 +160,7 @@ const DashMain = ({business, user}) => {
             <FontAwesomeIcon icon={faDollarSign} />
           </div>
           <div className="metric-value">
-            €{metrics.totalPurchases.month.toLocaleString()} / €{metrics.totalPurchases.today.toLocaleString()}
+            GHS₵ {metrics.totalPurchases.month.toLocaleString()} / GHS₵ {metrics.totalPurchases.today.toLocaleString()}
             {renderTrendIcon(metrics.totalPurchases.trend)}
           </div>
           <div className="metric-label">Total Purchases This Month / Today</div>
@@ -217,10 +217,11 @@ const DashMain = ({business, user}) => {
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={additionalData.purchasesVsSalesData}>
               <XAxis dataKey="day" />
-              <YAxis />
+              <YAxis yAxisId='value' />
+              <YAxis yAxisId='quantity' orientation="right" />
               <Tooltip />
-              <Line dataKey="sales_value" stroke="#4361ee" strokeWidth={2} />
-              <Line dataKey="sales_quantity" stroke="#95e751ff" strokeWidth={2} />
+              <Line dataKey="sales_value" stroke="#4361ee" strokeWidth={2} yAxisId='value' />
+              <Line dataKey="sales_quantity" stroke="#95e751ff" strokeWidth={2} yAxisId='quantity' />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -280,14 +281,15 @@ const DashMain = ({business, user}) => {
             <BarChart data={additionalData.purchasesVsSalesData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="day" />
-              <YAxis />
+              <YAxis yAxisId='value'/>
+              <YAxis yAxisId='quantity' orientation="right" />
               <Tooltip />
               <Legend />
 
-              <Bar dataKey="purchase_value" stackId="p" fill="#ef48d0ff" name="Purchase Value" />
-              <Bar dataKey="sales_value" stackId="p" fill="#4361ee" name="Sales Value" />
-              <Bar dataKey="purchase_quantity" stackId="s" fill="#4cc9f0" name="Purchase Quantity" />
-              <Bar dataKey="sales_quantity" stackId="s" fill="#7209b7" name="Sales Quantity" />
+              <Bar dataKey="purchase_value" stackId="p" fill="#ef48d0ff" name="Purchase Value" yAxisId="value" />
+              <Bar dataKey="sales_value" stackId="p" fill="#4361ee" name="Sales Value" yAxisId="value" />
+              <Bar dataKey="purchase_quantity" stackId="s" fill="#4cc9f0" name="Purchase Quantity" yAxisId="quantity"/>
+              <Bar dataKey="sales_quantity" stackId="s" fill="#7209b7" name="Sales Quantity" yAxisId="quantity"/>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -336,7 +338,7 @@ const DashMain = ({business, user}) => {
                   <td>{sale.date}</td>
                   <td>{sale.customer_info__name === 'Regular Customer' ? sale.customer_name : sale.customer_info__name}</td>
                   <td className="text-right">{sale.total_quantity}</td>
-                  <td className="text-right">{sale.gross_total}</td>
+                  <td className="text-right">GHS {sale.gross_total}</td>
                 </tr>
               ))}
             </tbody>

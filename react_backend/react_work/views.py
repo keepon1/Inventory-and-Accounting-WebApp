@@ -1,3 +1,4 @@
+import re
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
@@ -33,18 +34,22 @@ def me(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def refresh_view(request):
     refresh_cookie = request.COOKIES.get("refresh")
     if not refresh_cookie:
         return Response({'status': 'error', 'message': 'No refresh token provided'}, status=status.HTTP_401_UNAUTHORIZED)
     try:
         refresh = RefreshToken(refresh_cookie)
-        user = refresh.user
+        user_id = refresh.get("user_id")
+
+        user = User.objects.get(id=user_id)
 
         resp = Response({'status': 'success', 'message': 'Token refreshed'})
         return set_tokens_as_cookies(resp, user)
     except Exception as e:
-        return Response({'status': 'error', 'message': 'Invalid refresh token'}, status=status.HTTP_401_UNAUTHORIZED)
+        logger.warning(e)
+        return Response({'status': 'error', 'message': 'Invalid refresh token'})
 
 
 @api_view(['GET', 'POST'])
@@ -55,7 +60,7 @@ def register(request):
         company = (data['company']).strip()
         email = (data['email']).lower().strip()
         password = data['password']
-        name = data['name']
+        name = data['name'].strip()
 
         if User.objects.filter(last_name=company).exists():
             return Response({'status':'error', 'message': f'Bussiness name {company} already exist'})
@@ -160,8 +165,8 @@ def register(request):
 def sign(request):
     if request.method == 'POST':
         data = request.data
-        company = data['company']
-        email = data['email']
+        company = data['company'].strip()
+        email = data['email'].strip()
         password = data['password']
 
         try:
@@ -228,21 +233,30 @@ def sign_in_google(request):
             last_name = idinfo.get("family_name", "")
 
             users = models.current_user.objects.filter(email=email.strip())
-            auth_user = User.objects.filter(username=full_name, email=email)
+            auth_user = User.objects.filter(email=email)
 
             if not users.exists() and not auth_user.exists():
-                user = User.objects.create(username=full_name, first_name=first_name, last_name=last_name, email=email)
+
+                base_name = full_name
+                counter = 1
+                name_list = models.current_user.objects.values_list('user_name', flat=True)
+                while full_name in name_list:
+                    full_name = f"{base_name}{counter}"
+                    counter += 1
+
+
+                user = User.objects.create(username=base_name, first_name=first_name, last_name=last_name, email=email)
                 models.company_info.objects.create(
-                    company_name=email, owner_name=full_name, email=email, phone_number='0'
+                    company_name=email, owner_name=base_name, email=email, phone_number='0'
                 )
                     
                 business = models.bussiness.objects.create(
                     bussiness_name=email, location='', company=user,
-                    description='', user_created=full_name, new=True, google=True
+                    description='', user_created=base_name, new=True, google=True
                 )
                 
                 users = models.current_user.objects.create(
-                    user_name=full_name, email=email, admin=True,
+                    user_name=base_name, email=email, admin=True,
                     bussiness_name=business, google=True, user=user
                 )
 
@@ -272,7 +286,7 @@ def sign_in_google(request):
             else:
                 users = models.current_user.objects.get(email=email)
                 business = users.bussiness_name
-                user = business.company
+                user = User.objects.filter(email=email).first()
                 if not users.user_name.strip():
                     base_name = full_name
                     counter = 1
@@ -291,6 +305,7 @@ def sign_in_google(request):
                 )
         
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+
         
         accesses = user_permissions.Permissions(
             company=user.pk, business=business, user=users.user_name
@@ -371,7 +386,37 @@ def set_password(request):
         logger.warning(error)
         return Response({'status': 'error', 'message': 'Something happened'})
 
+@api_view(['POST', 'GET'])
+@permission_classes([AllowAny])
+def reset_password(request):
+    if request.method == 'POST':
+        email = request.data['email'].strip()
+        try:
+            user = User.objects.get(email=email)
+            if not user:
+                return Response({'status': 'error', 'message': 'User with this email does not exist'})
+            
+            new_password = User.objects.make_random_password()
+            user.set_password(new_password)
+            user.save()
 
+            models.tracking_history.objects.create(
+                user=models.current_user.objects.get(user=user),
+                area="Reset Password",
+                head=user.username,
+                bussiness_name=None
+            )
+
+            return Response({'status': 'success', 'message': 'Password reset successfully', 'new_password': new_password})
+        
+        except User.DoesNotExist:
+            return Response({'status': 'error', 'message': 'User with this email does not exist'})
+        
+        except Exception as error:
+            logger.warning(error)
+            return Response({'status': 'error', 'message': 'Something happened'})
+    
+    return Response({'status': 'error', 'message': 'Invalid request method'})
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -383,7 +428,7 @@ def select_bussiness(request):
         company_info = {'company':company.username, 'email':company.email}
 
         b_data = models.bussiness.objects.filter(bussiness_name=business).first()
-        user_query = models.current_user.objects.filter(bussiness_name=b_data, user_name=user, user=request.user).first()
+        user_query = models.current_user.objects.filter(bussiness_name=b_data, user_name=user.strip(), user=request.user).first()
 
         if not user_query:
             return Response({'status': 'error', 'message': f'{user} does not exist'})
@@ -1831,6 +1876,9 @@ def edit_user_permissions(request):
             isinstance(data.get('per_location_access'), list) and
             all(isinstance(v, bool) for k, v in data.items() if k not in ['user_name', 'per_location_access'])
         )
+
+        if user.strip() == data.get('user_name', '').strip():
+            return Response({'status': 'error', 'message': 'You cannot edit your own permissions', 'data': {}})
 
         if not verify_data or not isinstance(user, str) or not user.strip():
             return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})

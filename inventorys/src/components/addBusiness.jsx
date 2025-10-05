@@ -30,11 +30,12 @@ const AddBusiness = () => {
     const fetchBusinesses = async () => {
       try {
         const response = await api.post('select_bussiness', {business, user});
-
-        console.log('Fetched business info:', response);
+        console.log(response);
 
         const businessInfo = response.data.business[0];
         setBusinessInfo(businessInfo);
+
+        console.log(response)
         
         if (response.status === 'success'){
           if (businessInfo.new && businessInfo.google){ 
@@ -147,7 +148,6 @@ const AddBusiness = () => {
         )}
       </main>
 
-      <Footer />
     </div>
   );
 };

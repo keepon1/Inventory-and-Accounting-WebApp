@@ -142,16 +142,11 @@ const Dashboard = () => {
             <span className="business-name">@{business}</span>
           </div>
 
-          <div className="logo-container">
-            <img src="/logo.jpg" alt="Keepon Logo" className="logo" />
-          </div>
-
           <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">
             <FontAwesomeIcon icon={menuOpen ? faTimes : faBars} />
           </button>
 
           <nav className={`nav-menu ${menuOpen ? 'open' : ''}`}>
-            <Link to="/selectBusiness" className="btn btn-outline btn-sm">Switch Business</Link>
             <button className="btns btn-outline" onClick={SignOut}>
               <FontAwesomeIcon icon={faSignOutAlt} />Sign Out
             </button>

@@ -1,13 +1,12 @@
-// PaymentJournal.jsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimesCircle, faSave, faPlus, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { faEdit, faTrashAlt } from "@fortawesome/free-regular-svg-icons";
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
-import enableKeyboardScrollFix from "../../utils/scroll";
+import { format } from "date-fns"
 import { toast } from "react-toastify";
 
 const PaymentJournal = ({business, user}) => {
@@ -27,6 +26,7 @@ const PaymentJournal = ({business, user}) => {
     const [unpaid, setUnpaid] = useState([]);
     const [entries, setEntries] = useState([]);
     const [formError, setFormError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     
     const referenceTypes = [
@@ -155,7 +155,18 @@ const PaymentJournal = ({business, user}) => {
     };
 
     const saveJournal = async () => {
+        if (loading) {
+            toast.info('Please wait, saving journal');
+            return;
+        }
+
+        if (entries.length === 0) {
+            toast.info('No entries to save');
+            return;
+        }
+
         try {
+            setLoading(true);
             const payload = {
                 entries: entries.map(entry => ({
                     date: entry.date,
@@ -178,13 +189,15 @@ const PaymentJournal = ({business, user}) => {
                 navigate(-1);
             }else{
                 setFormError(response.message || 'Failed to save journal');
+                setLoading(false);
+                return;
             }
 
         } catch (error) {
             toast.error('An error occurred while saving the journal');
+            setLoading(false);
             console.error("Save error:", error);
             if (error.response?.status === 401) {
-                localStorage.removeItem('access');
                 navigate('/sign_in');
             }
         }
@@ -344,14 +357,14 @@ const PaymentJournal = ({business, user}) => {
                             {entries.length > 0 ? (
                                 entries.map((entry, index) => (
                                     <tr key={index}>
-                                        <td>{entry.date}</td>
+                                        <td>{format(entry.date, 'dd/MM/yyyy')}</td>
                                         <td>{entry.vendor ? entry.vendor.label : 'N/A'}</td>
                                         <td>{entry.debitAccount?.label}</td>
                                         <td>{entry.creditAccount?.label}</td>
                                         <td>{entry.referenceType?.label}</td>
                                         <td>{entry.reference?.label}</td>
                                         <td>{entry.description}</td>
-                                        <td className="text-right">${parseFloat(entry.amount).toFixed(2)}</td>
+                                        <td className="text-right">GHS {parseFloat(entry.amount).toFixed(2)}</td>
                                         <td>
                                             <FontAwesomeIcon 
                                                 onClick={() => editEntry(index)} 
@@ -377,7 +390,7 @@ const PaymentJournal = ({business, user}) => {
                         <tfoot>
                             <tr className="font-bold">
                                 <td colSpan="6" className="text-right">Total:</td>
-                                <td colSpan="2" className="text-right">${totalAmount.toFixed(2)}</td>
+                                <td colSpan="2" className="text-right">GHS {totalAmount.toFixed(2)}</td>
                                 <td></td>
                             </tr>
                         </tfoot>

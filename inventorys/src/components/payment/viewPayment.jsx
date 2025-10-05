@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimesCircle, faTachometer, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { faTachometer, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { format } from "date-fns";
 
 const ViewPayment = ({ payments, user, business, access }) => {
   const [journal, setjournal] = useState({
@@ -11,7 +12,7 @@ const ViewPayment = ({ payments, user, business, access }) => {
     number: '',
     from: '',
     to: '',
-    date: '',
+    date: null,
     description: '',
     amount: 0,
     transation_number: 0,
@@ -19,6 +20,7 @@ const ViewPayment = ({ payments, user, business, access }) => {
     ref_type: '',
     external: '',
   });
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -51,6 +53,10 @@ const ViewPayment = ({ payments, user, business, access }) => {
   }, []);
 
   const reverse = async () => {
+    if (loading) {
+      toast.info('Please wait... reversing in progress');
+      return;
+    };
     try {
       const response = await api.post(
         'reverse_payment',
@@ -62,11 +68,13 @@ const ViewPayment = ({ payments, user, business, access }) => {
         navigate(-1);
       } else {
         toast.error(response.message || 'Failed to reverse payment');
+        setLoading(false);
         return;
       }
     }
     catch (error) {
       toast.error('An error occurred while reversing payment');
+      setLoading(false);
       console.error('Fetch error:', error);
     }
   }
@@ -90,7 +98,7 @@ const ViewPayment = ({ payments, user, business, access }) => {
             </div>
             <div className="ivi_holder_box">
               <label>Transaction Date</label>
-              <input className="ivi_input" value={journal.date} readOnly title={journal.date} />
+              <input className="ivi_input" value={format(journal.date, 'dd/MM/yyyy')} readOnly title={journal.date} />
             </div>
             <div className="ivi_holder_box">
               <label>User</label>
@@ -120,7 +128,7 @@ const ViewPayment = ({ payments, user, business, access }) => {
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label>Amount</label>
-              <input className="ivi_input" value={journal.amount} readOnly title={journal.amount} />
+              <input className="ivi_input" value={`GHS ${journal.amount}`} readOnly title={journal.amount} />
             </div>
             <div className="ivi_holder_box">
               <label>From</label>

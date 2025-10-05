@@ -177,9 +177,9 @@ const PurchaseMain = ({ business, user, access }) => {
                       <td>{purchase.description}</td>
                       <td>{purchase.supplier__name}</td>
                       <td>{purchase.location_address__location_name}</td>
-                      <td>{purchase.discount}</td>
-                      <td>{purchase.tax_levy}</td>
-                      <td>&#8373; {purchase.gross_total}</td>
+                      <td>GHS {purchase.discount}</td>
+                      <td>GHS {purchase.tax_levy}</td>
+                      <td>GHS {purchase.gross_total}</td>
                       <td>{purchase.status}</td>
                     </tr>
                   ))}

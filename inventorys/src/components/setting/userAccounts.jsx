@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faSearch,
   faTimesCircle,
   faEdit,
   faUserShield,
@@ -10,8 +9,6 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
-import enableKeyboardScrollFix from '../../utils/scroll';
-import { set } from 'date-fns';
 import { toast } from 'react-toastify';
 
 const UserAccount = ({ business, user }) => {
@@ -33,6 +30,7 @@ const UserAccount = ({ business, user }) => {
     const [errors1, setErrors1] = useState();
     const overlayRef = useRef(null);
     const editOverlayRef = useRef(null);
+    const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
 
@@ -108,7 +106,13 @@ const UserAccount = ({ business, user }) => {
             return;
         }
 
+        if (loading){
+            toast.info('Please wait... creating user in progress');
+            return;
+        }
+
         try {
+            setLoading(true);
             const response = await api.post('add_user', { business, detail, user });
 
             if (response.status === 'success') {
@@ -131,12 +135,14 @@ const UserAccount = ({ business, user }) => {
                 setUsers(usersResponse.data || []);
             } else{
                 toast.error(response.message || 'Error creating user');
+                setLoading(false);
+                return;
             }
         } catch (error) {
             console.error(error);
             toast.error('An error occurred while creating user');
+            setLoading(false);
             if (error.response?.status === 401) {
-                localStorage.removeItem('access');
                 navigate('/sign_in');
             }
         }
@@ -154,6 +160,11 @@ const UserAccount = ({ business, user }) => {
             return;
         }
 
+        if (loading){
+            toast.info('Please wait... update in progress');
+            return;
+        }
+
         const data = {
             original: editData.originalName,
             user_name: editData.user_name,
@@ -161,6 +172,7 @@ const UserAccount = ({ business, user }) => {
         };
 
         try {
+            setLoading(true);
             const response = await api.post('edit_user', { business, detail: data, user });
 
             if (response.status === 'success') {
@@ -183,12 +195,14 @@ const UserAccount = ({ business, user }) => {
                 setUsers(usersResponse.data || []);
             }else{
                 toast.error(response.message || 'Error updating user');
+                setLoading(false);
+                return;
             }
         } catch (error) {
             console.error(error);
             toast.error('An error occurred while updating user');
+            setLoading(false);
             if (error.response?.status === 401) {
-                localStorage.removeItem('access');
                 navigate('/sign_in');
             }
         }

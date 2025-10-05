@@ -1,17 +1,18 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimesCircle, faEdit, faTachometer, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { faTachometer, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { format } from "date-fns";
 
 const ViewSales = ({ business, user, access, sales }) => {
   const [sale, setSale] = useState({
     customer: '',
     customer_info: '',
     number: '',
-    issueDate: '',
-    dueDate: '',
+    issueDate: null,
+    dueDate: null,
     contact: '',
     address: '',
     discount: '',
@@ -23,6 +24,8 @@ const ViewSales = ({ business, user, access, sales }) => {
     type: '',
     status: '',
   });
+
+  const [loading, setLoading] = useState(false);
 
   const [items, setItems] = useState([]);
   const navigate = useNavigate();
@@ -72,7 +75,13 @@ const ViewSales = ({ business, user, access, sales }) => {
   }, []);
 
   const reverse = async () => {
+    if (loading) {
+      toast.info('Please wait... reversing in progress');
+      return;
+    }
+
     try {
+      setLoading(true);
       const response = await api.post(
         'edit_sale',
         { business, number: sale.number, user },
@@ -83,9 +92,13 @@ const ViewSales = ({ business, user, access, sales }) => {
         navigate(-1);
       } else {
         toast.error(response.message || 'Failed to reverse sales invoice');
+        setLoading(false);
+        return;
       }
     } catch (error) {
       toast.error("An error occurred while reversing the sales invoice.");
+      setLoading(false);
+      console.error('Error reversing sales invoice:', error);
     }
   };
 
@@ -136,11 +149,11 @@ const ViewSales = ({ business, user, access, sales }) => {
           <div className="ivi_subboxes">
             <div className="ivi_holder_box">
               <label className="ivi_label">Issue Date</label>
-              <input className="ivi_input" value={sale.issueDate} readOnly title={sale.issueDate} />
+              <input className="ivi_input" value={format(sale.issueDate, 'dd/MM/yyyy')} readOnly title={sale.issueDate} />
             </div>
             <div className="ivi_holder_box">
               <label className="ivi_label">Due Date</label>
-              <input className="ivi_input" value={sale.dueDate} readOnly title={sale.dueDate} />
+              <input className="ivi_input" value={format(sale.dueDate, 'dd/MM/yyyy')} readOnly title={sale.dueDate} />
             </div>
             <div className="ivi_holder_box">
               <label className="ivi_label">Description</label>
@@ -155,7 +168,7 @@ const ViewSales = ({ business, user, access, sales }) => {
             </div>
             <div className="ivi_holder_box">
               <label className="ivi_label">Discount</label>
-              <input className="ivi_input" value={sale.discount} readOnly title={sale.discount} />
+              <input className="ivi_input" value={`${sale.discount}%`} readOnly title={sale.discount} />
             </div>
             <div className="ivi_holder_box">
               <label className="ivi_label">Tax & Levy</label>
@@ -189,8 +202,8 @@ const ViewSales = ({ business, user, access, sales }) => {
                   <td>{item.item}</td>
                   <td>{item.qty}</td>
                   <td>{item.unit}</td>
-                  <td>{item.price}</td>
-                  <td>{(item.qty * item.price).toFixed(2)}</td>
+                  <td>GHS {item.price}</td>
+                  <td>GHS {(item.qty * item.price).toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
@@ -200,21 +213,21 @@ const ViewSales = ({ business, user, access, sales }) => {
         <div className="ivi_display_box totals-section">
           <div className="total-row">
             <span>Subtotal:</span>
-            <span>&#8373; {total1.subtotal}</span>
+            <span>GHS {total1.subtotal}</span>
           </div>
           <div className="total-row">
             <span>Discount ({sale.discount}%):</span>
-            <span>-&#8373; {(total1.subtotal * (sale.discount / 100)).toFixed(2)}</span>
+            <span>- GHS {(total1.subtotal * (sale.discount / 100)).toFixed(2)}</span>
           </div>
           {sale.rate.map(levy => (
             <div className="total-row" key={levy.value}>
                 <span>{levy.value}:</span>
-                <span>+{(total1.total * (levy.rate/100)).toFixed(2)}</span>
+                <span>+ GHS {(total1.total * (levy.rate/100)).toFixed(2)}</span>
             </div>
           ))}
           <div className="total-row grand-total">
             <span>Grand Total:</span>
-            <span>&#8373; {total1.grandTotal}</span>
+            <span>GHS {total1.grandTotal}</span>
           </div>
         </div>
 

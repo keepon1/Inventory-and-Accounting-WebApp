@@ -6,7 +6,6 @@ import {
 import Select from 'react-select';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faWarehouse,
   faDollarSign,
   faChartBar,
   faChartPie,
@@ -228,6 +227,7 @@ const InventoryValuation = ({ business, user }) => {
                 endDate={endDate}
                 placeholderText="Start Date"
                 className="ivi_input"
+                dateFormat={'dd/MM/yyyy'}
               />
             </div>
           </div>
@@ -243,13 +243,13 @@ const InventoryValuation = ({ business, user }) => {
                 minDate={startDate}
                 placeholderText="End Date"
                 className="ivi_input"
+                dateFormat={'dd/MM/yyyy'}
               />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Chart Selector */}
       <div className="chart-selector">
         <button 
           className={`chart-btn ${activeChart === 'value' ? 'active' : ''}`}
@@ -271,12 +271,10 @@ const InventoryValuation = ({ business, user }) => {
         </button>
       </div>
 
-      {/* Chart */}
       <div className="chart-container">
         {renderChart()}
       </div>
 
-      {/* Table */}
       <div className="stock-table">
         <h3>Inventory Valuation ({filteredInventory.length} items)</h3>
         <table>
@@ -298,8 +296,8 @@ const InventoryValuation = ({ business, user }) => {
                 <td className='text-right'>{item.code}</td>
                 <td className='text-right'>{item.category__name}</td>
                 <td className='text-right'>{item.quantity}</td>
-                <td className='text-right'>${(item.quantity * item.purchase_price).toFixed(2)}</td>
-                <td className='text-right'>${(item.quantity * item.sales_price).toFixed(2)}</td>
+                <td className='text-right'>GHS {(item.quantity * item.purchase_price).toFixed(2)}</td>
+                <td className='text-right'>GHS {(item.quantity * item.sales_price).toFixed(2)}</td>
                 <td className='text-right'>{item.turnover_rate ? item.turnover_rate.toFixed(2) : 'N/A'}</td>
               </tr>
             ))}

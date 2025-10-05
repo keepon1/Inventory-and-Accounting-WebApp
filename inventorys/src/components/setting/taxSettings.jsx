@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {faSearch,
-  faPercent,
+import {
   faTimesCircle,
   faEdit,
   faArrowLeft
@@ -22,6 +21,7 @@ const TaxMain = ({ business, user }) => {
     const [errors, setErrors] = useState();
     const overlayRef = useRef(null);
     const editOverlayRef = useRef(null);
+    const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
 
@@ -54,15 +54,12 @@ const TaxMain = ({ business, user }) => {
             toast.error('Error occurred while fetching data');
             console.error('Error fetching items:', error);
             if (error.response?.status === 401) {
-            localStorage.removeItem('access');
             navigate('/sign_in');
             }
         }
         };
 
         fetchItems();
-        const cleanup = enableKeyboardScrollFix();
-        return cleanup;
     }, []);
 
     const handleCreateOverlay = (e) => {
@@ -101,6 +98,11 @@ const TaxMain = ({ business, user }) => {
             return;
         };
 
+        if (taxes.some(tax => tax.name.toLowerCase() === detail.name.toLowerCase())){
+            toast.info('A tax/levy with this name already exists');
+            return;
+        };
+
         if (!detail.type){
             toast.info('A type has to be selected');
             return;
@@ -111,6 +113,11 @@ const TaxMain = ({ business, user }) => {
             return;
         };
 
+        if (loading){
+            toast.info('Please wait... adding tax in progress');
+            return;
+        }
+
         const data = {
             name: detail.name,
             rate: detail.rate,
@@ -119,6 +126,7 @@ const TaxMain = ({ business, user }) => {
         }
 
         try{
+            setLoading(true);
             const response = await api.post('add_tax', {business, detail:data, user});
 
             if (response.status === 'success'){
@@ -137,13 +145,15 @@ const TaxMain = ({ business, user }) => {
                 setTaxes(response1.data || []);
             }else{
                 toast.error(response.message || 'Error occurred while adding tax');
+                setLoading(false);
+                return;
             }
 
         }catch(error){
             toast.error('Error occurred while adding tax');
+            setLoading(false);
             console.error('Error adding tax:', error);
             if (error.response?.status === 401) {
-                localStorage.removeItem('access');
                 navigate('/sign_in');
             }
         };
@@ -165,6 +175,11 @@ const TaxMain = ({ business, user }) => {
             return;
         };
 
+        if (loading){
+            toast.info('Please wait... update in progress');
+            return;
+        }
+
         const data = {
             original: editData.originalName,
             name: editData.name,
@@ -174,6 +189,7 @@ const TaxMain = ({ business, user }) => {
         }
 
         try{
+            setLoading(true);
             const response = await api.post('edit_tax', {business, detail:data, user});
             if (response.status === 'success'){
                 toast.success(response.message || `${data.name} updated successfully`);
@@ -191,13 +207,15 @@ const TaxMain = ({ business, user }) => {
                 setTaxes(response1.data || []);
             }else{
                 toast.error(response.message || 'Error occurred while editing tax');
+                setLoading(false);
+                return;
             }
 
         }catch(error){
             toast.error('Error occurred while editing tax');
+            setLoading(false);
             console.error('Error editing tax:', error);
             if (error.response?.status === 401) {
-                localStorage.removeItem('access');
                 navigate('/sign_in');
             }
         };

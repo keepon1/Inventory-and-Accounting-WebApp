@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faEye, faEdit, faTimesCircle, faMapMarkerAlt, faUser, faUserGroup,  } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faTimesCircle, faUserGroup,  } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import { useNavigate, Routes, Route, useParams, Link } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -21,6 +21,7 @@ const SupplierMain = ({ business, user, access }) => {
   const [hasNext, setHasNext] = useState(true);
   const overlayRef = useRef(null);
   const editOverlayRef = useRef(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -114,7 +115,13 @@ const SupplierMain = ({ business, user, access }) => {
       return;
     }
 
+    if (loading) {
+      toast.info('Please wait... creation in progress');
+      return;
+    }
+
     try {
+      setLoading(true);
       const response = await api.post(
         'add_supplier',
         { business, supplier: currentsupplier, user },
@@ -122,6 +129,7 @@ const SupplierMain = ({ business, user, access }) => {
 
       if (response.status === 'error') {
         toast.error(response.message || 'supplier already exist');
+        setLoading(false);
         return;
       }
 
@@ -143,6 +151,7 @@ const SupplierMain = ({ business, user, access }) => {
 
     } catch (error) {
       toast.error('An error occurred while creating supplier.');
+      setLoading(false);
       console.error(error);
       if (error.response?.status === 401) {
         navigate('/sign_in');
@@ -151,7 +160,18 @@ const SupplierMain = ({ business, user, access }) => {
   };
 
   const handleEdit = async () => {
+    if (!editData.name) {
+      toast.info('supplier`s Name can not be empty');
+      return;
+    }
+
+    if (loading) {
+      toast.info('Please wait... editing in progress');
+      return;
+    }
+
     try {
+      setLoading(true);
       const response = await api.post(
         'edit_supplier',
         { 
@@ -164,6 +184,7 @@ const SupplierMain = ({ business, user, access }) => {
 
       if (response.status === 'error') {
         toast.info(response.message || 'supplier`s Name already exist');
+        setLoading(false);
         return;
       }
 
@@ -185,6 +206,8 @@ const SupplierMain = ({ business, user, access }) => {
 
     } catch (error) {
       toast.error('An error occurred while editing supplier.');
+      setLoading(false);
+      console.error(error);
       if (error.response?.status === 401) {
         navigate('/sign_in');
       }
@@ -263,9 +286,9 @@ const SupplierMain = ({ business, user, access }) => {
                       <td>{supplier.contact}</td>
                       <td>{supplier.address}</td>
                       <td>{supplier.email}</td>
-                      <td><Link to={`history/${supplier.account} - ${supplier.name}`} className="transaction-link">{supplier.credit}</Link></td>
-                      <td><Link to={`history/${supplier.account} - ${supplier.name}`} className="transaction-link">{supplier.debit}</Link></td>
-                      <td><Link to={`history/${supplier.account} - ${supplier.name}`} className="transaction-link">{(supplier.credit - supplier.debit).toFixed(2) }</Link></td>
+                      <td><Link to={`history/${supplier.account} - ${supplier.name}`} className="transaction-link">GHS {supplier.credit}</Link></td>
+                      <td><Link to={`history/${supplier.account} - ${supplier.name}`} className="transaction-link">GHS {supplier.debit}</Link></td>
+                      <td><Link to={`history/${supplier.account} - ${supplier.name}`} className="transaction-link">GHS {(supplier.credit - supplier.debit).toFixed(2) }</Link></td>
                     </tr>
                   ))}
                 </tbody>

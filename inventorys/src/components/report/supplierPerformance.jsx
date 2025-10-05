@@ -6,7 +6,6 @@ import {
 import Select from 'react-select';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faTruck,
   faDollarSign,
   faCalendarAlt,
   faChartBar,
@@ -337,7 +336,7 @@ const SupplierPerformance = ({ business, user }) => {
 
       <div className="stock-table">
         <h3>Supplier Performance ({filteredSuppliers.length} suppliers)</h3>
-        <table>
+        <table className='ia_main_table'>
           <thead>
             <tr>
               <th>Supplier</th>
@@ -355,12 +354,12 @@ const SupplierPerformance = ({ business, user }) => {
               <tr key={supplier.account}>
                 <td>{supplier.name}</td>
                 <td>{supplier.account}</td>
-                <td>${supplier.total_discount.toFixed(2)}</td>
-                <td>${supplier.total_tax_levy.toFixed(2)}</td>
-                <td>${supplier.total_amount_paid.toFixed(2)}</td>
+                <td>GHS {supplier.total_discount.toFixed(2)}</td>
+                <td>GHS {supplier.total_tax_levy.toFixed(2)}</td>
+                <td>GHS {supplier.total_amount_paid.toFixed(2)}</td>
                 <td>{supplier.order_count}</td>
-                <td>{supplier.total_spend?.toFixed(2)}</td>
-                <td>{new Date(supplier.last_order_date).toLocaleDateString()}</td>
+                <td>GHS {supplier.total_spend?.toFixed(2)}</td>
+                <td>{format(supplier.last_order_date, 'dd/MM/yyyy')}</td>
               </tr>
             ))}
           </tbody>

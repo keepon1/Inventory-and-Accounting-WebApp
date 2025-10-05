@@ -31,6 +31,7 @@ const CreatePurchase = ({ business, user, access }) => {
   const [purchaseItems, setPurchaseItems] = useState([]);
   const [errors, setErrors] = useState({});
   const [termOption, setTermOption] = useState({account:false, amount:false, due:false});
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -148,6 +149,23 @@ const CreatePurchase = ({ business, user, access }) => {
       return;
     }
 
+    if (!purchase.location) {
+      setErrors(prev => ({...prev, location: 'Location is required'}));
+      toast.info('Please select a location');
+      return;
+    }
+
+    if (!purchase.supplier) {
+      setErrors(prev => ({...prev, supplier: 'Supplier is required'}));
+      toast.info('Please select a supplier');
+      return;
+    }
+
+    if (loading) {
+      toast.info('Please wait... submission in progress');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('user', user);
     formData.append('business', business);
@@ -168,14 +186,20 @@ const CreatePurchase = ({ business, user, access }) => {
     });
     
     try {
+      setLoading(true);
       const response = await api.post(
         'add_purchase',
         formData,
       );
       if (response.status === 'success') {toast.success(response.message); navigate(-1)}
-      else{ toast.error(response.message || 'Failed to create purchase invoice'); return;}
+      else{
+        toast.error(response.message || 'Failed to create purchase invoice');
+        setLoading(false);
+        return;
+      }
     } catch (error) {
       toast.error("An error occurred while creating the purchase invoice.");
+      setLoading(false);
       handleAuthError(error);
     }
   };
@@ -424,8 +448,8 @@ const CreatePurchase = ({ business, user, access }) => {
                   <td>{item.name}</td>
                   <td>{item.qty}</td>
                   <td>{item.unit__suffix}</td>
-                  <td>{item.price}</td>
-                  <td>{(item.qty * item.price).toFixed(2)}</td>
+                  <td>GHS {item.price}</td>
+                  <td>GHS {(item.qty * item.price).toFixed(2)}</td>
                   <td>
                     <FontAwesomeIcon
                       icon={faEdit}
@@ -454,21 +478,21 @@ const CreatePurchase = ({ business, user, access }) => {
         <div className="ivi_display_box totals-section">
             <div className="total-row">
                 <span>Subtotal:</span>
-                <span>{totals.subtotal.toFixed(2)}</span>
+                <span>GHS {totals.subtotal.toFixed(2)}</span>
             </div>
             <div className="total-row">
                 <span>Discount ({purchase.discount}%):</span>
-                <span>-{totals.discountAmount.toFixed(2)}</span>
+                <span>- GHS {totals.discountAmount.toFixed(2)}</span>
             </div>
             {purchase.selectedLevi.map(levy => (
             <div className="total-row" key={levy.value}>
                 <span>{levy.label}:</span>
-                <span>+{(totals.netTotal * (levy.rate/100)).toFixed(2)}</span>
+                <span>+ GHS {(totals.netTotal * (levy.rate/100)).toFixed(2)}</span>
             </div>
             ))}
           <div className="total-row grand-total">
             <span>Grand Total:</span>
-            <span>&#8373; {totals.grandTotal.toFixed(2)}</span>
+            <span>GHS {totals.grandTotal.toFixed(2)}</span>
           </div>
         </div>
 

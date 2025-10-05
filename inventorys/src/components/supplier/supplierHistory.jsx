@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faUserGroup, faFileInvoice, faMoneyBillWave } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faFileInvoice, faMoneyBillWave } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import { useParams, Link } from "react-router-dom";
 import "./supplierHistory.css";
 import { toast } from "react-toastify";
+import { format } from "date-fns";
 
 const SupplierHistory = ({ business, user }) => {
   const [transactions, setTransactions] = useState([]);
@@ -64,7 +65,7 @@ const SupplierHistory = ({ business, user }) => {
         </div>
         <div className="supplier-info-item">
           <span className="info-label">Balance:</span>
-          <span className="info-values">₵{supplier?.balance?.toFixed(2)}</span>
+          <span className="info-values">GHS {supplier?.balance?.toFixed(2)}</span>
         </div>
       </div>
 
@@ -105,7 +106,7 @@ const SupplierHistory = ({ business, user }) => {
             {filteredTransactions.length > 0 ? (
               filteredTransactions.map((transaction, index) => (
                 <tr key={index} className="table-row">
-                  <td>{new Date(transaction.date).toLocaleDateString()}</td>
+                  <td>{format(transaction.date, 'dd/MM/yyyy')}</td>
                   <td>
                     <span className={`transaction-type ${transaction.t_type}`}>
                       {transaction.t_type}
@@ -115,7 +116,7 @@ const SupplierHistory = ({ business, user }) => {
                   <td>{transaction.reference}</td>
                   <td>{transaction.description}</td>
                   <td className={transaction.t_type === 'payment' ? "negative-amount" : "positive-amount"}>
-                    {transaction.t_type === 'payment' ? '-' : '+'}₵{Math.abs(transaction.amount).toFixed(2)}
+                    {transaction.t_type === 'payment' ? '-' : '+'} GHS {Math.abs(transaction.amount).toFixed(2)}
                   </td>
                 </tr>
               ))

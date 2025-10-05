@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { faTimesCircle as redcircle, faEdit } from "@fortawesome/free-regular-svg-icons";
 import './addItem.css';
 import Select from 'react-select';
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
-import enableKeyboardScrollFix from "../../utils/scroll";
 import { toast } from "react-toastify";
+import { set } from "date-fns";
 
 const AddItem = (props) => {
     const [itemDetail, setItemDetail] = useState({
@@ -18,6 +18,7 @@ const AddItem = (props) => {
     const [fullList, setFullList] = useState([]);
     const [category, setCategory] = useState([{ value: '', label: '' }]);
     const [unit, setUnit] = useState([{ value: '', label: '' }]);
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const checkExistingItems = (field, value) =>
@@ -40,8 +41,6 @@ const AddItem = (props) => {
             }
         };
         fetchLocations();
-        const cleanup = enableKeyboardScrollFix();
-        return cleanup;
     }, [navigate]);
 
     const handleChange = (e) => {
@@ -83,7 +82,13 @@ const AddItem = (props) => {
             return;
         }
 
+        if (loading) {
+            toast.info('Please wait, verifying item');
+            return;
+        }
+
         try {
+            setLoading(true);
             const image = new FormData();
             image.append('image', itemDetail.imageFile);
             image.append('code', itemDetail.code);
@@ -98,9 +103,10 @@ const AddItem = (props) => {
                 toast.success(response.message || "Item added to preview list");
             } else {
                 toast.error(response.message || "Failed to verify item");
+                setLoading(false);
             }
         } catch (error) {
-            localStorage.removeItem('access');
+            setLoading(false);
             navigate('/sign_in');
         }
     };
@@ -126,7 +132,18 @@ const AddItem = (props) => {
     };
 
     const addItems = async () => {
+        if (fullList.length < 1){
+            toast.info('At least 1 item should be added');
+            return;
+        }
+
+        if (loading) {
+            toast.info('Please wait, saving items');
+            return;
+        }
+
         try {
+            setLoading(true);
             const formData = new FormData();
             fullList.forEach((item) => {
                 formData.append('code', item.code);
@@ -148,10 +165,11 @@ const AddItem = (props) => {
                 toast.success(response.message || "Items saved successfully!");
                 navigate(-1);
             } else {
+                setLoading(false);
                 toast.error(response.message || "Failed to save items");
             }
         } catch (error) {
-            localStorage.removeItem('access');
+            setLoading(false);
             navigate('/sign_in');
         }
     };

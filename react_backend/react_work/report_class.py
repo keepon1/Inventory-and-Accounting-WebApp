@@ -149,7 +149,9 @@ class Report_Data:
             date=TruncDate("sales__date")
         ).values("date").annotate(
             quantity1=Sum("quantity"),
-            revenue=Sum(F("quantity") * F("sales_price"))
+            revenue=Sum(F("quantity") * F("sales_price")),
+            cost=Sum(F("quantity") * F("purchase_price")),
+            profit=Sum(F("quantity") * (F("sales_price") - F("purchase_price"))),
         ).order_by("date")
 
         profit_by_item = qs.values(

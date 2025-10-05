@@ -7,6 +7,7 @@ import enableKeyboardScrollFix from "../../utils/scroll";
 import { toast } from "react-toastify";
 import CustomerHistory from "./customerHistory";
 import AccessDenied from "../access";
+import { set } from "date-fns";
 
 const CustomerMain = ({ business, user, access }) => {
   const [customers, setCustomers] = useState([]);
@@ -22,6 +23,7 @@ const CustomerMain = ({ business, user, access }) => {
   const [hasNext, setHasNext] = useState(true);
   const overlayRef = useRef(null);
   const editOverlayRef = useRef(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -119,13 +121,20 @@ const CustomerMain = ({ business, user, access }) => {
       return;
     }
 
+    if (loading){
+      toast.info('Please wait, creating customer');
+      return;
+    }
+
     try {
+      setLoading(true);
       const response = await api.post(
         'add_customer',
         { business, customer: currentCustomer, user },
       );
 
       if (response.status === 'error') {
+        setLoading(false);
         toast.error(response.message || 'Customer already exist');
         return;
       }
@@ -147,6 +156,7 @@ const CustomerMain = ({ business, user, access }) => {
       setCurrentCustomer({ name: '', address: '', contact: '',  email:''});
 
     } catch (error) {
+      setLoading(false);
       toast.error('An error occurred while creating customer.');
       console.error(error);
       if (error.response?.status === 401) {
@@ -156,7 +166,18 @@ const CustomerMain = ({ business, user, access }) => {
   };
 
   const handleEdit = async () => {
+    if (!editData.name) {
+      toast.info('Customer`s Name can not be empty');
+      return;
+    }
+
+    if (loading){
+      toast.info('Please wait, editing customer');
+      return;
+    }
+
     try {
+      setLoading(true);
       const response = await api.post(
         'edit_customer',
         { 
@@ -168,6 +189,7 @@ const CustomerMain = ({ business, user, access }) => {
       );
 
       if (response.status === 'error') {
+        setLoading(false);
         toast.error(response.message || 'Customer`s Name already exist');
         return;
       }
@@ -188,6 +210,7 @@ const CustomerMain = ({ business, user, access }) => {
       setEditData({ originalName: '', name: '', address: '', contact:'', email:'' });
 
     } catch (error) {
+      setLoading(false);
       toast.error('An error occurred while editing customer.');
       console.error(error);
       if (error.response?.status === 401) {
@@ -268,9 +291,9 @@ const CustomerMain = ({ business, user, access }) => {
                       <td>{customer.contact}</td>
                       <td>{customer.address}</td>
                       <td>{customer.email}</td>
-                      <td><Link to={`history/${customer.account} - ${customer.name}`} className="transaction-link">{customer.debit}</Link></td>
-                      <td><Link to={`history/${customer.account} - ${customer.name}`} className="transaction-link">{customer.credit}</Link></td>
-                      <td><Link to={`history/${customer.account} - ${customer.name}`} className="transaction-link">{(customer.debit - customer.credit).toFixed(2) }</Link></td>
+                      <td><Link to={`history/${customer.account} - ${customer.name}`} className="transaction-link">GHS {customer.debit}</Link></td>
+                      <td><Link to={`history/${customer.account} - ${customer.name}`} className="transaction-link">GHS {customer.credit}</Link></td>
+                      <td><Link to={`history/${customer.account} - ${customer.name}`} className="transaction-link">GHS {(customer.debit - customer.credit).toFixed(2) }</Link></td>
                     </tr>
                   ))}
                 </tbody>

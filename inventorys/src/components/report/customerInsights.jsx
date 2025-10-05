@@ -389,13 +389,13 @@ const CustomerInsights = ({ business, user }) => {
               <tr key={customer.account}>
                 <td>{customer.name}</td>
                 <td>{customer.account}</td>
-                <td>{new Date(customer.last_purchase_date).toLocaleDateString()}</td>
+                <td>{format(customer.last_purchase_date, 'dd/MM/yyyy')}</td>
                 <td>{customer.order_count}</td>
-                <td>${(customer.total_spent).toFixed(2)}</td>
-                <td>${customer.total_discount.toFixed(2)}</td>
-                <td>${customer.total_tax_levy.toFixed(2)}</td>
-                <td>${customer.total_amount_paid}</td>
-                <td>${(customer.total_spent / customer.order_count).toFixed(2)}</td>
+                <td>GHS {(customer.total_spent).toFixed(2)}</td>
+                <td>GHS {customer.total_discount.toFixed(2)}</td>
+                <td>GHS {customer.total_tax_levy.toFixed(2)}</td>
+                <td>GHS {customer.total_amount_paid}</td>
+                <td>GHS {(customer.total_spent / customer.order_count).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>

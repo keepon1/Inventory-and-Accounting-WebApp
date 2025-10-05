@@ -9,7 +9,6 @@ import {
   faUserClock,
   faCalendarDay,
   faExclamationTriangle,
-  faFileExport,
   faChevronDown,
   faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
@@ -73,7 +72,6 @@ const CustomerAgingReport = ({ business, user }) => {
       over_90: 0
     };
     filteredData.forEach(item => {
-      // Use your actual amount due field, e.g. item.amount_due or (item.gross_total - item.amount_paid)
       const b = bucketizeAging(item.due_date, (item.gross_total || 0) - (item.amount_paid || 0));
       buckets.current += b.current;
       buckets.days_30 += b.days_30;
@@ -145,8 +143,8 @@ const CustomerAgingReport = ({ business, user }) => {
                         <strong>{d.name}</strong><br />
                         Contact: {d.contact}<br />
                         Address: {d.address}<br />
-                        Total Due: ${d.total}<br />
-                        Overdue: ${d.overdue}
+                        Total Due: GHS {d.total}<br />
+                        Overdue: GHS {d.overdue}
                       </div>
                     );
                   }
@@ -320,13 +318,13 @@ const CustomerAgingReport = ({ business, user }) => {
                     <span>{item.code}</span>
                   </div>
                   <div className="alert-details">
-                    <span>Due: {item.due_date}</span><br />
-                    {b.current !== 0 && <span>Current: ${b.current.toFixed(2)}<br /></span>}
-                    {b.days_30 !== 0 && <span>1-30: ${b.days_30.toFixed(2)}<br /></span>}
-                    {b.days_60 !== 0 && <span>31-60: ${b.days_60.toFixed(2)}<br /></span>}
-                    {b.days_90 !== 0 && <span>61-90: ${b.days_90.toFixed(2)}<br /></span>}
-                    {b.over_90 !== 0 && <span>Over 90: ${b.over_90.toFixed(2)}<br /></span>}
-                    <span>Total: ${((item.gross_total || 0) - (item.amount_paid || 0)).toFixed(2)}</span>
+                    <span>Due: {format(item.due_date, 'dd/MM/yyyy')}</span><br />
+                    {b.current !== 0 && <span>Current: GHS {b.current.toFixed(2)}<br /></span>}
+                    {b.days_30 !== 0 && <span>1-30: GHS {b.days_30.toFixed(2)}<br /></span>}
+                    {b.days_60 !== 0 && <span>31-60: GHS {b.days_60.toFixed(2)}<br /></span>}
+                    {b.days_90 !== 0 && <span>61-90: GHS {b.days_90.toFixed(2)}<br /></span>}
+                    {b.over_90 !== 0 && <span>Over 90: GHS {b.over_90.toFixed(2)}<br /></span>}
+                    <span>Total: GHS {((item.gross_total || 0) - (item.amount_paid || 0)).toFixed(2)}</span>
                   </div>
                 </div>
               );
@@ -353,12 +351,12 @@ const CustomerAgingReport = ({ business, user }) => {
             {customerRows.map(row => (
               <tr key={row.customer}>
                 <td>{row.customer}</td>
-                <td>${row.current.toFixed(2)}</td>
-                <td>${row.days_30.toFixed(2)}</td>
-                <td>${row.days_60.toFixed(2)}</td>
-                <td>${row.days_90.toFixed(2)}</td>
-                <td>${row.over_90.toFixed(2)}</td>
-                <td>${row.total.toFixed(2)}</td>
+                <td>GHS {row.current.toFixed(2)}</td>
+                <td>GHS {row.days_30.toFixed(2)}</td>
+                <td>GHS {row.days_60.toFixed(2)}</td>
+                <td>GHS {row.days_90.toFixed(2)}</td>
+                <td>GHS {row.over_90.toFixed(2)}</td>
+                <td>GHS {row.total.toFixed(2)}</td>
               </tr>
             ))}
           </tbody>

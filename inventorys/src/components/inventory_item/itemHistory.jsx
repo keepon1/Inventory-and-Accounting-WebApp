@@ -5,6 +5,7 @@ import api from "../api";
 import { useParams, Link } from "react-router-dom";
 import "./itemHistory.css";
 import { toast } from "react-toastify";
+import { format } from 'date-fns'
 
 const ItemHistory = ({ business, user, location }) => {
   const [history, setHistory] = useState([]);
@@ -66,7 +67,7 @@ const ItemHistory = ({ business, user, location }) => {
             {history.length > 0 ? (
               history.map((record, index) => (
                 <tr key={index} className="table-row">
-                  <td>{record.date}</td>
+                  <td>{format(record.date, 'dd/MM/yyyy')}</td>
                   <td>{record.user_name}</td>
                   <td>{record.transaction_type}</td>
                   <td>{record.reference}</td>

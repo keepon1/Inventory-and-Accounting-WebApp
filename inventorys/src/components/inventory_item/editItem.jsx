@@ -1,11 +1,12 @@
-import React, {useEffect, useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import api from "../api";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import Select from "react-select";
 import './editItem.css';
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { set } from "date-fns";
 
 const EditItem = ({item, business, user, access, item_view_control, state}) => {
     const [itemInfo, setItemInfo] = useState({
@@ -21,6 +22,7 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
     const [imageError, setImageError] = useState('');
     const [confirmDelete, setConfirmDelete] = useState(false);
     const overlayaddRef = useRef(null);
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -91,7 +93,14 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
         
         if(submitter === 'update') {
             if(!validateForm()) return;
+
+            if (loading) {
+                toast.info('Please wait, updating item');
+                return;
+            }
+
             try {
+                setLoading(true);
                 const formData = new FormData();
                 formData.append('newCode', itemInfo.code);
                 formData.append('newName', itemInfo.name);
@@ -114,8 +123,10 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
                     navigate(-1);
                 } else {
                     handleValidationErrors(response.message);
+                    setLoading(false);
                 }
             } catch (error) {
+                setLoading(false);
                 handleApiError(error);
             }
         } else {
@@ -132,23 +143,30 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
 
     const handleDelete = async (confirm) => {
         if(!confirm) return setConfirmDelete(false);
+
+        if (loading) {
+            toast.info('Please wait, deleting item');
+            return;
+        }
         
         try {
+            setLoading(true);
             const response = await api.post('delete_item', { itemDetail: itemInfo, item, business });
             if (response.status === "success") {
                 toast.success(response.message || "Item deleted successfully");
                 item_view_control(state);
             } else {
                 toast.error(response.message || "Delete failed");
+                setLoading(false);
             }
         } catch (error) {
+            setLoading(false);
             handleApiError(error);
         }
     };
 
     const handleApiError = (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('access');
             navigate('/sign_in');
         } else {
             toast.error("Something went wrong");

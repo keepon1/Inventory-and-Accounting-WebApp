@@ -157,10 +157,10 @@ const ItemMain = ({ business, user, access }) => {
                       <td><Link to={`history/${item.item_name}`} className="quantity-link">{item.quantity}</Link></td>
                       <td>{item.unit__suffix}</td>
                       {(access.admin || access.purchase_price_access) && (
-                        <td>₵{item.purchase_price}</td>
+                        <td>GHS {item.purchase_price}</td>
                       )}
-                      <td>₵{item.sales_price}</td>
-                      <td>₵{(item.purchase_price * item.quantity).toFixed(2) || 0}</td>
+                      <td>GHS {item.sales_price}</td>
+                      <td>GHS {(item.purchase_price * item.quantity).toFixed(2) || 0}</td>
                     </tr>
                   ))}
                 </tbody>

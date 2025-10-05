@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import { faEdit } from "@fortawesome/free-regular-svg-icons";
@@ -6,8 +6,8 @@ import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
-import enableKeyboardScrollFix from "../../utils/scroll";
 import { toast } from "react-toastify";
+import { set } from "date-fns";
 
 const AddCashReceipt = ({business, user}) => {
     const [entry, setEntry] = useState({
@@ -26,6 +26,7 @@ const AddCashReceipt = ({business, user}) => {
     const [creditAccounts, setCreditAccounts] = useState([]);
     const [entries, setEntries] = useState([]);
     const [formError, setFormError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     
     const referenceTypes = [
@@ -142,6 +143,15 @@ const AddCashReceipt = ({business, user}) => {
     };
 
     const saveJournal = async () => {
+        if (entries.length === 0) {
+            toast.info('No entries to save');
+            return;
+        }
+
+        if (loading){
+            toast.info('Please wait, saving in progress');
+            return;
+        }
 
         try {
             const payload = {
@@ -158,20 +168,21 @@ const AddCashReceipt = ({business, user}) => {
                 business,
                 user
             };
-            
+            setLoading(true);
             const response = await api.post('add_cash_receipts', payload);
-            console.log("Save response:", response);
+
             if(response.status === 'success'){
                 toast.success(response.message || 'Cash receipt journal posted successfully');
                 navigate(-1);
             }else{
                 toast.error(response.message || 'Failed to save journal');
+                setLoading(false);
             }
         } catch (error) {
+            setLoading(false);
             toast.error('An error occurred while saving journal');
             console.error("Save error:", error);
             if (error.response?.status === 401) {
-                localStorage.removeItem('access');
                 navigate('/sign_in');
             } else if (error.response) {
                 setFormError(error.response || 'Failed to save journal');
@@ -332,7 +343,7 @@ const AddCashReceipt = ({business, user}) => {
                                         {typeof entry.reference === 'object' ? entry.reference?.label : entry.reference}
                                     </td>
                                     <td className="p-2">{entry.description}</td>
-                                    <td className="p-2 text-right">{parseFloat(entry.amount).toFixed(2)}</td>
+                                    <td className="p-2 text-right">GHS {parseFloat(entry.amount).toFixed(2)}</td>
                                     <td className="p-2 text-center">
                                         <FontAwesomeIcon 
                                             onClick={() => editEntry(index)} 
@@ -351,7 +362,7 @@ const AddCashReceipt = ({business, user}) => {
                         <tfoot className="bg-gray-50 font-semibold">
                             <tr>
                                 <td colSpan="6" className="p-2 text-right">Total:</td>
-                                <td className="p-2 text-right">{totalAmount.toFixed(2)}</td>
+                                <td className="p-2 text-right">GHS {totalAmount.toFixed(2)}</td>
                                 <td className="p-2"></td>
                             </tr>
                         </tfoot>

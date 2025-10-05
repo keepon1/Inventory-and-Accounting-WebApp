@@ -187,6 +187,7 @@ const ProfitAndLoss = ({ business, user }) => {
                 endDate={endDate}
                 placeholderText="Start Date"
                 className="ivi_input"
+                dateFormat={'dd/MM/yyyy'}
               />
             </div>
           </div>
@@ -202,6 +203,7 @@ const ProfitAndLoss = ({ business, user }) => {
                 minDate={startDate}
                 placeholderText="End Date"
                 className="ivi_input"
+                dateFormat={'dd/MM/yyyy'}
               />
             </div>
           </div>
@@ -251,11 +253,11 @@ const ProfitAndLoss = ({ business, user }) => {
             {filteredData.map(item => (
               <tr key={item.period}>
                 <td>{item.period}</td>
-                <td className='text-right'>${item.revenue.toFixed(2)}</td>
-                <td className='text-right'>${item.cogs.toFixed(2)}</td>
-                <td className='text-right'>${(item.revenue - item.cogs).toFixed(2)}</td>
-                <td className='text-right'>${item.total_expenses.toFixed(2)}</td>
-                <td className='text-right'>${item.net_profit.toFixed(2)}</td>
+                <td className='text-right'>GHS {item.revenue.toFixed(2)}</td>
+                <td className='text-right'>GHS {item.cogs.toFixed(2)}</td>
+                <td className='text-right'>GHS {(item.revenue - item.cogs).toFixed(2)}</td>
+                <td className='text-right'>GHS {item.total_expenses.toFixed(2)}</td>
+                <td className='text-right'>GHS {item.net_profit.toFixed(2)}</td>
                 <td className='text-right'>{((item.net_profit / item.revenue) * 100 || 0).toFixed(1)}%</td>
               </tr>
             ))}

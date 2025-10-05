@@ -177,9 +177,9 @@ const SalesMain = ({ business, user, access }) => {
                       <td>{sale.description}</td>
                       <td>{sale.customer_info__name !== 'Regular Customer' ? sale.customer_info__name : sale.customer_name}</td>
                       <td>{sale.location_address__location_name}</td>
-                      <td>&#8373; {sale.discount}</td>
-                      <td>&#8373; {sale.tax_levy}</td>
-                      <td>&#8373; {sale.gross_total}</td>
+                      <td>GHS {sale.discount}</td>
+                      <td>GHS {sale.tax_levy}</td>
+                      <td>GHS {sale.gross_total}</td>
                       <td>{sale.status}</td>
                     </tr>
                   ))}

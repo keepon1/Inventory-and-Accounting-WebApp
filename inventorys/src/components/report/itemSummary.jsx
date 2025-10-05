@@ -6,7 +6,6 @@ import {
 import Select from 'react-select';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faBoxes,
   faChartLine,
   faChartBar,
   faChartPie,
@@ -18,6 +17,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import "./itemSummary.css"
 import { Link } from 'react-router-dom';
+import { format } from 'date-fns';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 

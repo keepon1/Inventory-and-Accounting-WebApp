@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEdit, faBox, faTimesCircle, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faTimesCircle, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
-import Select from "react-select";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { set } from "date-fns";
 
 const LocationItem = ({location, business, user, access }) => {
   const [items, setItems] = useState([]);
@@ -15,6 +15,7 @@ const LocationItem = ({location, business, user, access }) => {
   const [showEdit, setShowEdit] = useState(false);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(true);
+  const [loading, setLoading] = useState(false);
   const observer = useRef(null);
   const navigate = useNavigate();
   const editOverlayRef = useRef(null);
@@ -94,7 +95,23 @@ const LocationItem = ({location, business, user, access }) => {
   }
 
   const saveEdit = async() => {
+    if (detail.price < 0 || detail.reorder < 0 || !detail.name){
+      toast.error('Price and Reorder level must be non-negative');
+      return;
+    }
+
+    if (isNaN(detail.price) || isNaN(detail.reorder)) {
+      toast.error('Price and Reorder level must be valid numbers');
+      return;
+    }
+
+    if (loading) {
+      toast.info('Please wait, saving changes');
+      return;
+    }
+
     try{
+      setLoading(true);
       const response = await api.post('edit_location_item', {location, business, user,
         item:detail.name, price:detail.price, reorder:detail.reorder
       });
@@ -117,15 +134,16 @@ const LocationItem = ({location, business, user, access }) => {
         }
       }else{
         toast.error(updated.message || 'Error updating item');
+        setLoading(false);
         return;
       }
     }
     catch(error){
       if (error.response?.status === 401) {
-        localStorage.removeItem('access');
         navigate('/sign_in');
       }
       toast.error('An error occurred while updating the item');
+      setLoading(false);
       console.error('Error details:', error);
       return;
     }
@@ -199,8 +217,8 @@ const LocationItem = ({location, business, user, access }) => {
                 <td>{item.item_name}</td>
                 <td>{item.quantity}</td>
                 <td>{item.unit__suffix}</td>
-                <td>₵{item.sales_price}</td>
-                <td>₵{(item.purchase_price * item.quantity).toFixed(2) || 0}</td>
+                <td>GHS {item.sales_price}</td>
+                <td>GHS {(item.purchase_price * item.quantity).toFixed(2) || 0}</td>
                 <td>{item.reorder_level}</td>
               </tr>
             ))}
