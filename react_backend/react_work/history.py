@@ -259,7 +259,7 @@ class FetchHistory:
             code=self.reference, bussiness_name=self.business
         ).select_related("account_type__account_type").first()
         if real_acc:
-            real_accounts = [real_acc.id]
+            real_accounts = [real_acc.pk]
             account_type_name = real_acc.account_type.account_type.name
 
         # Check level 2 (sub_account)
@@ -294,7 +294,6 @@ class FetchHistory:
         if not real_accounts:
             return {"status": "error", "message": "Account not found"}
 
-        print(account_type_name)
         LEDGER_MAP = {
             "Assets": models.asset_ledger,
             "Liabilities": models.liabilities_ledger,
@@ -302,7 +301,11 @@ class FetchHistory:
             "Revenue": models.revenue_ledger,
             "Expenses": models.expenses_ledger,
         }
-        ledger_model = LEDGER_MAP.get(account_type_name)
+
+        ledger_model = LEDGER_MAP.get(account_type_name or "", None)
+
+        if ledger_model is None:
+            return {"status": "error", "message": "Ledger model not found for account type '{}'".format(account_type_name)}
 
         transactions = ledger_model.objects.filter(
                 account_id__in=real_accounts,

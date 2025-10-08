@@ -185,6 +185,8 @@ const CreateSales = ({ business, user, access }) => {
         price: currentItem.price,
       }]);
       setCurrentItem({ item: null, qty: 1, price: 0 });
+      setLoading(false);
+      toast.success(verificationResponse.message || "Item added to preview list");
 
     } catch (error) {
       toast.error("An error occurred while adding the item.");

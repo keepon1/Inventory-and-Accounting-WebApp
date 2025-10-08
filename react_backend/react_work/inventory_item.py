@@ -1,3 +1,4 @@
+from re import T
 from . import models
 from decimal import Decimal
 from django.core.paginator import Paginator
@@ -178,8 +179,7 @@ def fetch_items_for_select(business, user, company, search, location):
         return {"status": "error", "message": "Unhandled error during item fetch"}
 
 
-def verify_item(name, code, image, business, company):
-    valid_extensions = ['.jpg', 'png', '.jpeg', 'webp', 'avif']
+def verify_item(name, code, business):
     
     try:
         business_data = models.bussiness.objects.get(bussiness_name=business)
@@ -190,13 +190,7 @@ def verify_item(name, code, image, business, company):
         if models.items.objects.filter(bussiness_name=business_data, item_name=name).exists():
             logger.warning(f"Item name '{name}' already exists in business '{business}'")
             return {'status': 'error', 'message': f"Item name '{name}' already exists"}
-            
-        if image != 'null':
-            if not image.name.lower().endswith(tuple(valid_extensions)):
-                logger.warning(f"Invalid image type for item '{name}'")
-                return {"status": "error", "message": "Invalid image type"}
-        
-        logger.info(f"Item '{name}' verified for business '{business}'")
+       
         return {'status': 'success', 'message': 'Item verified successfully'}
     
     except models.bussiness.DoesNotExist:
@@ -208,7 +202,7 @@ def verify_item(name, code, image, business, company):
         return {"status": "error", "message": "Unhandled error during item verification"}
 
 
-def add_inventory_item(business, user, company, code, name, reorder, model, category, suffix, image, description, brand):
+def add_inventory_item(business, user, code, name, reorder, model, category, suffix, status, description, brand):
     try:
         business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
@@ -237,7 +231,7 @@ def add_inventory_item(business, user, company, code, name, reorder, model, cate
                     quantity=0,
                     purchase_price=0.0,
                     sales_price="0",
-                    image=image[j],
+                    is_active= True if status[j].lower() == 'active' else False,
                     created_by=user_query,
                     bussiness_name=business_query,
                     category=category_query,
@@ -280,12 +274,6 @@ def add_inventory_item(business, user, company, code, name, reorder, model, cate
 
 
 def update_item(data, company):
-    valid_extensions = ['.jpg', 'png', '.jpeg', 'webp', 'avif']
-
-    if data['newImage'] != 'null' and data['newImage'] != 'undefined':
-        if not data['newImage'].name.lower().endswith(tuple(valid_extensions)):
-            logger.warning(f"Invalid image type for item '{data['oldName']}'")
-            return {"status": "error", "message": "Invalid image type"}
             
     try:
         business_query = models.bussiness.objects.get(bussiness_name=data['business'])
@@ -313,7 +301,7 @@ def update_item(data, company):
         item.description = data['newDescription']
         item.model = data['newModel']
         item.reorder_level = float(data['newReorder'])
-        item.image = data['newImage']
+        item.is_active = True if data['status'] == 'active' else False
         item.unit = unit
         item.category = category
 

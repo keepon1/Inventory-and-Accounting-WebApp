@@ -111,6 +111,7 @@ const CustomerMain = ({ business, user, access }) => {
         contact: info.contact,
         email: info.email,
       });
+      setLoading(false);
       setShowEdit(true);
       document.addEventListener('mousedown', handleEditOverlay);
   };
@@ -140,6 +141,7 @@ const CustomerMain = ({ business, user, access }) => {
       }
 
       toast.success(response.message || 'Customer created successfully');
+      setLoading(false);
       setShowCreate(false);
       const updated = await api.post(
         'fetch_customers',
@@ -166,10 +168,15 @@ const CustomerMain = ({ business, user, access }) => {
   };
 
   const handleEdit = async () => {
+    if (!editData.originalName) {
+      toast.error('Original customer name is missing.');
+      return;
+    };
+
     if (!editData.name) {
       toast.info('Customer`s Name can not be empty');
       return;
-    }
+    };
 
     if (loading){
       toast.info('Please wait, editing customer');
@@ -195,6 +202,7 @@ const CustomerMain = ({ business, user, access }) => {
       }
 
       toast.success(response.message || 'Customer updated successfully');
+      setLoading(false);
       setShowEdit(false);
       const updated = await api.post(
         'fetch_customers',

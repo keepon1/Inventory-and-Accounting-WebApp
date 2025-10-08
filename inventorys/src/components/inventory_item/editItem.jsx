@@ -11,7 +11,7 @@ import { set } from "date-fns";
 const EditItem = ({item, business, user, access, item_view_control, state}) => {
     const [itemInfo, setItemInfo] = useState({
         code: '', brand: '', name: '', unit: {value:'', label:''}, model: '',
-        imageFile: null, imagePreview: null, category: {value:'', label:''},
+        status: { value: '', label: '' }, category: {value:'', label:''},
         reorder: '', description: ''
     });
     const [oldInfo, setOldInfo] = useState();
@@ -19,7 +19,7 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
     const [unit, setUnit] = useState([{value:'', label:''}]);
     const [codeError, setCodeError] = useState('');
     const [nameError, setNameError] = useState('');
-    const [imageError, setImageError] = useState('');
+    const [statusError, setStatusError] = useState('');
     const [confirmDelete, setConfirmDelete] = useState(false);
     const overlayaddRef = useRef(null);
     const [loading, setLoading] = useState(false);
@@ -78,12 +78,22 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
         }
     };
 
+    const statusOptions = [
+        { value: 'active', label: 'Active' },
+        { value: 'inactive', label: 'Inactive' }
+    ];
+
     const validateForm = () => {
         let isValid = true;
         if(!itemInfo.name.trim()) {
             setNameError('Item name is required');
             isValid = false;
         }
+        if (!itemInfo.status?.value) {
+            setStatusError('Status is required');
+            return false;
+        }
+        setStatusError('');
         return isValid;
     };
 
@@ -112,6 +122,7 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
                 formData.append('newCategory', itemInfo.category.value);
                 formData.append('newReorder', itemInfo.reorder);
                 formData.append('oldCode', oldInfo.code);
+                formData.append('status', itemInfo.status.value || 'inactive');
                 formData.append('oldName', oldInfo.name);
                 formData.append('business', business);
                 formData.append('user', user);
@@ -256,17 +267,18 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
                                     className="ivi_input"
                                 />
                             </div>
+
                             <div className="ivi_holder_box">
-                                <label className="ivi_label">Image</label>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    name="images"
-                                    onChange={handleChange}
-                                    className="ivi_input"
+                                <label className="ivi_label">Status</label>
+                                <Select
+                                    options={statusOptions}
+                                    value={itemInfo.status}
+                                    onChange={selected => setItemInfo(prev => ({ ...prev, status: selected }))}
+                                    className="ivi_select"
+                                    classNamePrefix="ivi_select"
                                 />
-                                {imageError && <div className="error-message">{imageError}</div>}
-                            </div>
+                                {statusError && <div className="validation-error">{statusError}</div>}
+                        </div>
                         </div>
 
                         <div className="ivi_subboxes">
@@ -303,6 +315,7 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
                                 />
                             </div>
                         </div>
+
                     </div>
                     
                     {(access.admin || access.edit_access) && (

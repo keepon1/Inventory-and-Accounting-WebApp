@@ -133,7 +133,7 @@ def post_and_save_purchase(business, user, company, location, data, totals, item
                         
                     for j in history:
                         if target_qty == 0:
-                            item_info.purchase_price = float(total_value/(item_info.quantity + int(item['qty'])))
+                            item_info.purchase_price = Decimal(str(total_value/(item_info.quantity + int(item['qty']))))
                             item_info.quantity += int(item['qty'])
                             item_info.save()
                             break
@@ -147,7 +147,7 @@ def post_and_save_purchase(business, user, company, location, data, totals, item
                 loc_item.purchase_price = item_info.purchase_price
                 loc_item.save()
 
-            purchase_info.total_quantity = total_quantity
+            purchase_info.total_quantity = Decimal(str(total_quantity))
             purchase_info.save()
 
             discount = total_purchase * (float(data['discount']) / 100)
@@ -185,12 +185,17 @@ def post_and_save_purchase(business, user, company, location, data, totals, item
                                                 account=result.get('inventory'), transaction_number=new_code, date=data['date'], type="Purchase",
                                                 description=data['description'], debit=total_purchase, head=head)
 
+            if supplier_query.credit is None:
+                supplier_query.credit = Decimal('0')
             supplier_query.credit += Decimal(str(final_total))
 
             if data['terms'] == 'Full Payment':
                 payment = models.payment.objects.create(transaction_number=new_code, description=f'Payment of {new_code} to {supplier_query.account}', from_account=(data['account'].split())[0],
                                                 to_account=supplier_query.account,
                                                 bussiness_name=business_query, amount=final_total, created_by=user_query, status='None', ref_type='purchase', external_no=new_code)
+                
+                if supplier_query.debit is None:
+                    supplier_query.debit = Decimal('0')
                 supplier_query.debit += Decimal(str(final_total))
                 supplier_query.save()
 
@@ -238,6 +243,8 @@ def post_and_save_purchase(business, user, company, location, data, totals, item
             elif data['terms'] == 'Part Payment':              
                 payment = models.payment.objects.create(transaction_number=new_code, description=f'Part Payment of {new_code} to {supplier_query.name}', from_account=(data['account'].split())[0], to_account=supplier_query.account,
                                                   bussiness_name=business_query, amount=data['partpayment'], created_by=user_query, status='None', ref_type='purchase', external_no=new_code)
+                if supplier_query.debit is None:
+                    supplier_query.debit = Decimal('0')
                 supplier_query.debit += Decimal(str(payment.amount))
                 supplier_query.save()
 
@@ -332,7 +339,7 @@ def reverse_purchase(business, user, company, number):
 
                     for j in history:
                         if target == 0:
-                            item.purchase_price = float(total/item.quantity )
+                            item.purchase_price = Decimal(str(total/item.quantity))
                             item.save()
                             break
 
@@ -345,6 +352,8 @@ def reverse_purchase(business, user, company, number):
                 loc_item.purchase_price = item.purchase_price
                 loc_item.save()
 
+            if purchase.supplier.debit is None:
+                purchase.supplier.debit = Decimal('0')
             purchase.supplier.debit += Decimal(str(purchase.gross_total))
             purchase.supplier.save()
 
@@ -443,14 +452,16 @@ def reverse_purchase(business, user, company, number):
                     head=entry.head
                 )
 
-            payments = models.payment.objects.filter(transaction_number=purchase.code, bussiness_name=business_query, status=True)
+            payments = models.payment.objects.filter(transaction_number=purchase.code, bussiness_name=business_query, is_reversed=False)
             for pay in payments:
-                pay.status = False
+                pay.status = "Reversed"
                 pay.is_reversed = True
                 pay.save()
 
             total_paid = sum(p.amount for p in payments)
 
+            if purchase.supplier.credit is None:
+                purchase.supplier.credit = Decimal('0')
             purchase.supplier.credit += Decimal(str(total_paid))
             purchase.supplier.save()
                     

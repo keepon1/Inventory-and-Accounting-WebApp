@@ -10,6 +10,7 @@ import Select from 'react-select';
 import api from '../api';
 import enableKeyboardScrollFix from '../../utils/scroll';
 import { toast } from 'react-toastify';
+import { set } from 'date-fns';
 
 const TaxMain = ({ business, user }) => {
     const [taxes, setTaxes] = useState([]);
@@ -131,6 +132,7 @@ const TaxMain = ({ business, user }) => {
 
             if (response.status === 'success'){
                 toast.success(response.message || `${data.name} added successfully`);
+                setLoading(false);
                 setShowCreate(false);
                 document.addEventListener('mousedown', handleCreateOverlay);
 
@@ -160,6 +162,11 @@ const TaxMain = ({ business, user }) => {
     };
 
     const editTax = async () => {
+        if (!editData.originalName || editData.originalName === ''){
+            toast.error('Original tax name is missing.');
+            return;
+        };
+
         if (!editData.name || editData.name === ''){
             toast.info('Name can not be empty');
             return;
@@ -205,6 +212,8 @@ const TaxMain = ({ business, user }) => {
                     return;
                 }
                 setTaxes(response1.data || []);
+                setLoading(false);
+                
             }else{
                 toast.error(response.message || 'Error occurred while editing tax');
                 setLoading(false);

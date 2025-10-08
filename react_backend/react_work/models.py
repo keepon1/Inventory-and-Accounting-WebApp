@@ -103,7 +103,7 @@ class tracking_history(models.Model):
 class currency(models.Model):
     name = models.CharField(max_length=100)
     symbol = models.CharField(max_length=100)
-    rate = models.DecimalField(decimal_places=2, default=0.00, blank=True, null=True, max_digits=20)
+    rate = models.DecimalField(decimal_places=2, default=Decimal("0.00"), blank=True, null=True, max_digits=20)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
     class Meta:
@@ -118,11 +118,11 @@ class supplier(models.Model):
     email = models.CharField(max_length=100, default='')
     address = models.CharField(max_length=100, default='')
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
-    debit = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, blank=True, null=True)
-    credit = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, blank=True, null=True)
+    debit = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), blank=True, null=True)
+    credit = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), blank=True, null=True)
 
     def generate_next_code(self):
-        id = self.bussiness_name.id
+        id = self.bussiness_name.pk
         last = supplier.objects.filter(bussiness_name=self.bussiness_name).order_by('-id').first()
         next_code = 1 if not last else int(last.account[-5:]) + 1
         return f"SUP{id}-{next_code:05d}"
@@ -171,11 +171,11 @@ class customer(models.Model):
     email = models.CharField(max_length=100, default='')
     address = models.CharField(max_length=100, default='')
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
-    debit = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, blank=True, null=True)
-    credit = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, blank=True, null=True)
+    debit = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), blank=True, null=True)
+    credit = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), blank=True, null=True)
 
     def generate_next_code(self):
-        id = self.bussiness_name.id
+        id = self.bussiness_name.pk
         last = customer.objects.filter(bussiness_name=self.bussiness_name).order_by('-id').first()
         next_code = 1 if not last else int(last.account[-5:]) + 1
         return f"CUST{id}-{next_code:05d}"
@@ -273,8 +273,8 @@ class items(models.Model):
     model = models.CharField(max_length=100)
     reorder_level = models.FloatField(default=0)
     quantity = models.BigIntegerField(default=0)
-    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    sales_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    sales_price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     creation_date = models.DateTimeField(auto_now_add = True)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
     category = models.ForeignKey(inventory_category, on_delete=models.CASCADE)
@@ -331,9 +331,9 @@ class items(models.Model):
 class location_items(models.Model):
     item_name = models.ForeignKey(items, on_delete=models.CASCADE)
     reorder_level = models.FloatField(default=0)
-    quantity = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
-    purchase_price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
-    sales_price = models.DecimalField(default=0.00, max_digits=10, decimal_places=2)
+    quantity = models.DecimalField(default=Decimal("0.00"), max_digits=10, decimal_places=2)
+    purchase_price = models.DecimalField(default=Decimal("0.00"), max_digits=10, decimal_places=2)
+    sales_price = models.DecimalField(default=Decimal("0.00"), max_digits=10, decimal_places=2)
     location = models.ForeignKey(inventory_location, on_delete=models.CASCADE)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
     last_sales = models.DateField(default=date.today)
@@ -365,7 +365,7 @@ class inventory_transfer(models.Model):
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
     def generate_next_code(self):
-        id = self.bussiness_name.id
+        id = self.bussiness_name.pk
         year = self.creation_date.year if self.creation_date else datetime.now().year
         last = inventory_transfer.objects.filter(bussiness_name=self.bussiness_name, creation_date__year=year).order_by('-id').first()
         next_code = 1 if not last else int(last.code[-5:]) + 1
@@ -407,30 +407,30 @@ class sale(models.Model):
     description = models.CharField(max_length=100, default='')
     customer_name = models.CharField(max_length=100, default='')
     customer_info = models.ForeignKey(customer, on_delete=models.PROTECT)
-    gross_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    sub_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    net_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    gross_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    sub_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    net_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     location_address = models.ForeignKey(inventory_location, on_delete=models.CASCADE)
     discount_percentage = models.CharField(max_length=100, default='')
-    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    tax_levy = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    tax_levy = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     tax_levy_types = models.JSONField(default=list)
     payment_term = models.CharField(max_length=100, default='')
-    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     created_by = models.ForeignKey(current_user, on_delete=models.PROTECT)
     status = models.CharField(max_length=100, default='')
     type = models.CharField(max_length=100, default='')
     creation_date = models.DateTimeField(auto_now_add = True)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
-    total_quantity = models.DecimalField(decimal_places=2, default=0, max_digits=10)
-    cog = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total_quantity = models.DecimalField(decimal_places=2, default=Decimal("0.00"), max_digits=10)
+    cog = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     is_reversed = models.BooleanField(default=False)
 
     def __str__(self):
         return self.customer_name if hasattr(self, 'customer_name') else str(self.customer_info)
     
     def generate_next_code(self):
-        id = self.bussiness_name.id
+        id = self.bussiness_name.pk
         year = self.creation_date.year if self.creation_date else datetime.now().year
         last = sale.objects.filter(bussiness_name=self.bussiness_name, creation_date__year=year).order_by('-id').first()
         next_code = 1 if not last else int(last.code[-5:]) + 1
@@ -474,28 +474,28 @@ class purchase(models.Model):
     date = models.DateField(default=date.today)
     description = models.CharField(max_length = 200)
     supplier = models.ForeignKey(supplier, on_delete=models.PROTECT)
-    gross_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    sub_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    net_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    gross_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    sub_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    net_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     payment_term = models.CharField(max_length=100, default='')
     status = models.CharField(max_length=100, default='')
     discount_percentage = models.CharField(max_length=100)
-    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    tax_levy = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    tax_levy = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     tax_levy_types = models.JSONField(default=list)
     location_address = models.ForeignKey(inventory_location, on_delete=models.CASCADE)
     created_by = models.ForeignKey(current_user, on_delete=models.PROTECT)
     creation_date = models.DateTimeField(auto_now_add = True)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
-    total_quantity = models.DecimalField(decimal_places=2, default=0, max_digits=10)
+    total_quantity = models.DecimalField(decimal_places=2, default=Decimal("0.00"), max_digits=10)
     is_reversed = models.BooleanField(default=False)
 
     def __str__(self):
         return str(self.supplier)
     
     def generate_next_code(self):
-        id = self.bussiness_name.id
+        id = self.bussiness_name.pk
         year = self.creation_date.year if self.creation_date else datetime.now().year
         last = purchase.objects.filter(bussiness_name=self.bussiness_name, creation_date__year=year).order_by('-id').first()
         next_code = 1 if not last else int(last.code[-5:]) + 1
@@ -519,7 +519,7 @@ class purchase_history(models.Model):
     purchase = models.ForeignKey(purchase, on_delete=models.CASCADE)
     item_name = models.ForeignKey(items, on_delete=models.CASCADE)
     quantity = models.BigIntegerField(default=0)
-    purchase_price = models.DecimalField(max_digits=10, default=0.00, decimal_places=2)
+    purchase_price = models.DecimalField(max_digits=10, default=Decimal("0.00"), decimal_places=2)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
     class Meta:
@@ -634,14 +634,14 @@ class journal_head(models.Model):
     code = models.CharField(max_length=20, unique=True, blank=True)
     entry_type = models.CharField(max_length=100, default='')
     transaction_number = models.CharField(max_length=100, default='')
-    amount = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
+    amount = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
     description = models.CharField(max_length=100, default='')
     created_by = models.ForeignKey(current_user, on_delete=models.PROTECT)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
     reversed = models.BooleanField(default=False)
 
     def generate_next_code(self):
-        id = self.bussiness_name.id
+        id = self.bussiness_name.pk
         year = self.date.year if self.date else datetime.now().year
         last = journal_head.objects.filter(bussiness_name=self.bussiness_name, date__year=year).order_by('-id').first()
         next_code = 1 if not last else int(last.code[-5:]) + 1
@@ -660,7 +660,7 @@ class journal_head(models.Model):
         ]
 
 class year_period(models.Model):
-    year = models.CharField(max_length=100, default=date.today().year)
+    year = models.CharField(max_length=100, default=str(date.today().year))
     is_closed = models.BooleanField(default=False)
     closing_date = models.DateField(null=True, blank=True)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
@@ -768,9 +768,9 @@ class asset_ledger(models.Model):
     date = models.DateField(default=date.today)
     type = models.CharField(default='', max_length=100)
     description = models.CharField(default='', max_length=100)
-    debit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    credit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    debit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    credit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
     def update_balance(self):
@@ -796,9 +796,9 @@ class liabilities_ledger(models.Model):
     date = models.DateField(default=date.today)
     type = models.CharField(default='', max_length=100)
     description = models.CharField(default='', max_length=100)
-    debit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    credit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    debit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    credit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
     def update_balance(self):
@@ -823,9 +823,9 @@ class equity_ledger(models.Model):
     date = models.DateField(default=date.today)
     type = models.CharField(default='', max_length=100)
     description = models.CharField(default='', max_length=100)
-    debit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    credit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    debit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    credit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
     def update_balance(self):
@@ -850,9 +850,9 @@ class revenue_ledger(models.Model):
     date = models.DateField(default=date.today)
     type = models.CharField(default='', max_length=100)
     description = models.CharField(default='', max_length=100)
-    debit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    credit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    debit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    credit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
     def update_balance(self):
@@ -877,9 +877,9 @@ class expenses_ledger(models.Model):
     date = models.DateField(default=date.today)
     type = models.CharField(default='', max_length=100)
     description = models.CharField(default='', max_length=100)
-    debit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    credit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    debit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    credit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
     def update_balance(self):
@@ -905,9 +905,9 @@ class customer_ledger(models.Model):
     date = models.DateField(default=date.today)
     type = models.CharField(default='', max_length=100)
     description = models.CharField(default='', max_length=100)
-    debit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    credit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    debit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    credit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
@@ -937,9 +937,9 @@ class supplier_ledger(models.Model):
     date = models.DateField(default=date.today)
     type = models.CharField(default='', max_length=100)
     description = models.CharField(default='', max_length=100)
-    debit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    credit = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    debit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    credit = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
@@ -970,7 +970,7 @@ class journal(models.Model):
     description = models.CharField(max_length=100, default='')
     debit = models.CharField(max_length=100, default='')
     credit = models.CharField(max_length=100, default='')
-    amount = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
+    amount = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
 
     class Meta:
@@ -989,13 +989,13 @@ class payment(models.Model):
     description = models.CharField(max_length=100, default='')
     from_account = models.CharField(max_length=100, default='')
     to_account = models.CharField(max_length=100, default='')
-    status = models.CharField(max_length=100, default=True)
-    amount = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
+    status = models.CharField(max_length=100, default='Done')
+    amount = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
     is_reversed = models.BooleanField(default=False)
 
     def generate_next_code(self):
-        id = self.bussiness_name.id
+        id = self.bussiness_name.pk
         year = self.date.year if self.date else datetime.now().year
         last = payment.objects.filter(bussiness_name=self.bussiness_name, date__year=year).order_by('-id').first()
         next_code = 1 if not last else int(last.code[-5:]) + 1
@@ -1023,13 +1023,13 @@ class cash_receipt(models.Model):
     description = models.CharField(max_length=100, default='')
     from_account = models.CharField(max_length=100, default='')
     to_account = models.CharField(max_length=100, default='')
-    status = models.CharField(max_length=100, default=True)
-    amount = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
+    status = models.CharField(max_length=100, default='Done')
+    amount = models.DecimalField(decimal_places=2, max_digits=10, default=Decimal("0.00"))
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
     is_reversed = models.BooleanField(default=False)
 
     def generate_next_code(self):
-        id = self.bussiness_name.id
+        id = self.bussiness_name.pk
         year = self.date.year if self.date else datetime.now().year
         last = cash_receipt.objects.filter(bussiness_name=self.bussiness_name, date__year=year).order_by('-id').first()
         next_code = 1 if not last else int(last.code[-5:]) + 1
@@ -1054,12 +1054,12 @@ class item_balance(models.Model):
     period = models.ForeignKey(month_period, on_delete=models.PROTECT)
     opening_quantity = models.IntegerField(default=0)
     closing_quantity = models.IntegerField(default=0)
-    quantity_sold = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    value_sold = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    quantity_purchased = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    value_purchased = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    opening_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    closing_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    quantity_sold = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    value_sold = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    quantity_purchased = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    value_purchased = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    opening_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    closing_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
 
     class Meta:
         indexes = [
@@ -1070,10 +1070,10 @@ class account_balance(models.Model):
     account = models.ForeignKey(real_account, on_delete=models.PROTECT)
     business = models.ForeignKey(bussiness, on_delete=models.PROTECT)
     period = models.ForeignKey(month_period, on_delete=models.PROTECT)
-    opening_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    closing_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    debit_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    credit_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    opening_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    closing_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    debit_total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    credit_total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
 
     class Meta:
         indexes = [
@@ -1084,10 +1084,10 @@ class customer_balance(models.Model):
     customer = models.ForeignKey(customer, on_delete=models.PROTECT)
     business = models.ForeignKey(bussiness, on_delete=models.PROTECT)
     period = models.ForeignKey(month_period, on_delete=models.PROTECT)
-    opening_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    closing_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    debit_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    credit_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    opening_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    closing_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    debit_total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    credit_total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
 
     class Meta:
         indexes = [
@@ -1098,10 +1098,10 @@ class supplier_balance(models.Model):
     supplier = models.ForeignKey(supplier, on_delete=models.PROTECT)
     business = models.ForeignKey(bussiness, on_delete=models.PROTECT)
     period = models.ForeignKey(month_period, on_delete=models.PROTECT)
-    opening_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    closing_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    debit_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    credit_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    opening_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    closing_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    debit_total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    credit_total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
 
     class Meta:
         indexes = [

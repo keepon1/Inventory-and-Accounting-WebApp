@@ -7,12 +7,11 @@ import Select from 'react-select';
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { set } from "date-fns";
 
 const AddItem = (props) => {
     const [itemDetail, setItemDetail] = useState({
         code: '', brand: '', name: '', unit: {value:'', label:''}, model: '',
-        imageFile: null, imagePreview: null, category: {value:'', label:''},
+        status: { value: '', label: '' }, category: {value:'', label:''},
         reorder: '', description: ''
     });
     const [fullList, setFullList] = useState([]);
@@ -45,17 +44,6 @@ const AddItem = (props) => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        if (name === 'images') {
-            const file = e.target.files[0];
-            if (file) {
-                setItemDetail(prev => ({
-                    ...prev,
-                    imageFile: file,
-                    imagePreview: URL.createObjectURL(file)
-                }));
-            }
-            return;
-        }
         setItemDetail(prev => ({ ...prev, [name]: value }));
     };
 
@@ -89,18 +77,20 @@ const AddItem = (props) => {
 
         try {
             setLoading(true);
-            const image = new FormData();
-            image.append('image', itemDetail.imageFile);
-            image.append('code', itemDetail.code);
-            image.append('name', itemDetail.name);
-            image.append('business', props.business);
+            const payload = {
+                code: itemDetail.code,
+                name: itemDetail.name,
+                business: props.business,
+                status: itemDetail.status?.value || ''
+            };
 
-            const response = await api.post('verify_item', image);
+            const response = await api.post('verify_item', payload);
 
             if (response.status === "success") {
                 setFullList(prev => [...prev, itemDetail]);
                 resetForm();
                 toast.success(response.message || "Item added to preview list");
+                setLoading(false);
             } else {
                 toast.error(response.message || "Failed to verify item");
                 setLoading(false);
@@ -114,7 +104,7 @@ const AddItem = (props) => {
     const resetForm = () => {
         setItemDetail({
             code: '', brand: '', name: '', unit: {value:'', label:''}, model: '',
-            imageFile: null, imagePreview: null, category: {value:'', label:''},
+            status: { value: '', label: '' }, category: {value:'', label:''},
             reorder: '', description: ''
         });
     };
@@ -144,22 +134,24 @@ const AddItem = (props) => {
 
         try {
             setLoading(true);
-            const formData = new FormData();
-            fullList.forEach((item) => {
-                formData.append('code', item.code);
-                formData.append('brand', item.brand);
-                formData.append('name', item.name);
-                formData.append('model', item.model);
-                formData.append('description', item.description);
-                formData.append('reorder', item.reorder || 0);
-                formData.append('unit', item.unit.value);
-                formData.append('category', item.category.value);
-                formData.append('image', item.imageFile);
-            });
-            formData.append('business', props.business);
-            formData.append('user', props.user);
 
-            const response = await api.post('add_items', formData);
+            const itemsPayload = fullList.map((item) => ({
+                code: item.code,
+                brand: item.brand,
+                name: item.name,
+                model: item.model,
+                description: item.description,
+                reorder: item.reorder || 0,
+                unit: item.unit.value,
+                category: item.category.value,
+                status: item.status?.value || ''
+            }));
+
+            const response = await api.post('add_items', {
+                items: itemsPayload,
+                business: props.business,
+                user: props.user
+            });
 
             if (response.status === "success") {
                 toast.success(response.message || "Items saved successfully!");
@@ -173,6 +165,11 @@ const AddItem = (props) => {
             navigate('/sign_in');
         }
     };
+
+    const statusOptions = [
+        { value: 'active', label: 'Active' },
+        { value: 'inactive', label: 'Inactive' }
+    ];
 
     return (
         <div className="ivi_display_mainbox">
@@ -213,8 +210,14 @@ const AddItem = (props) => {
                                 <input type="text" name="description" value={itemDetail.description} onChange={handleChange} className="ivi_input" />
                             </div>
                             <div className="ivi_holder_box">
-                                <label className="ivi_label">Image</label>
-                                <input type="file" accept="image/*" name="images" onChange={handleChange} className="ivi_input" />
+                                <label className="ivi_label">Status</label>
+                                <Select
+                                    options={statusOptions}
+                                    value={itemDetail.status}
+                                    onChange={selected => setItemDetail({ ...itemDetail, status: selected })}
+                                    className="ivi_select"
+                                    classNamePrefix="ivi_select"
+                                />
                             </div>
                         </div>
 

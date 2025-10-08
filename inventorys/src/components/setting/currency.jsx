@@ -9,8 +9,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import {Link, useNavigate} from 'react-router-dom';
 import api from '../api';
-import enableKeyboardScrollFix from '../../utils/scroll';
 import { toast } from 'react-toastify';
+import { set } from 'date-fns';
 
 const CurrencyMain = ({ business, user }) => {
     const [currencies, setCurrencies] = useState([]);
@@ -20,6 +20,7 @@ const CurrencyMain = ({ business, user }) => {
     const [detail, setDetail] = useState({name: '', symbol: '', rate:0});
     const [editData, setEditData] = useState({ originalName: '', name: '', symbol: '', rate:0});
     const [errors, setErrors] = useState();
+    const [loading, setLoading] = useState(true);
     const overlayRef = useRef(null);
     const editOverlayRef = useRef(null);
 
@@ -93,6 +94,11 @@ const CurrencyMain = ({ business, user }) => {
     };
 
     const addCurrency = async() => {
+        if (loading) {
+            toast.info('Please wait...');
+            return;
+        };
+
         if (!detail.name || detail.name === ''){
             toast.info('Name can not be empty');
             return;
@@ -110,10 +116,12 @@ const CurrencyMain = ({ business, user }) => {
         }
 
         try{
+            setLoading(true);
             const response = await api.post('add_currency', {business, detail:data, user});
 
             if (response.status === 'success'){
                 toast.success(response.message || 'Currency added successfully');
+
                 setShowCreate(false);
                 document.addEventListener('mousedown', handleCreateOverlay);
 
@@ -126,6 +134,7 @@ const CurrencyMain = ({ business, user }) => {
                     return;
                 }
                 setCurrencies(update.data || []);
+                setLoading(false);
             }else{
                 toast.error(response.message || 'An error occurred while adding the currency.');
             };
@@ -135,6 +144,11 @@ const CurrencyMain = ({ business, user }) => {
     };
 
     const editCurrency = async () => {
+        if (loading) {
+            toast.info('Please wait...');
+            return;
+        };
+
         if (!editData.name || editData.name === ''){
             toast.info('Name can not be empty');
             return;
@@ -153,10 +167,12 @@ const CurrencyMain = ({ business, user }) => {
         }
 
         try{
+            setLoading(true);
             const response = await api.post('edit_currency', {business, detail:data, user});
 
             if (response.status === 'success'){
                 toast.success(response.message || 'Currency edited successfully');
+                setLoading(false);
                 setShowEdit(false);
                 document.addEventListener('mousedown', handleEditOverlay);
 
@@ -171,10 +187,12 @@ const CurrencyMain = ({ business, user }) => {
                 setCurrencies(update.data || []);
             }else{
                 toast.error(response.message || 'An error occurred while editing the currency.');
+                setLoading(false);
             };
         }catch(error){
             console.error('Error editing currency:', error);
             toast.error('An error occurred while editing the currency.');
+            setLoading(false);
             if (error.response?.status === 401) {
                 navigate('/sign_in');
             }

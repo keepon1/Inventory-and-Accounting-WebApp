@@ -190,6 +190,8 @@ def sign(request):
         
                 login(request, aut_user)
 
+                if user_name is None:
+                    return Response({'status': 'error', 'message': 'User not found in this business'})
                 accesses = user_permissions.Permissions(company=company_query.pk, business=business, user=user_name.user_name).general_permissions()
                 data = {
                     'user': user_name.user_name,
@@ -296,8 +298,9 @@ def sign_in_google(request):
                         counter += 1
 
                     users.user_name = full_name
-                    user.username = full_name
-                    user.save()
+                    if user is not None:
+                        user.username = full_name
+                        user.save()
                     users.save()
                 
                 models.tracking_history.objects.create(
@@ -307,9 +310,12 @@ def sign_in_google(request):
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
         
-        accesses = user_permissions.Permissions(
-            company=user.pk, business=business, user=users.user_name
-        ).general_permissions()
+        if user is not None:
+            accesses = user_permissions.Permissions(
+                company=user.pk, business=business, user=users.user_name
+            ).general_permissions()
+        else:
+            return Response({'status': 'error', 'message': 'User object is None, cannot get permissions.'})
 
         data = {
             "business": business.bussiness_name,
@@ -428,14 +434,16 @@ def select_bussiness(request):
         company_info = {'company':company.username, 'email':company.email}
 
         b_data = models.bussiness.objects.filter(bussiness_name=business).first()
+        if not b_data:
+            return Response({'status': 'error', 'message': f'Business {business} does not exist'})
         user_query = models.current_user.objects.filter(bussiness_name=b_data, user_name=user.strip(), user=request.user).first()
 
         if not user_query:
             return Response({'status': 'error', 'message': f'{user} does not exist'})
         
-        business = [{'b_name':b_data.bussiness_name, 'location':b_data.location, 'new':b_data.new, 'google':b_data.google}] 
+        business_info = [{'b_name':b_data.bussiness_name, 'location':b_data.location, 'new':b_data.new, 'google':b_data.google}] 
 
-        data = {'company_info':company_info, 'business':business}
+        data = {'company_info':company_info, 'business':business_info}
 
         return Response({'status': 'success', 'data':data})
     
@@ -470,9 +478,10 @@ def add_business(request):
                                 description=description,
                                 user_created=user_created)
                 
-                user = models.current_user.objects.create(user_name=user, user=request.user_created, admin=True,
+                user = models.current_user.objects.create(user_name=user_created, user=request.user, admin=True,
                                             bussiness_name=new_business)
-                user.set_password(password)
+                user.user.set_password(password)
+                user.user.save()
 
                 models.tracking_history.objects.create(user=user, area="Create business", head=new_business.bussiness_name, bussiness_name=new_business)
 
@@ -526,7 +535,7 @@ def verify_user(request):
 
             user_query = models.current_user.objects.filter(bussiness_name=business, user_name=user, user=request.user).first()
 
-            if not user_query.admin:
+            if not user_query or not user_query.admin:
                 return Response({'status': 'error', 'message':f'{user} does not exist. create new business'})
             
             business.bussiness_name = new_name.strip()
@@ -581,7 +590,7 @@ def check_password(request):
         business = models.bussiness.objects.get(bussiness_name=business)
         user_password = models.current_user.objects.get(bussiness_name=business, user_name=user, user=request.user)
 
-        if user_password.password.strip() != '':
+        if user_password.user.has_usable_password():
             return Response('exist')
         else:
             return Response('new')
@@ -598,9 +607,12 @@ def view_business(request):
             user = request.data['user']
 
             business = models.bussiness.objects.filter(bussiness_name=business).first()
+            if not business:
+                return Response({'status': 'error', 'message': f'Business not found'})
+            
             user_query = models.current_user.objects.filter(bussiness_name=business, user_name=user, user=request.user).first()
 
-            if not user_query.admin and not user_query.settings_access:
+            if not user_query or (not user_query.admin and not user_query.settings_access):
                 return Response({'status': 'error', 'message': f'{user} does not have access to settings'})
 
             result = {'name':business.bussiness_name, 'description':business.description,
@@ -636,7 +648,10 @@ def edit_business(request):
                 business = models.bussiness.objects.filter(bussiness_name=business).first()
                 user_query = models.current_user.objects.filter(user_name=user, user=request.user, bussiness_name=business).first()
 
-                if not user_query.admin and not user_query.settings_access:
+                if not business:
+                    return Response({'status': 'error', 'message': 'Business not found'})
+
+                if not user_query or (not user_query.admin and not user_query.settings_access):
                     return Response({'status': 'error', 'message': f'{user} does not have access to settings'})
 
                 business.bussiness_name = data['name']
@@ -973,7 +988,7 @@ def edit_tax(request):
         with transaction.atomic(durable=False, savepoint=False, using='default'):
             tax = models.taxes_levies.objects.get(name=original, bussiness_name=business)
             tax.name = name
-            tax.rate = rate
+            tax.rate = float(rate)
             tax.type = typ
             tax.description = description
             tax.save()
@@ -1748,7 +1763,7 @@ def edit_user(request):
         with transaction.atomic(durable=False, savepoint=False, using='default'):
             cu = models.current_user.objects.get(user_name=original, bussiness_name=business)
             cu.user_name = user_name
-            cu.admin = admin_flag
+            cu.admin = bool(admin_flag)
             cu.save()
 
         return Response({'status': 'success', 'message': f'{original} updated successfully', 'data': {}})
@@ -1960,7 +1975,7 @@ def fetch_user_activities(request):
         if not caller_query.admin and not caller_query.settings_access:
             return Response({'status': 'error', 'message': f'{user} does not have access to settings', 'data': {}})
 
-        user_obj = models.current_user.objects.get(bussiness_name=business, user_name=user, user=request.username)
+        user_obj = models.current_user.objects.get(bussiness_name=business, user_name=user, user=request.user)
         result = list(models.tracking_history.objects.filter(user=user_obj).order_by('-date').values(
             'date', 'area', 'head'
         ))
@@ -2069,8 +2084,6 @@ def fetch_items_for_select(request):
 
         verify_data = (isinstance(business, str) and business.strip() and 
                        isinstance(user, str) and user.strip() and isinstance(location, str))
-        
-        print(request.data)
 
         if not verify_data:
             return Response({'status':'error', 'message':'invalid data was submitted'})
@@ -2088,8 +2101,6 @@ def verify_item(request):
         business = request.data['business']
         code = data['code']
         name = data['name']
-        image = data['image']
-
 
         verify_data = (isinstance(code, str) and isinstance(business, str) and
                        business.strip() and isinstance(name, str) and name.strip())
@@ -2098,7 +2109,7 @@ def verify_item(request):
             return Response({'status':'error', 'message':'invalid data was submitted'})
         
         company = request.user.id
-        result = inventory_item.verify_item(business=business, code=code, name=name, image=image, company=company)
+        result = inventory_item.verify_item(business=business, code=code, name=name)
         return Response(result)
     
     return Response('')
@@ -2120,9 +2131,7 @@ def add_items(request):
         reorder_level = data.getlist('reorder')
         categ = data.getlist('category')
         suffix = data.getlist('unit')
-        image = data.getlist('image')
-        image = [img if img and getattr(img, 'name', '') and getattr(img, 'size', 0) > 0 else None for img in image]
-        company = request.user.id
+        status = data.getlist('status')
 
         verify_data = (isinstance(business, str) and business.strip() and isinstance(user, str) and 
                         user.strip() and isinstance(code, list) and code and isinstance(brand, list) and 
@@ -2133,9 +2142,9 @@ def add_items(request):
         if not verify_data:
             return Response({'status':'error', 'message':'invalid data was submitted'})
         
-        result = inventory_item.add_inventory_item(business=business, user=user, company=company, code=code,
+        result = inventory_item.add_inventory_item(business=business, user=user, code=code,
                                                    name=item_name, brand=brand, model=model, suffix=suffix, category=categ,
-                                                   image=image, description=description, reorder=reorder_level)
+                                                   status=status, description=description, reorder=reorder_level)
     
     return Response(result)
 
@@ -2159,7 +2168,8 @@ def view_item(request):
 
             item_info = {'code':item.code, 'brand':item.brand, 'name':item.item_name, 'Sales':item.sales_price, 'description':item.description,
                     'unit':{'value':item.unit.suffix, 'label':item.unit.suffix},'quantity':item.quantity, 'model':item.model, 'Cost':item.purchase_price, 
-                    'date':item.creation_date, 'by':item.created_by.user_name, 'category':{'value':item.category.name, 'label':item.category.name}, 'reorder':item.reorder_level}
+                    'date':item.creation_date, 'by':item.created_by.user_name, 'category':{'value':item.category.name, 'label':item.category.name}, 'reorder':item.reorder_level,
+                    'status': {'value': 'active' if item.is_active else 'inactive', 'label': 'Active' if item.is_active else 'Inactive'}}
             
             return Response({'status':'success', 'data':item_info})
         
@@ -2375,17 +2385,7 @@ def delete_sale(request):
         loc = models.inventory_location.objects.get(location_name=sale.location_address, bussiness_name_id=business.pk)
 
         items = models.sale_history.objects.filter(sales_id=number)
-
-        for i in items:
-            main_item = models.items.objects.get(item_name=i.item_name, bussiness_name_id=business.pk)
-            loc_item = models.location_items.objects.get(item_unique_code_id=main_item.pk, location_id=loc.pk, bussiness_name_id=business.pk)
-            main_item.current_quantity += i.quantity
-            loc_item.quantity += int(i.quantity)
-
-            main_item.save()
-            loc_item.save()
-
-        sale.delete()
+        
 
         return Response('done')
         
@@ -2531,16 +2531,6 @@ def delete_purchase(request):
         loc = models.inventory_location.objects.get(location_name=purchase.location_address, bussiness_name_id=business.pk)
 
         items = models.purchase_history.objects.filter(purchase_id=number)
-
-        for i in items:
-            main_item = models.items.objects.get(item_name=i.item_name, bussiness_name_id=business.pk)
-            loc_item = models.location_items.objects.get(item_unique_code_id=main_item.pk, location_id=loc.pk, bussiness_name_id=business.pk)
-            main_item.current_purchase_price = ((main_item.current_purchase_price * main_item.current_quantity) - (i.total_purchase)) / (main_item.current_quantity - i.quantity)
-            main_item.current_quantity -= int(i.quantity)
-            loc_item.quantity -= int(i.quantity)
-
-            main_item.save()
-            loc_item.save()
 
         purchase.delete()
 
@@ -2762,7 +2752,7 @@ def edit_location_item(request):
 
             item = models.location_items.objects.get(item_name__item_name=item, location=location_query, bussiness_name=business_query)
             item.reorder_level = reorder
-            item.sales_price = price
+            item.sales_price = Decimal(str(price))
             item.save()
 
             return Response({'status': 'success', 'message': f'Item {item.item_name.item_name} edited successfully'})
@@ -2791,8 +2781,7 @@ def single_location_sales(request):
     if request.method == 'POST':
         business = models.bussiness.objects.get(bussiness_name=request.data['business'])
         sales = models.sale.objects.filter(company_id=request.user.id, location_address=request.data['loc'], bussiness_name_id=business.pk).order_by('-date','-id')
-        all_sales = [{'number':i.pk, 'by':i.particular_user, 'customer':i.customer, 'date':i.date, 'description':i.description,
-                  'total':i.sales_total, 'loc':i.location_address} for i in sales]
+        all_sales = []
     
     return Response(all_sales)
 
@@ -2802,8 +2791,7 @@ def single_location_purchase(request):
     if request.method == 'POST':
         business = models.bussiness.objects.get(bussiness_name=request.data['business'])
         loc = models.purchase.objects.filter(company_id=request.user.id, location_address=request.data['loc'], bussiness_name_id=business.pk).order_by('-date','-id')
-        all_sales = [{'number':i.pk, 'by':i.particular_user, 'supplier':i.supplier, 'date':i.date, 'description':i.description,
-                  'total':i.purchase_total, 'loc':i.location_address} for i in loc]
+        all_sales = []
     
     return Response(all_sales)
 
@@ -2813,8 +2801,7 @@ def fetch_transfer_from(request):
     if request.method == 'POST':
         business = models.bussiness.objects.get(bussiness_name=request.data['business'])
         transfer = models.inventory_transfer.objects.filter(bussiness_name_id=business.pk, from_loc=request.data['loc']).order_by('-date','-id')
-        all_transfer = [{'number':i.pk, 'by':i.particular_user, 'from':i.from_loc, 'date':i.date, 'description':i.description,
-                  'total':i.total_quantity, 'to':i.to_loc} for i in transfer]
+        all_transfer = []
     
     return Response(all_transfer)
 
@@ -2824,8 +2811,7 @@ def fetch_transfer_to(request):
     if request.method == 'POST':
         business = models.bussiness.objects.get(bussiness_name=request.data['business'])
         transfer = models.inventory_transfer.objects.filter(bussiness_name=business, to_loc=request.data['loc']).order_by('-date','-id')
-        all_transfer = [{'number':i.pk, 'by':i.particular_user, 'from':i.from_loc, 'date':i.date, 'description':i.description,
-                  'total':i.total_quantity, 'to':i.to_loc} for i in transfer]
+        all_transfer = []
     
     return Response(all_transfer)
 

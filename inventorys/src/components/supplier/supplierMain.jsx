@@ -105,6 +105,7 @@ const SupplierMain = ({ business, user, access }) => {
       contact: info.contact,
       email: info.email,
     });
+    setLoading(false);
     setShowEdit(true);
     document.addEventListener('mousedown', handleEditOverlay);
   };
@@ -134,6 +135,7 @@ const SupplierMain = ({ business, user, access }) => {
       }
 
       toast.success(response.message || 'supplier created successfully');
+      setLoading(false);
       setShowCreate(false);
       const updated = await api.post(
         'fetch_suppliers',
@@ -160,6 +162,11 @@ const SupplierMain = ({ business, user, access }) => {
   };
 
   const handleEdit = async () => {
+    if (!editData.originalName) {
+      toast.error('Original supplier name is missing.');
+      return;
+    };
+
     if (!editData.name) {
       toast.info('supplier`s Name can not be empty');
       return;
@@ -189,6 +196,7 @@ const SupplierMain = ({ business, user, access }) => {
       }
 
       toast.success(response.message || 'supplier edited successfully');
+      setLoading(false);
       setShowEdit(false);
       const updated = await api.post(
         'fetch_suppliers',

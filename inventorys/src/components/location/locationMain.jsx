@@ -83,6 +83,7 @@ const LocationMain = ({ business, user, access }) => {
         name: info.loc,
         description: info.description
       });
+      setLoading(false);
       setShowEdit(true);
       document.addEventListener('mousedown', handleEditOverlay);
     } catch (error) {
@@ -126,6 +127,7 @@ const LocationMain = ({ business, user, access }) => {
       }
 
       toast.success(response.message || 'Location created successfully');
+      setLoading(false);
 
       setShowCreate(false);
       const updated = await api.post(
@@ -150,6 +152,16 @@ const LocationMain = ({ business, user, access }) => {
   };
 
   const handleEdit = async () => {
+    if (loading){
+      toast.info('Please wait... saving changes');
+      return;
+    };
+
+    if (!editData.originalName) {
+      toast.error('Original Location Name is missing');
+      return;
+    }
+
     if (!editData.name) {
       toast.info('Location Name can not be empty');
       return;
@@ -179,6 +191,7 @@ const LocationMain = ({ business, user, access }) => {
       }
 
       toast.success(response.message || 'Location updated successfully');
+      setLoading(false);
 
       setShowEdit(false);
       const updated = await api.post(

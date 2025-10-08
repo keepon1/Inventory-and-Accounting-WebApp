@@ -182,8 +182,8 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
                     return {"status": "error", "message": f"{item_info.item_name} does not have enough quantity at {location}", "data": {}}
                 
                 else:
-                    item_info.quantity -= float(item['qty'])
-                    item_info.sales_price = float(item['price'])
+                    item_info.quantity -= int(item['qty'])
+                    item_info.sales_price = Decimal(str(item['price']))
                     item_info.last_sales = data['date']
 
                     cogs += Decimal(str(item['qty'])) * item_info.purchase_price
@@ -199,13 +199,13 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
                     })
 
                     loc_item.quantity -= Decimal(str(item['qty']))
-                    loc_item.sales_price = float(item['price'])
+                    loc_item.sales_price = Decimal(str(item['price']))
                     loc_item.purchase_price = Decimal(str(item_info.purchase_price))
                     loc_item.last_sales = data['date']
                     item_info.save()
                     loc_item.save()
 
-            sale_info.total_quantity = total_quantity
+            sale_info.total_quantity = Decimal(str(total_quantity))
             sale_info.cog = cogs
             sale_info.save()
 
@@ -300,6 +300,8 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
                 type="Sale", description=data.get('description', ''), debit=final_total, head=head
             )
 
+            if customer_query.debit is None:
+                customer_query.debit = Decimal("0")
             customer_query.debit += Decimal(str(final_total))
             customer_query.save()
 
@@ -350,6 +352,8 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
                     type="Cash Receipt", description=data.get('description', ''), credit=cash.amount, head=head
                 )
 
+                if customer_query.credit is None:
+                    customer_query.credit = Decimal("0")
                 customer_query.credit += Decimal(str(cash.amount))
                 customer_query.save()
 
@@ -437,6 +441,8 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
                     type="Cash Receipt", description=data.get('description', ''), credit=cash.amount, head=head
                 )
 
+                if customer_query.credit is None:
+                    customer_query.credit = Decimal("0")
                 customer_query.credit += Decimal(str(cash.amount))
                 customer_query.save()
 
@@ -523,8 +529,15 @@ def reverse_sales(business, user, company, number):
                 else:
                     customer = models.customer.objects.filter(pk=sale.customer_info.pk, bussiness_name=business_query).first()
 
-                customer.credit += sale.gross_total
-                customer.save()
+                if customer is not None:                  
+                    if customer.credit is None:
+                        customer.credit = Decimal("0")
+                    customer.credit += sale.gross_total
+                    customer.save()
+
+                else:
+                    logger.warning(f"Customer is None while reversing sale '{number}'.")
+                    return {"status": "error", "message": f"Customer not found while reversing sale '{number}'", "data": {}}
 
             except models.customer.DoesNotExist:
                 logger.warning(f"Customer '{sale.customer_name.strip() or sale.customer_info.name}' not found while reversing sale '{number}'.")
@@ -625,16 +638,22 @@ def reverse_sales(business, user, company, number):
                     head=ce.head
                 )
 
-            payments = models.cash_receipt.objects.filter(transaction_number=sale.code, bussiness_name=business_query, status=True)
+            payments = models.cash_receipt.objects.filter(transaction_number=sale.code, bussiness_name=business_query, is_reversed=False)
             for pay in payments:
-                pay.status = False
+                pay.status = "Reversed"
                 pay.is_reversed = True
                 pay.save()
 
             total_paid = sum(p.amount for p in payments)
-            customer = models.customer.objects.get(pk=customer.pk, bussiness_name=business_query)
-            customer.debit += Decimal(str(total_paid))
-            customer.save()
+            if customer is not None:
+                customer = models.customer.objects.get(pk=customer.pk, bussiness_name=business_query)
+                if customer.debit is None:
+                    customer.debit = Decimal("0")
+                customer.debit += Decimal(str(total_paid))
+                customer.save()
+            else:
+                logger.warning("Customer is None while processing reversal payments.")
+                return {"status": "error", "message": "Customer not found during reversal", "data": {}}
 
             sale.status = 'Reversed'
             sale.is_reversed = True

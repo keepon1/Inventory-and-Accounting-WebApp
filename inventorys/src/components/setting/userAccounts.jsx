@@ -117,6 +117,7 @@ const UserAccount = ({ business, user }) => {
 
             if (response.status === 'success') {
                 toast.success(response.message || 'User created successfully');
+                setLoading(false);
                 setShowCreate(false);
                 document.removeEventListener('mousedown', handleCreateOverlay);
 
@@ -149,6 +150,11 @@ const UserAccount = ({ business, user }) => {
     };
 
     const editUser = async () => {
+        if (!editData.originalName) {
+            toast.error('Original username is missing.');
+            return;
+        };
+
         if (!editData.user_name || editData.user_name === '') {
             toast.info('Username cannot be empty');
             return;
@@ -177,6 +183,7 @@ const UserAccount = ({ business, user }) => {
 
             if (response.status === 'success') {
                 toast.success(response.message || 'User updated successfully');
+                setLoading(false);
                 setShowEdit(false);
                 document.removeEventListener('mousedown', handleEditOverlay);
 

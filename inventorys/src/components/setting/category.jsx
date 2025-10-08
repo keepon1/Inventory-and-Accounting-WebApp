@@ -125,6 +125,7 @@ const CategoryMain = ({ business, user }) => {
                     return;
                 }
                 setCategories(update.data || []);
+                setLoading(false);
             }else{
                 toast.error(response.message || 'Error adding category');
                 setLoading(false);
@@ -162,6 +163,7 @@ const CategoryMain = ({ business, user }) => {
 
             if (response.status === 'success') {
                 toast.success(response.message || 'Category updated successfully');
+                setLoading(false);
                 setShowEdit(false);
                 document.addEventListener('mousedown', handleEditOverlay);
 

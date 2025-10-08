@@ -485,7 +485,7 @@ class Financial_Report:
                 net_profit = revenue - cogs - total_expenses
 
                 data.append({
-                    "period": y.name,
+                    "period": y.year,
                     "revenue": float(revenue),
                     "cogs": float(cogs),
                     "expenses": {e["account__name"]: float(e["total"]) for e in other_expenses_qs},
@@ -626,7 +626,6 @@ class Financial_Report:
     def pl_data(self):
         closed = self.closed_pl_data()
         current = self.current_pl_data()
-        print(current)
         return closed + current
 
 class Inventory_Valuation:
@@ -647,7 +646,7 @@ class Inventory_Valuation:
             current = models.month_period.objects.filter(start__lte=today, end__gte=today, is_closed=False, business=self.business).first()
             current_month = []
 
-            if self.end >= current.start:
+            if current and self.end >= current.start:
                 current_month = current
 
             closed_months = all_months.filter(is_closed=True)

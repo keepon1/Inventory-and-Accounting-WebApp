@@ -11,6 +11,7 @@ import {Link, useNavigate} from 'react-router-dom';
 import api from '../api';
 import enableKeyboardScrollFix from '../../utils/scroll';
 import { toast } from 'react-toastify';
+import { set } from 'date-fns';
 
 const MeasurementUnit = ({ business, user }) => {
     const [units, setUnits] = useState([]);
@@ -20,6 +21,7 @@ const MeasurementUnit = ({ business, user }) => {
     const [detail, setDetail] = useState({name: '', suffix: '', description:'' });
     const [editData, setEditData] = useState({ originalName: '', name: '', suffix: '', description:'' });
     const [errors, setErrors] = useState();
+    const [loading, setLoading] = useState(false);
     const overlayRef = useRef(null);
     const editOverlayRef = useRef(null);
 
@@ -93,6 +95,11 @@ const MeasurementUnit = ({ business, user }) => {
     };
 
     const addUnit = async() => {
+        if (loading) {
+            toast.info('Please wait...');
+            return;
+        };
+
         if (!detail.name || detail.name === ''){
             toast.info('Name can not be empty');
             return;
@@ -110,6 +117,7 @@ const MeasurementUnit = ({ business, user }) => {
         }
 
         try{
+            setLoading(true);
             const response = await api.post('add_measurement_unit', {business, detail:data, user});
             if (response.status === 'success'){
                 toast.success(response.message || 'Measurement unit added successfully');
@@ -125,9 +133,11 @@ const MeasurementUnit = ({ business, user }) => {
                     return;
                 }
                 setUnits(update.data || []);
+                setLoading(false);
                 
             }else{
                 toast.error(response.message || 'An error occurred while adding the measurement unit.');
+                setLoading(false);
             }
         }catch(error){
             toast.error('An error occurred while adding the measurement unit.');
@@ -139,6 +149,11 @@ const MeasurementUnit = ({ business, user }) => {
     };
 
     const editUnit = async () => {
+        if (loading) {
+            toast.info('Please wait...');
+            return;
+        };
+
         if (!editData.name || editData.name === ''){
             toast.info('Name can not be empty');
             return;
@@ -157,10 +172,12 @@ const MeasurementUnit = ({ business, user }) => {
         }
 
         try{
+            setLoading(true);
             const response = await api.post('edit_measurement_unit', {business, detail:data, user});
 
             if (response.status === 'success'){
                 toast.success(response.message || 'Measurement unit updated successfully');
+                setLoading(false);
                 setShowEdit(false);
                 document.addEventListener('mousedown', handleEditOverlay);
 
@@ -175,12 +192,13 @@ const MeasurementUnit = ({ business, user }) => {
                 setUnits(update.data || []);
             }else{
                 toast.error(response.message || 'An error occurred while updating the measurement unit.');
+                setLoading(false);
             }
         }catch(error){
             toast.error('An error occurred while updating the measurement unit.');
             console.error('Error updating measurement unit:', error);
+            setLoading(false);
             if (error.response?.status === 401) {
-                localStorage.removeItem('access');
                 navigate('/sign_in');
             }
         };

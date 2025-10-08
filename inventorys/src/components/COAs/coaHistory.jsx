@@ -64,8 +64,8 @@ const AccountHistory = ({ business, user }) => {
           <span className="info-values">{account?.code}</span>
         </div>
         <div className="account-info-item">
-          <span className="info-label">Account Name:</span>
-          <span className="info-values">{account?.name}</span>
+          <span className="info-label">Account Type:</span>
+          <span className="info-values">{account?.type}</span>
         </div>
         <div className="account-info-item">
           <span className="info-label">Current Balance:</span>

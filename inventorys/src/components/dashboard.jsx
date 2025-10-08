@@ -139,7 +139,10 @@ const Dashboard = () => {
             <button className="sidebar-toggle" onClick={toggleSidebar} aria-label="Toggle sidebar">
               <FontAwesomeIcon icon={faChevronLeft} className={sidebarExpanded ? 'expanded' : ''} />
             </button>
-            <span className="business-name">@{business}</span>
+          </div>
+
+          <div className="header-center">
+            <span className="business-name">{business}</span>
           </div>
 
           <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">

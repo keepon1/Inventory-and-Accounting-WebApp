@@ -30,7 +30,6 @@ const AddBusiness = () => {
     const fetchBusinesses = async () => {
       try {
         const response = await api.post('select_bussiness', {business, user});
-        console.log(response);
 
         const businessInfo = response.data.business[0];
         setBusinessInfo(businessInfo);

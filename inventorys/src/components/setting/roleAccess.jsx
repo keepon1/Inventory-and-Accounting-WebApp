@@ -110,15 +110,27 @@ const RolePermission = ({ business, user }) => {
     };
 
     const openEdit = async (username) => {
+        if (loading){
+            toast.info('Please wait... operation in progress');
+            return;
+        };
+
         try {
             const respons = await api.post('get_user_access', { business, username, user });
-
-            const response = respons.data;
 
             if (respons.status === 'error') {
                 toast.error(respons.message || 'Failed to fetch user details');
                 return;
+            };
+
+            const response = respons.data;
+
+            if (!response) {
+                toast.error('User details not found');
+                return;
             }
+
+            setLoading(false);
 
             setEditData({
                 user_name: response.user_name,
@@ -156,6 +168,7 @@ const RolePermission = ({ business, user }) => {
         } catch (error) {
             console.error(error);
             toast.error('An error occurred while fetching user details');
+            setLoading(false);
             if (error.response?.status === 401) {
                 navigate('/sign_in');
             }
@@ -243,6 +256,7 @@ const RolePermission = ({ business, user }) => {
 
             if (response.status === 'success') {
                 toast.success(response.message || `${data.user_name} permissions updated successfully`);
+                setLoading(false);
                 setShowEdit(false);
                 document.removeEventListener('mousedown', handleEditOverlay);
 
