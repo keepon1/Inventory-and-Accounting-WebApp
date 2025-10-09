@@ -2094,7 +2094,6 @@ def fetch_items_for_select(request):
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-@parser_classes([MultiPartParser])
 def verify_item(request):
     if request.method == 'POST':
         data = request.data
@@ -2117,13 +2116,12 @@ def verify_item(request):
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-@parser_classes([MultiPartParser])
 def add_items(request):
     if request.method == 'POST':
         data = request.data
         business = data['business']
         user = data['user']
-        code  =data.getlist('code')
+        code = data.getlist('code')
         brand = data.getlist('brand')
         item_name = data.getlist('name')
         model = data.getlist('model')

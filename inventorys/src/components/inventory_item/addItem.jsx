@@ -135,22 +135,25 @@ const AddItem = (props) => {
         try {
             setLoading(true);
 
-            const itemsPayload = fullList.map((item) => ({
-                code: item.code,
-                brand: item.brand,
-                name: item.name,
-                model: item.model,
-                description: item.description,
-                reorder: item.reorder || 0,
-                unit: item.unit.value,
-                category: item.category.value,
-                status: item.status?.value || ''
-            }));
+            // send as form arrays so backend can use request.data.getlist(...)
+            const formData = new FormData();
+            fullList.forEach(item => {
+                formData.append('code', item.code || '');
+                formData.append('brand', item.brand || '');
+                formData.append('name', item.name || '');
+                formData.append('model', item.model || '');
+                formData.append('description', item.description || '');
+                formData.append('reorder', item.reorder || 0);
+                formData.append('category', item.category?.value || '');
+                formData.append('unit', item.unit?.value || '');
+                formData.append('status', item.status?.value || '');
+            });
 
-            const response = await api.post('add_items', {
-                items: itemsPayload,
-                business: props.business,
-                user: props.user
+            formData.append('business', props.business);
+            formData.append('user', props.user);
+
+            const response = await api.post('add_items', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
 
             if (response.status === "success") {
@@ -251,6 +254,7 @@ const AddItem = (props) => {
                                 <th>Model No.</th>
                                 <th>Item Code</th>
                                 <th>Item Name</th>
+                                <th>Status</th>
                                 <th>Description</th>
                                 <th>Unit</th>
                                 <th>Reorder level</th>
@@ -265,6 +269,7 @@ const AddItem = (props) => {
                                     <td>{item.model}</td>
                                     <td>{item.code}</td>
                                     <td>{item.name}</td>
+                                    <td>{item.status?.label || item.status?.value}</td>
                                     <td>{item.description}</td>
                                     <td>{item.unit.value}</td>
                                     <td>{item.reorder}</td>
