@@ -125,6 +125,7 @@ const CreateTransfer = ({ business, user, access }) => {
       ]);
 
       toast.success("Item added to transfer list");
+      setLoading(false);
       setCurrentItem({ item: null, qty: 1 });
     } catch (error) {
       toast.error("An error occurred while adding item");
@@ -186,6 +187,7 @@ const CreateTransfer = ({ business, user, access }) => {
             window.print();
             navigate(-1);
           }, 500);
+          setLoading(false);
         } else {
           navigate(-1);
         }

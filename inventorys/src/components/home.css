@@ -40,7 +40,7 @@ table, input {
 .container {
   width: 98%;
   margin: 0 auto;
-  padding: 0 0px;
+  padding:0% 4px;
 }
 
 .btn {
@@ -150,7 +150,7 @@ table, input {
   background: none;
   border: none;
   color: var(--dark);
-  font-size: 1.2rem;
+  font-size: 1.6rem;
   cursor: pointer;
   display: none;
   z-index: 1001;

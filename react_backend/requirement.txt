@@ -9,3 +9,7 @@ django-environ
 celery
 redis
 django-redis
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client

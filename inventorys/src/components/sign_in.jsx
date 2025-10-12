@@ -254,6 +254,8 @@ function SignIn() {
                       }
                     }}
                     onError={() => setErrors({ general: "Google sign-in failed" })}
+                    useOneTap={false}
+                    prompt='select_account'
                   />
                 </div>
 
