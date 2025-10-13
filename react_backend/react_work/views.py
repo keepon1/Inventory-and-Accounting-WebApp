@@ -710,7 +710,7 @@ def main_dashboard(request):
                 'location_access':user.location_access, 'customer_access':user.customer_access, 'supplier_access':user.supplier_access,
                 'cash_access':user.cash_access, 'payment_access':user.payment_access, 'report_access':user.report_access, 'settings_access':user.settings_access,
                 'edit_access':user.edit_access, 'purchase_price_access':user.purchase_price_access, 'dashboard_access':user.dashboard_access,
-                'add_user_access':user.add_user_access, 'give_access':user.give_access, 'info_access':user.info_access}
+                'add_user_access':user.add_user_access, 'give_access':user.give_access, 'info_access':user.info_access, 'receive_access':user.receive_access}
 
         return Response(access)
 
@@ -1857,7 +1857,7 @@ def get_user_access(request):
             'customer_access': cu.customer_access, 'supplier_access': cu.supplier_access, 'cash_access': cu.cash_access,
             'payment_access': cu.payment_access, 'report_access': cu.report_access, 'settings_access': cu.settings_access,
             'edit_access': cu.edit_access, 'purchase_price_access': cu.purchase_price_access, 'dashboard_access': cu.dashboard_access,
-            'add_user_access': cu.add_user_access, 'give_access': cu.give_access, 'info_access': cu.info_access
+            'add_user_access': cu.add_user_access, 'give_access': cu.give_access, 'info_access': cu.info_access, 'recieve_access': cu.receive_access
         }
 
         return Response({'status': 'success', 'message': 'User access fetched', 'data': result})
@@ -1934,6 +1934,7 @@ def edit_user_permissions(request):
             user_obj.add_user_access = data['add_user_access']
             user_obj.give_access = data['give_access']
             user_obj.info_access = data['info_access']
+            user_obj.receive_access = data['recieve_access']
             user_obj.save()
 
         return Response({'status': 'success', 'message': f'{data.get('user_name')}`s permissions updated successfully', 'data': {}})
@@ -2324,9 +2325,13 @@ def view_sale(request):
             sales = {'customer':sales.customer_name, 'number':sales.code, 'issueDate':sales.date, 'dueDate':sales.due_date, 'contact':sales.customer_info.contact, 
                     'address':sales.customer_info.address, 'description':sales.description, 'by':sales.created_by.user_name, 'total':sales.gross_total, 'customer_info':sales.customer_info.name,
                     'loc':sales.location_address.location_name, 'discount':sales.discount_percentage, 'tax_levy':sales.tax_levy_types, 'type':sales.type, 'status':sales.status}
+            
             items = [{'category':i.item_name.category.name, 'model':i.item_name.model, 'item':i.item_name.item_name, 'brand':i.item_name.brand, 'code':i.item_name.code,
                     'unit':i.item_name.unit.suffix, 'qty':i.quantity, 'price':i.sales_price, 'total':i.quantity * i.purchase_price} for i in items]
-            data = {'customer':sales, 'items':items }
+            
+            company = {'business':business_query.bussiness_name, 'contact':business_query.telephone, 'email':business_query.email, 'address':business_query.address}
+
+            data = {'customer':sales, 'items':items, 'company': company }
             
             return Response({'status':'success', 'data':data})
         

@@ -78,6 +78,7 @@ class current_user(models.Model):
     add_user_access = models.BooleanField(default=False)
     give_access = models.BooleanField(default=False)
     info_access = models.BooleanField(default=False)
+    receive_access = models.BooleanField(default=False)
 
     class Meta:
         indexes = [

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimesCircle, faEdit, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import Select from 'react-select';
@@ -7,7 +7,7 @@ import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
 import { customerLoadOptions, itemsLoadOptions, sourceLocationsLoadOptions, taxLevyLoadOptions } from "../../utils/fetchData";
 import { toast } from "react-toastify";
-import { set } from "date-fns";
+import { add, set } from "date-fns";
 
 
 const CreateSales = ({ business, user, access }) => {
@@ -23,7 +23,7 @@ const CreateSales = ({ business, user, access }) => {
     selectedLevi: [],
     saleType: 'regular',
     account: null,
-    terms: '',
+    terms: {value: 'Full Payment', label: 'Full Payment'},
     partPaymentAmount: 0,
   });
   const [items, setItems] = useState([]);
@@ -36,6 +36,9 @@ const CreateSales = ({ business, user, access }) => {
   const [termOption, setTermOption] = useState({account:false, amount:false, due:false});
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [printData, setPrintData] = useState(null);
+  
+  const printRef = useRef();
   const navigate = useNavigate();
 
   const handleSaleTypeChange = (type) => {
@@ -122,6 +125,11 @@ const CreateSales = ({ business, user, access }) => {
       return;
     }
 
+    if (!sales.terms) {
+      toast.info('Please select payment terms');
+      return;
+    }
+
     if (!sales.account && sales.terms.label !== 'Credit') {
       toast.info('Please select account');
       return;
@@ -196,8 +204,7 @@ const CreateSales = ({ business, user, access }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (print = false) => {
     if (!salesItems.length) {
       toast.info('Please add at least one item');
       return;
@@ -249,8 +256,37 @@ const CreateSales = ({ business, user, access }) => {
         formData,
       );
 
-      if (response.status === 'success'){toast.success(response.message || 'Sales was created successfully'); navigate(-1);}
-      else{
+      if (response.status === 'success'){
+        toast.success(response.message || 'Sales was created successfully');
+        
+        if (print) {
+          setPrintData({
+            id: response.data.code,
+            business,
+            user,
+            customer: typeof sales.customer === 'object' ? sales.customer.label : sales.customer,
+            date: sales.issueDate,
+            dueDate: sales.dueDate,
+            location: sales.location.label,
+            description: sales.description,
+            discount: sales.discount,
+            terms: typeof sales.terms === 'object' ? sales.terms.label : sales.terms,
+            account: sales.account?.label || '',
+            partPaymentAmount: sales.partPaymentAmount,
+            address: response.data.address,
+            phone: response.data.phone,
+            email: response.data.email,
+            items: salesItems,
+            totals: calculateTotals()
+          });
+          setTimeout(() => {
+            window.print();
+            navigate(-1);
+          }, 500);
+        } else {
+          navigate(-1);
+        }
+      } else{
         toast.error(response.message || 'Failed to create sales invoice');
         setLoading(false);
         return;
@@ -268,404 +304,509 @@ const CreateSales = ({ business, user, access }) => {
   const totals = calculateTotals();
 
   return (
-    <div className="ivi_display_mainbox">
-      <div className="ia_submain_box">
-        <div className="ia_description_box">
-          <div className="header-back">
-            <Link to="../" className="back-link">
-              <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
-            </Link>
-            <h2 className="ia_description_word">Create Sales Invoice</h2>
-          </div>
-        </div>
-
-        <div className="sale-type-selector">
-          <label className="sale-type-label">
-            <input
-              type="radio"
-              value="regular"
-              checked={sales.saleType === 'regular'}
-              onChange={() => handleSaleTypeChange('regular')}
-            />
-            Regular Sale
-          </label>
-          <label className="sale-type-label">
-            <input
-              type="radio"
-              value="registered"
-              checked={sales.saleType === 'registered'}
-              onChange={() => handleSaleTypeChange('registered')}
-            />
-            Sale to Registered Customer
-          </label>
-        </div>
-
-        <div className="ivi_display_box">
-          {sales.saleType === 'regular' ? (
-            <>
-            <div className="ivi_subboxes">
-                <div className="ivi_holder_box">
-                <label className="ivi_label">Customer Name</label>
-                <input
-                    type="text"
-                    className="ivi_input"
-                    value={sales.customer}
-                    onChange={e => [setSales({...sales, customer: e.target.value}), setErrors('')]}
-                />
-                {errors.customer && <div className="error-message">Type customer's name</div>}
-                </div>
-            
-                <div className="ivi_holder_box">
-                <label className="ivi_label">Account</label>
-                <Select
-                  options={accounts}
-                  className="ivi_select"
-                  classNamePrefix="ivi_select"
-                  value={sales.account}
-                  onChange={selected => [setSales({...sales, account: selected}), setErrors('')]}
-                  required
-                />
-                {errors.account && <div className="error-message">{errors.account}</div>}
+    <>
+      {!printData && (
+        <div className="ivi_display_mainbox">
+          <div className="ia_submain_box">
+            <div className="ia_description_box">
+              <div className="header-back">
+                <Link to="../" className="back-link">
+                  <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+                </Link>
+                <h2 className="ia_description_word">Create Sales Invoice</h2>
               </div>
             </div>
 
-            <div className="ivi_subboxes">
-                <div className="ivi_holder_box">
-                <label className="ivi_label">Date</label>
+            <div className="sale-type-selector">
+              <label className="sale-type-label">
                 <input
-                    type="date"
-                    className="ivi_input"
-                    value={sales.issueDate}
-                    onChange={e => setSales({...sales, issueDate: e.target.value})}
+                  type="radio"
+                  value="regular"
+                  checked={sales.saleType === 'regular'}
+                  onChange={() => handleSaleTypeChange('regular')}
                 />
-                </div>  
-            
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Location*</label>
-                  <AsyncSelect
-                    cacheOptions
-                    defaultOptions={locations}
-                    className="ivi_select"
-                    classNamePrefix="ivi_select"
-                    loadOptions={sourceLocationsLoadOptions(business, user)}
-                    value={sales.location}
-                    onChange={selected => [setSales({...sales, location: selected}), setErrors({})]}
-                  />
-                  {errors.location && <div className="error-message">{errors.locations}</div>}
-                </div>
+                Regular Sale
+              </label>
+              <label className="sale-type-label">
+                <input
+                  type="radio"
+                  value="registered"
+                  checked={sales.saleType === 'registered'}
+                  onChange={() => handleSaleTypeChange('registered')}
+                />
+                Sale to Registered Customer
+              </label>
             </div>
 
-            <div className="ivi_subboxes">
+            <div className="ivi_display_box">
+              {sales.saleType === 'regular' ? (
+                <>
+                <div className="ivi_subboxes">
+                    <div className="ivi_holder_box">
+                    <label className="ivi_label">Customer Name</label>
+                    <input
+                        type="text"
+                        className="ivi_input"
+                        value={sales.customer}
+                        onChange={e => [setSales({...sales, customer: e.target.value}), setErrors('')]}
+                    />
+                    {errors.customer && <div className="error-message">Type customer's name</div>}
+                    </div>
+                
+                    <div className="ivi_holder_box">
+                    <label className="ivi_label">Account</label>
+                    <Select
+                      options={accounts}
+                      className="ivi_select"
+                      classNamePrefix="ivi_select"
+                      value={sales.account}
+                      onChange={selected => [setSales({...sales, account: selected}), setErrors('')]}
+                      required
+                    />
+                    {errors.account && <div className="error-message">{errors.account}</div>}
+                  </div>
+                </div>
+
+                <div className="ivi_subboxes">
+                    <div className="ivi_holder_box">
+                    <label className="ivi_label">Date</label>
+                    <input
+                        type="date"
+                        className="ivi_input"
+                        value={sales.issueDate}
+                        onChange={e => setSales({...sales, issueDate: e.target.value})}
+                    />
+                    </div>  
+                
+                    <div className="ivi_holder_box">
+                      <label className="ivi_label">Location*</label>
+                      <AsyncSelect
+                        cacheOptions
+                        defaultOptions={locations}
+                        className="ivi_select"
+                        classNamePrefix="ivi_select"
+                        loadOptions={sourceLocationsLoadOptions(business, user)}
+                        value={sales.location}
+                        onChange={selected => [setSales({...sales, location: selected}), setErrors({})]}
+                      />
+                      {errors.location && <div className="error-message">{errors.locations}</div>}
+                    </div>
+                </div>
+
+                <div className="ivi_subboxes">
+                    <div className="ivi_holder_box">
+                    <label className="ivi_label">Discount (%)</label>
+                    <input
+                        type="number"
+                        className="ivi_input"
+                        min="0"
+                        max="100"
+                        value={sales.discount}
+                        onChange={e => setSales({...sales, discount: e.target.value})}
+                    />
+                    </div>
+                
+                    <div className="ivi_holder_box">
+                      <label className="ivi_label">Taxes / Levies</label>
+                      <AsyncSelect
+                        isMulti
+                        cacheOptions
+                        defaultOptions={taxLevy}
+                        className="ivi_select"
+                        classNamePrefix="ivi_select"
+                        loadOptions={taxLevyLoadOptions(business)}
+                        value={sales.selectedLevi}
+                        onChange={selected => setSales({...sales, selectedLevi: selected})}
+                      />
+                    </div>                
+                </div>
+                </>
+              ):(
+                <>
+                <div className="ivi_subboxes">
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Customer</label>
+                      <AsyncSelect
+                        cacheOptions
+                        defaultOptions={customer}
+                        className="ivi_select"
+                        classNamePrefix="ivi_select"
+                        loadOptions={customerLoadOptions(business)}
+                        value={sales.supplier}
+                        onChange={selected => setSales({...sales, customer: selected})}
+                      />
+                      {errors.customer && <div className="error-message">{errors.customer}</div>}
+                  </div>
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Description</label>
+                    <input
+                      type="text"
+                      className="ivi_input"
+                      value={sales.description}
+                      onChange={e => setSales({...sales, description: e.target.value})}
+                    />
+                  </div>
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Payment Terms</label>
+                    <Select
+                      options={[
+                        { value: 'Full Payment', label: 'Full Payment' },
+                        { value: 'Part Payment', label: 'Part Payment' },
+                        { value: 'Credit', label: 'Credit' },
+                      ]}
+                      className="ivi_select"
+                      classNamePrefix="ivi_select"
+                      value={sales.terms}
+                      onChange={(selected) => {
+                        if (selected.value === 'Full Payment') {
+                          setTermOption({ ...termOption, account: true, amount: false, due: false });
+                        } else if (selected.value === 'Part Payment') {
+                          setTermOption({ ...termOption, account: true, amount: true, due: true });
+                        } else if (selected.value === 'Credit') {
+                          setTermOption({ ...termOption, account: false, amount: false, due: true });
+                        }
+
+                        setSales({ ...sales, terms: selected });
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="ivi_subboxes">
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Date</label>
+                    <input
+                      type="date"
+                      className="ivi_input"
+                      value={sales.issueDate}
+                      onChange={e => setSales({...sales, issueDate: e.target.value})}
+                    />
+                  </div>
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Location*</label>
+                    <AsyncSelect
+                      cacheOptions
+                      defaultOptions={locations}
+                      className="ivi_select"
+                      classNamePrefix="ivi_select"
+                      loadOptions={sourceLocationsLoadOptions(business, user)}
+                      value={sales.location}
+                      onChange={selected => [setSales({...sales, location: selected}), setErrors({})]}
+                    />
+                    {errors.location && <div className="error-message">{errors.locations}</div>}
+                  </div>
+                  {termOption.account &&
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Payment Method</label>
+                    <Select
+                      options={accounts}
+                      className="ivi_select"
+                      classNamePrefix="ivi_select"
+                      value={sales.account}
+                      onChange={selected => setSales({...sales, account: selected})}
+                      required
+                    />
+
+                    {errors.account && <div className="error-message">{errors.account}</div>}
+                  </div>}
+
+                  {termOption.due &&
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Due Date</label>
+                    <input
+                      type="date"
+                      className="ivi_input"
+                      min="0"
+                      step="0.01"
+                      value={sales.dueDate}
+                      onChange={e => setSales({...sales, dueDate: e.target.value})}
+                    />
+                  </div>}
+                </div>
+
+                <div className="ivi_subboxes">
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Discount (%)</label>
+                    <input
+                      type="number"
+                      className="ivi_input"
+                      min="0"
+                      max="100"
+                      value={sales.discount}
+                      onChange={e => setSales({...sales, discount: e.target.value})}
+                    />
+                  </div>
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Taxes / Levies</label>
+                      <AsyncSelect
+                        cacheOptions
+                        isMulti
+                        defaultOptions={taxLevy}
+                        className="ivi_select"
+                        classNamePrefix="ivi_select"
+                        loadOptions={taxLevyLoadOptions(business)}
+                        value={sales.selectedLevi}
+                        onChange={selected => setSales({...sales, selectedLevi: selected})}
+                      />
+                  </div>
+                  {termOption.amount &&
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Part Payment Amount</label>
+                    <input
+                      type="number"
+                      className="ivi_input"
+                      min="0"
+                      step="0.01"
+                      value={sales.partPaymentAmount}
+                      onChange={e => setSales({...sales, partPaymentAmount: e.target.value})}
+                    />
+                  </div>}
+                </div>
+                </>
+              )}
+            </div>
+
+            <div className="ivi_display_box" style={{ marginTop: '1rem' }}>
+              <div className="ivi_subboxes">
                 <div className="ivi_holder_box">
-                <label className="ivi_label">Discount (%)</label>
-                <input
+                  <label className="ivi_label">Select Item*</label>
+                  <AsyncSelect
+                    cacheOptions
+                    defaultOptions={items}
+                    className="ivi_select"
+                    classNamePrefix="ivi_select"
+                    loadOptions={itemsLoadOptions(business, user, sales.location?.value || `''`)}
+                    value={currentItem.item}
+                    onChange={selected => [setCurrentItem({...currentItem, item: selected, price:selected.price}), setErrors({})]}
+                  />
+                  {errors.items && <div className="error-message">{errors.items}</div>}
+                </div>
+              </div>
+                
+              <div className="ivi_subboxes">
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Quantity*</label>
+                  <input
+                    type="number"
+                    className="ivi_input"
+                    min="1"
+                    value={currentItem.qty}
+                    onChange={e => [setCurrentItem({...currentItem, qty: e.target.value}), setErrors({})]}
+                  />
+                  {errors.quantity && <div className="error-message">{errors.quantity}</div>}
+                </div>
+              </div>
+
+              <div className="ivi_subboxes">
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Unit Price*</label>
+                  <input
                     type="number"
                     className="ivi_input"
                     min="0"
-                    max="100"
-                    value={sales.discount}
-                    onChange={e => setSales({...sales, discount: e.target.value})}
-                />
+                    step="0.01"
+                    value={currentItem.price}
+                    onChange={e => setCurrentItem({...currentItem, price: e.target.value})}
+                    disabled={!access.purchase_price_access && !access.admin}
+                  />
                 </div>
-            
-                <div className="ivi_holder_box">
-                  <label className="ivi_label">Taxes / Levies</label>
-                  <AsyncSelect
-                    isMulti
-                    cacheOptions
-                    defaultOptions={taxLevy}
-                    className="ivi_select"
-                    classNamePrefix="ivi_select"
-                    loadOptions={taxLevyLoadOptions(business)}
-                    value={sales.selectedLevi}
-                    onChange={selected => setSales({...sales, selectedLevi: selected})}
-                  />
-                </div>                
-            </div>
-            </>
-          ):(
-            <>
-            <div className="ivi_subboxes">
-              <div className="ivi_holder_box">
-                <label className="ivi_label">Customer</label>
-                  <AsyncSelect
-                    cacheOptions
-                    defaultOptions={customer}
-                    className="ivi_select"
-                    classNamePrefix="ivi_select"
-                    loadOptions={customerLoadOptions(business)}
-                    value={sales.supplier}
-                    onChange={selected => setSales({...sales, customer: selected})}
-                  />
-                  {errors.customer && <div className="error-message">{errors.customer}</div>}
-              </div>
-              <div className="ivi_holder_box">
-                <label className="ivi_label">Description</label>
-                <input
-                  type="text"
-                  className="ivi_input"
-                  value={sales.description}
-                  onChange={e => setSales({...sales, description: e.target.value})}
-                />
-              </div>
-              <div className="ivi_holder_box">
-                <label className="ivi_label">Payment Terms</label>
-                <Select
-                  options={[
-                    { value: 'Full Payment', label: 'Full Payment' },
-                    { value: 'Part Payment', label: 'Part Payment' },
-                    { value: 'Credit', label: 'Credit' },
-                  ]}
-                  className="ivi_select"
-                  classNamePrefix="ivi_select"
-                  value={sales.terms}
-                  onChange={(selected) => {
-                    if (selected.value === 'Full Payment') {
-                      setTermOption({ ...termOption, account: true, amount: false, due: false });
-                    } else if (selected.value === 'Part Payment') {
-                      setTermOption({ ...termOption, account: true, amount: true, due: true });
-                    } else if (selected.value === 'Credit') {
-                      setTermOption({ ...termOption, account: false, amount: false, due: true });
-                    }
-
-                    setSales({ ...sales, terms: selected });
-                  }}
-                />
               </div>
             </div>
 
-            <div className="ivi_subboxes">
-              <div className="ivi_holder_box">
-                <label className="ivi_label">Date</label>
-                <input
-                  type="date"
-                  className="ivi_input"
-                  value={sales.issueDate}
-                  onChange={e => setSales({...sales, issueDate: e.target.value})}
-                />
-              </div>
-              <div className="ivi_holder_box">
-                <label className="ivi_label">Location*</label>
-                <AsyncSelect
-                  cacheOptions
-                  defaultOptions={locations}
-                  className="ivi_select"
-                  classNamePrefix="ivi_select"
-                  loadOptions={sourceLocationsLoadOptions(business, user)}
-                  value={sales.location}
-                  onChange={selected => [setSales({...sales, location: selected}), setErrors({})]}
-                />
-                {errors.location && <div className="error-message">{errors.locations}</div>}
-              </div>
-              {termOption.account &&
-              <div className="ivi_holder_box">
-                <label className="ivi_label">Payment Method</label>
-                <Select
-                  options={accounts}
-                  className="ivi_select"
-                  classNamePrefix="ivi_select"
-                  value={sales.account}
-                  onChange={selected => setSales({...sales, account: selected})}
-                  required
-                />
-
-                {errors.account && <div className="error-message">{errors.account}</div>}
-              </div>}
-
-              {termOption.due &&
-              <div className="ivi_holder_box">
-                <label className="ivi_label">Due Date</label>
-                <input
-                  type="date"
-                  className="ivi_input"
-                  min="0"
-                  step="0.01"
-                  value={sales.dueDate}
-                  onChange={e => setSales({...sales, dueDate: e.target.value})}
-                />
-              </div>}
+            <div className="form-actions">
+              <button 
+                type="button" 
+                className="btn btn-outline"
+                onClick={handleAddItem}
+              >
+                 Preview
+              </button>
             </div>
 
-            <div className="ivi_subboxes">
-              <div className="ivi_holder_box">
-                <label className="ivi_label">Discount (%)</label>
-                <input
-                  type="number"
-                  className="ivi_input"
-                  min="0"
-                  max="100"
-                  value={sales.discount}
-                  onChange={e => setSales({...sales, discount: e.target.value})}
-                />
-              </div>
-              <div className="ivi_holder_box">
-                <label className="ivi_label">Taxes / Levies</label>
-                  <AsyncSelect
-                    cacheOptions
-                    isMulti
-                    defaultOptions={taxLevy}
-                    className="ivi_select"
-                    classNamePrefix="ivi_select"
-                    loadOptions={taxLevyLoadOptions(business)}
-                    value={sales.selectedLevi}
-                    onChange={selected => setSales({...sales, selectedLevi: selected})}
-                  />
-              </div>
-              {termOption.amount &&
-              <div className="ivi_holder_box">
-                <label className="ivi_label">Part Payment Amount</label>
-                <input
-                  type="number"
-                  className="ivi_input"
-                  min="0"
-                  step="0.01"
-                  value={sales.partPaymentAmount}
-                  onChange={e => setSales({...sales, partPaymentAmount: e.target.value})}
-                />
-              </div>}
+            <div className="ia_table_box">
+              <table className="ia_main_table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Code</th>
+                    <th>Brand</th>
+                    <th>Model</th>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Unit</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                    <th className='action-width'>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {salesItems.map((item, index) => (
+                    <tr key={index}>
+                      <td>{item.category__name}</td>
+                      <td>{item.code}</td>
+                      <td>{item.brand}</td>
+                      <td>{item.model}</td>
+                      <td>{item.name}</td>
+                      <td>{item.qty}</td>
+                      <td>{item.unit__suffix}</td>
+                      <td>GHS {item.price}</td>
+                      <td>GHS {(item.qty * item.price).toFixed(2)}</td>
+                      <td>
+                        <FontAwesomeIcon
+                          icon={faEdit}
+                          className="item_action"
+                          onClick={() => {
+                            setCurrentItem({
+                              item: salesItems.find(i => i.code === item.code),
+                              qty: item.qty,
+                              price: item.price
+                            });
+                            setSalesItems(prev => prev.filter((_, i) => i !== index));
+                          }}
+                        />
+                        <FontAwesomeIcon
+                          icon={faTimesCircle}
+                          className="item_action"
+                          onClick={() => setSalesItems(prev => prev.filter((_, i) => i !== index))}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            </>
-          )}
-        </div>
 
-        <div className="ivi_display_box" style={{ marginTop: '1rem' }}>
-          <div className="ivi_subboxes">
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Select Item*</label>
-              <AsyncSelect
-                cacheOptions
-                defaultOptions={items}
-                className="ivi_select"
-                classNamePrefix="ivi_select"
-                loadOptions={itemsLoadOptions(business, user, sales.location?.value || `''`)}
-                value={currentItem.item}
-                onChange={selected => [setCurrentItem({...currentItem, item: selected, price:selected.price}), setErrors({})]}
-              />
-              {errors.items && <div className="error-message">{errors.items}</div>}
+            <div className="ivi_display_box totals-section">
+              <div className="total-row">
+                <span>Subtotal:</span>
+                <span>GHS {totals.subtotal.toFixed(2)}</span>
+              </div>
+              <div className="total-row">
+                <span>Discount ({sales.discount}%):</span>
+                <span>- GHS {totals.discountAmount.toFixed(2)}</span>
+              </div>
+              {sales.selectedLevi.map(levy => (
+                <div className="total-row" key={levy.value}>
+                  <span>{levy.label}:</span>
+                  <span>+ GHS {(totals.netTotal * (levy.rate/100)).toFixed(2)}</span>
+                </div>
+              ))}
+              <div className="total-row grand-total">
+                <span>Grand Total:</span>
+                <span>{totals.grandTotal.toFixed(2)}</span>
+              </div>
             </div>
-          </div>
-            
-          <div className="ivi_subboxes">
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Quantity*</label>
-              <input
-                type="number"
-                className="ivi_input"
-                min="1"
-                value={currentItem.qty}
-                onChange={e => [setCurrentItem({...currentItem, qty: e.target.value}), setErrors({})]}
-              />
-              {errors.quantity && <div className="error-message">{errors.quantity}</div>}
-            </div>
-          </div>
 
-          <div className="ivi_subboxes">
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Unit Price*</label>
-              <input
-                type="number"
-                className="ivi_input"
-                min="0"
-                step="0.01"
-                value={currentItem.price}
-                onChange={e => setCurrentItem({...currentItem, price: e.target.value})}
-                disabled={!access.purchase_price_access && !access.admin}
-              />
+            <div className="ia_add_item_mbox">
+              <button className="btn btn-outline" onClick={() => handleSubmit(false)}>
+                Create Sales Invoice
+              </button>
+              <button 
+                className="btn btn-outline" 
+                style={{ marginLeft: "1rem" }}
+                onClick={() => handleSubmit(true)}
+              >
+                Create & Print
+              </button>
             </div>
           </div>
         </div>
+      )}
 
-        <div className="form-actions">
-          <button 
-            type="button" 
-            className="btn btn-outline"
-            onClick={handleAddItem}
-          >
-             Preview
-          </button>
-        </div>
+      {printData && (
+        <div ref={printRef} className="print-container">
+          <div style={{ textAlign: "center", marginBottom: "1rem" }}>
+            <h2 style={{ margin: 0 }}>{printData.business}</h2>
+            <h3 style={{ margin: "0.5rem 0" }}>SALES INVOICE</h3>
+          </div>
 
-        <div className="ia_table_box">
-          <table className="ia_main_table">
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
+            <div style={{ textAlign: "left" }}>
+              <h4>Company Info</h4>
+              {printData.address && <p><b>Address:</b> {printData.address}</p>}
+              {printData.phone && <p><b>Phone:</b> {printData.phone}</p>}
+              {printData.email && <p><b>Email:</b> {printData.email}</p>}
+              {printData.location && <p><b>Location:</b> {printData.location}</p>}
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <h3>Invoice To</h3>
+              <p><b>Invoice #:</b> {printData.id}</p>
+              <p><b>Customer:</b> {printData.customer}</p>
+              <p><b>Date:</b> {printData.date}</p>
+              <p><b>Due Date:</b> {printData.dueDate}</p>
+              <p><b>Payment Terms:</b> {printData.terms}</p>
+              {printData.description && <p><b>Description:</b> {printData.description}</p>}
+            </div>
+          </div>
+
+          <table className="ia_main_table" style={{ marginTop: "1rem", width: "100%" }}>
             <thead>
               <tr>
-                <th>Category</th>
-                <th>Code</th>
-                <th>Brand</th>
-                <th>Model</th>
                 <th>Item</th>
                 <th>Qty</th>
-                <th>Unit</th>
                 <th>Unit Price</th>
                 <th>Total</th>
-                <th className='action-width'>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {salesItems.map((item, index) => (
-                <tr key={index}>
-                  <td>{item.category__name}</td>
-                  <td>{item.code}</td>
-                  <td>{item.brand}</td>
-                  <td>{item.model}</td>
+              {printData.items.map((item, idx) => (
+                <tr key={idx}>
                   <td>{item.name}</td>
-                  <td>{item.qty}</td>
-                  <td>{item.unit__suffix}</td>
+                  <td>{item.qty} {item.unit__suffix}</td>
                   <td>GHS {item.price}</td>
                   <td>GHS {(item.qty * item.price).toFixed(2)}</td>
-                  <td>
-                    <FontAwesomeIcon
-                      icon={faEdit}
-                      className="item_action"
-                      onClick={() => {
-                        setCurrentItem({
-                          item: salesItems.find(i => i.code === item.code),
-                          qty: item.qty,
-                          price: item.price
-                        });
-                        setSalesItems(prev => prev.filter((_, i) => i !== index));
-                      }}
-                    />
-                    <FontAwesomeIcon
-                      icon={faTimesCircle}
-                      className="item_action"
-                      onClick={() => setSalesItems(prev => prev.filter((_, i) => i !== index))}
-                    />
-                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
 
-        <div className="ivi_display_box totals-section">
-          <div className="total-row">
-            <span>Subtotal:</span>
-            <span>GHS {totals.subtotal.toFixed(2)}</span>
-          </div>
-          <div className="total-row">
-            <span>Discount ({sales.discount}%):</span>
-            <span>- GHS {totals.discountAmount.toFixed(2)}</span>
-          </div>
-          {sales.selectedLevi.map(levy => (
-            <div className="total-row" key={levy.value}>
-              <span>{levy.label}:</span>
-              <span>+ GHS {(totals.netTotal * (levy.rate/100)).toFixed(2)}</span>
+          <div style={{ marginTop: "1rem", textAlign: "right" }}>
+            <div style={{ display: "inline-block", textAlign: "left" }}>
+              <p><b>Subtotal:</b> GHS {printData.totals.subtotal.toFixed(2)}</p>
+              <p><b>Discount ({printData.discount}%):</b> - GHS {printData.totals.discountAmount.toFixed(2)}</p>
+              {printData.totals.levyAmount > 0 && (
+                <p><b>Taxes/Levies:</b> + GHS {printData.totals.levyAmount.toFixed(2)}</p>
+              )}
+              <p style={{ fontSize: "1.1em", fontWeight: "bold" }}>
+                <b>Grand Total:</b> GHS {printData.totals.grandTotal.toFixed(2)}
+              </p>
+              {printData.partPaymentAmount > 0 && (
+                <p><b>Part Payment:</b> GHS {printData.partPaymentAmount.toFixed(2)}</p>
+              )}
             </div>
-          ))}
-          <div className="total-row grand-total">
-            <span>Grand Total:</span>
-            <span>{totals.grandTotal.toFixed(2)}</span>
+          </div>
+
+          <div style={{ marginTop: "3rem", display: "flex", justifyContent: "space-between" }}>
+            <div>
+            </div>
+            <div>
+              <p>{printData.customer}</p>
+              <p>____________________</p>
+              <p>Customer Signature</p>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="ia_add_item_mbox">
-          <button className="btn btn-outline" onClick={handleSubmit}>
-            Create Sales Invoice
-          </button>
-        </div>
-      </div>
-    </div>
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print-container, .print-container * {
+            visibility: visible;
+          }
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+            font-size: 14px;
+          }
+        }
+      `}</style>
+    </>
   );
 };
 

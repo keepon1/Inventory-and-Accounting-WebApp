@@ -12,7 +12,7 @@ export const itemsLoadOptions = (business, user, location) => {
   const debouncedFn = debounce(async (value, callback) => {
     try {
       const res = await api.post('fetch_items_for_select', { value, business, user, location});
-      callback(res.data);
+      callback(res.data || []);
     } catch (err) {
       console.error("Error loading options", err);
       callback([]);
@@ -26,7 +26,7 @@ export const locationsLoadOptions = (business, user) => {
   const debouncedFn = debounce(async (value, callback) => {
     try {
       const res = await api.post('fetch_locations_for_select', { value, business, user });
-      callback(res);
+      callback(res.data || []);
     } catch (err) {
       console.error("Error loading options", err);
       callback([]);
@@ -40,7 +40,7 @@ export const sourceLocationsLoadOptions = (business, user) => {
   const debouncedFn = debounce(async (value, callback) => {
     try {
       const res = await api.post('fetch_source_locations_for_select', { value, business, user });
-      callback(res);
+      callback(res.data || []);
     } catch (err) {
       console.error("Error loading options", err);
       callback([]);
@@ -54,7 +54,7 @@ export const taxLevyLoadOptions = (business) => {
   const debouncedFn = debounce(async (value, callback) => {
     try {
       const res = await api.post('fetch_tax_levy', { value, business});
-      callback(res);
+      callback(res || []);
     } catch (err) {
       console.error("Error loading options", err);
       callback([]);
@@ -82,7 +82,7 @@ export const supplierLoadOptions = (business) => {
   const debouncedFn = debounce(async (value, callback) => {
     try {
       const res = await api.post('fetch_supplier', { value, business});
-      callback(res);
+      callback(res || []);
     } catch (err) {
       console.error("Error loading options", err);
       callback([]);

@@ -248,7 +248,7 @@ const ViewTransfer = (props) => {
             <div className="ia_add_item_mbox">
               {transfer.status === "Not Received" &&
                 ((access.per_location_access.includes(transfer.to) &&
-                  access.edit_access) ||
+                  access.receive_access) ||
                   access.admin) && (
                   <>
                     <button className="btn btn-outline" onClick={receive}>
@@ -290,38 +290,20 @@ const ViewTransfer = (props) => {
           <table className="ia_main_table" style={{ marginTop: "1rem" }}>
             <thead>
               <tr>
-                <th>Category</th>
-                <th>Code</th>
-                <th>Brand</th>
-                <th>Model</th>
                 <th>Item</th>
                 <th>Qty</th>
-                <th>Unit</th>
               </tr>
             </thead>
             <tbody>
               {printData.items.map((item, idx) => (
                 <tr key={idx}>
-                  <td>{item.category}</td>
-                  <td>{item.code}</td>
-                  <td>{item.brand}</td>
-                  <td>{item.model}</td>
                   <td>{item.name}</td>
                   <td>{item.qty}</td>
-                  <td>{item.unit}</td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          <div style={{ marginTop: "3rem", display: "flex", justifyContent: "space-between" }}>
-            <div></div>
-            <div>
-              <p>{printData.user}</p>
-              <p>____________________</p>
-              <p>Created By</p>
-            </div>
-          </div>
         </div>
       )}
 

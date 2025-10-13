@@ -5,7 +5,6 @@ import Select from 'react-select';
 import AsyncSelect from "react-select/async";
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
-import enableKeyboardScrollFix from "../../utils/scroll";
 import { itemsLoadOptions, sourceLocationsLoadOptions, supplierLoadOptions, taxLevyLoadOptions } from "../../utils/fetchData";
 import { toast } from "react-toastify";
   
@@ -68,8 +67,6 @@ const CreatePurchase = ({ business, user, access }) => {
       }
     };
     fetchData();
-    const cleanup = enableKeyboardScrollFix();
-    return cleanup;
   }, []);
 
   const calculateTotals = () => {
@@ -98,6 +95,11 @@ const CreatePurchase = ({ business, user, access }) => {
 
     if (!purchase.supplier) {
       toast.info('Please select a supplier');
+      return;
+    }
+
+    if (!purchase.terms) {
+      toast.info('Please select payment terms');
       return;
     }
 

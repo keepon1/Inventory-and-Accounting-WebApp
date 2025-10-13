@@ -18,6 +18,6 @@ class Permissions:
                 'location_access':self.user.location_access, 'customer_access':self.user.customer_access, 'supplier_access':self.user.supplier_access,
                 'cash_access':self.user.cash_access, 'payment_access':self.user.payment_access, 'report_access':self.user.report_access, 'settings_access':self.user.settings_access,
                 'edit_access':self.user.edit_access, 'purchase_price_access':self.user.purchase_price_access, 'dashboard_access':self.user.dashboard_access,
-                'add_self.user_access':self.user.add_user_access, 'give_access':self.user.give_access, 'info_access':self.user.info_access}
+                'add_self.user_access':self.user.add_user_access, 'give_access':self.user.give_access, 'info_access':self.user.info_access, 'receive_access':self.user.receive_access}
         
         return access

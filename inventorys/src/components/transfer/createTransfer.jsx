@@ -419,42 +419,19 @@ const CreateTransfer = ({ business, user, access }) => {
           <table className="ia_main_table" style={{ marginTop: "1rem" }}>
             <thead>
               <tr>
-                <th>Category</th>
-                <th>Code</th>
-                <th>Brand</th>
-                <th>Model</th>
                 <th>Item</th>
                 <th>Qty</th>
-                <th>Unit</th>
               </tr>
             </thead>
             <tbody>
               {printData.items.map((item, idx) => (
                 <tr key={idx}>
-                  <td>{item.category__name}</td>
-                  <td>{item.code}</td>
-                  <td>{item.brand}</td>
-                  <td>{item.model}</td>
                   <td>{item.name}</td>
                   <td>{item.qty}</td>
-                  <td>{item.unit__suffix}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-
-          <div style={{ marginTop: "3rem", display: "flex", justifyContent: "space-between" }}>
-            <div>
-              <p>{printData.user}</p>
-              <p>____________________</p>
-              <p>Prepared By</p>
-            </div>
-            <div>
-              <p></p><br />
-              <p>____________________</p>
-              <p>Approved By</p>
-            </div>
-          </div>
         </div>
       )}
 

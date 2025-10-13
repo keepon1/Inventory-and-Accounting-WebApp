@@ -33,8 +33,6 @@ const AddBusiness = () => {
 
         const businessInfo = response.data.business[0];
         setBusinessInfo(businessInfo);
-
-        console.log(response)
         
         if (response.status === 'success'){
           if (businessInfo.new && businessInfo.google){ 

@@ -114,9 +114,11 @@ def post_and_save_purchase(business, user, company, location, data, totals, item
 
             for i in items:
                 item = json.loads(i)
-                item_info = models.items.objects.get(item_name=item['name'], bussiness_name=business_query)
+                item_info = models.items.objects.get(item_name=item['name'], bussiness_name=business_query) 
+
                 models.purchase_history.objects.create(item_name=item_info, purchase=purchase_info, quantity=item['qty'], purchase_price=item['price'],
-                                                               bussiness_name=business_query)
+                                                               bussiness_name=business_query) 
+                
                 total_purchase += float(item['qty']) * float(item['price'])
                 total_quantity += float(item['qty'])
 
@@ -126,21 +128,23 @@ def post_and_save_purchase(business, user, company, location, data, totals, item
                     item_info.save()
 
                 else:
-                    total_value = int(item['qty']) * float(item['price'])
-                    target_qty = item_info.quantity
+                    total_value = 0
+                    target_qty = item_info.quantity + int(item['qty'])
 
                     history = models.purchase_history.objects.filter(item_name=item_info, bussiness_name=business_query).order_by('-id')
                         
                     for j in history:
+                        cost = Decimal(str(min(target_qty, j.quantity))) * j.purchase_price
+                        total_value += float(cost)
+                        target_qty -= min(target_qty, j.quantity)
+
                         if target_qty == 0:
                             item_info.purchase_price = Decimal(str(total_value/(item_info.quantity + int(item['qty']))))
                             item_info.quantity += int(item['qty'])
                             item_info.save()
                             break
+                        
 
-                        cost = Decimal(str(min(target_qty, j.quantity))) * j.purchase_price
-                        total_value += float(cost)
-                        target_qty -= min(target_qty, j.quantity)
 
                 loc_item = models.location_items.objects.get(item_name__item_name=item['name'], location=location_query,  bussiness_name=business_query)
                 loc_item.quantity += Decimal(str(float(item['qty'])))
