@@ -71,5 +71,5 @@ KEEPON aims to **empower small and medium enterprises (SMEs)** with accessible, 
 
 For inquiries, demos, or partnership opportunities:  
 **📧 Email:** [dantechristopher100@gmail.com]  
-**🌐 Website:** [not yet]  
+**🌐 Website:** [www.keepon-inventory]  
 **👤 Developer:** Christopher Dante  

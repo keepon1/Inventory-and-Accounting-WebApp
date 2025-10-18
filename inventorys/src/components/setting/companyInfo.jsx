@@ -125,11 +125,6 @@ const BusinessInfo = ({ business, user }) => {
 
                 <div className="form-group">
                     <label htmlFor="image">Business Logo</label>
-                    <div className='image-box'>
-                        <div className="image-display">
-                            <img src="/Screenshot (5).png" alt="Business logo" />
-                        </div>
-                    </div>
                 </div>
                 
             </div>

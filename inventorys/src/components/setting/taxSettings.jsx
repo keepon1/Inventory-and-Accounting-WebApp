@@ -230,6 +230,52 @@ const TaxMain = ({ business, user }) => {
         };
     };
 
+    const deleteTax =  async () => {
+        if (!editData.originalName || editData.originalName === ''){
+            toast.error('Original tax name is missing.');
+            return;
+        };
+
+        if (loading){
+            toast.info('Please wait... delete in progress');
+            return;
+        }
+
+        try{
+            setLoading(true);
+            const response = await api.post('delete_tax', {tax: editData.originalName});
+            if (response.status === 'success'){
+                toast.success(response.message || `Tax deleted successfully`);
+                setShowEdit(false);
+                document.addEventListener('mousedown', handleEditOverlay);
+
+                setEditData({ originalName: '', name: '', rate: 0, type: null, description:'' });
+
+                const response1 = await api.post('fetch_taxes',{ business, user });
+
+                if (response1.status === 'error'){
+                    toast.error(response1.message || 'Error occurred while fetching data');
+                    return;
+                }
+                setTaxes(response1.data || []);
+                setLoading(false);
+                
+            }else{
+                toast.error(response.message || 'Error occurred while deleting tax');
+                setLoading(false);
+                return;
+            }
+
+        }catch(error){
+            toast.error('Error occurred while deleting tax');
+            setLoading(false);
+            console.error('Error deleting tax:', error);
+            if (error.response?.status === 401) {
+                navigate('/sign_in');
+            }
+        };
+    };
+
     return (
         <div className="journal-container">
             <div className="journal-header">
@@ -349,7 +395,7 @@ const TaxMain = ({ business, user }) => {
                           
                         </div>
                         <div>
-                          <button className="btn btn-primary" onClick={addTax}>
+                          <button className="btn btn-outline" onClick={addTax}>
                             Create Tax / Levy
                           </button>
                         </div>
@@ -412,10 +458,14 @@ const TaxMain = ({ business, user }) => {
                             onChange={(e) => setEditData({...editData, description: e.target.value})}
                           />
                         </div>
-                        <div>
-                          <button className="btn btn-primary" onClick={editTax}>
-                            Save Changes
-                          </button>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button className="btn btn-outline" onClick={editTax}>
+                                Save Changes
+                            </button>
+
+                            <button className='btn btn-outline-red' onClick={deleteTax}>
+                                Delete Tax / Levy
+                            </button>
                         </div>
                     </div>
                 </div>

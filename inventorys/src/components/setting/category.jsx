@@ -189,6 +189,48 @@ const CategoryMain = ({ business, user }) => {
         };
     };
 
+    const deleteCategory = async () => {
+        if (loading){
+            toast.info('Please wait... deletion in progress');
+            return;
+        }
+
+        const data = {
+            name: editData.originalName,
+        };
+
+        try {
+            setLoading(true);
+            const response = await api.post('delete_category', { business, data});
+
+            if (response.status === 'success') {
+                toast.success(response.message || 'Category deleted successfully');
+                setLoading(false);
+                setShowEdit(false);
+                document.addEventListener('mousedown', handleEditOverlay);
+
+                setEditData({ originalName: '', name: '', description: '' });
+
+                const update = await api.post('fetch_categories', { business, user });
+
+                if (update.status === 'error'){
+                    toast.error(update.message || 'Error fetching categories');
+                    return;
+                }
+
+                setCategories(update.data || []);
+            }else{
+                toast.error(response.message || 'Error deleting category');
+                setLoading(false);
+                return
+            }
+        } catch (error) {
+            toast.error('An error occurred while deleting the category');
+            setLoading(false);
+            console.error(error);
+        };
+    };
+
     return (
         <div className="journal-container">
             <div className="journal-header">
@@ -203,16 +245,16 @@ const CategoryMain = ({ business, user }) => {
             </div>
 
             <div className="journal-filters">
-                <div className="filter-groups-left">
-                    <div>
-                        <button className="btn btn-outline" onClick={() => {
-                            setShowCreate(true);
-                            document.addEventListener('mousedown', handleCreateOverlay);
-                        }}>
-                            Add Category
-                        </button>
-                    </div>
+
+                <div className="create_access">
+                    <button className="btn btn-outline" onClick={() => {
+                        setShowCreate(true);
+                        document.addEventListener('mousedown', handleCreateOverlay);
+                    }}>
+                        Add Category
+                    </button>
                 </div>
+
                 <div className="ivi_display_box1">
                     <div className="ivi_subboxes1">
                         <div className="ivi_holder_box1">
@@ -279,7 +321,7 @@ const CategoryMain = ({ business, user }) => {
                             />
                         </div>
                         <div>
-                            <button className="btn btn-primary" onClick={addCategory}>
+                            <button className="btn btn-outline" onClick={addCategory}>
                                 Create Category
                             </button>
                         </div>
@@ -318,11 +360,16 @@ const CategoryMain = ({ business, user }) => {
                                 onChange={(e) => setEditData({ ...editData, description: e.target.value })}
                             />
                         </div>
-                        <div>
-                            <button className="btn btn-primary" onClick={editCategory}>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button className="btn btn-outline" onClick={editCategory}>
                                 Save Changes
                             </button>
+
+                            <button className='btn btn-outline-red' style={{ marginLeft: '10px' }} onClick={deleteCategory}>
+                                Delete Category
+                            </button>
                         </div>
+
                     </div>
                 </div>
             )}

@@ -6,6 +6,7 @@ from decimal import Decimal
 import calendar
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Index
+import re
 
 class company_info(models.Model):
     company_name = models.CharField(max_length = 100)
@@ -278,7 +279,7 @@ class items(models.Model):
     sales_price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     creation_date = models.DateTimeField(auto_now_add = True)
     bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
-    category = models.ForeignKey(inventory_category, on_delete=models.CASCADE)
+    category = models.ForeignKey(inventory_category, on_delete=models.PROTECT)
     unit = models.ForeignKey(inventory_unit, on_delete=models.PROTECT)
     created_by = models.ForeignKey(current_user, on_delete=models.PROTECT)
     last_sales = models.DateField(default=date.today)
@@ -292,8 +293,45 @@ class items(models.Model):
     def __str__(self):
         return self.item_name
     
+    def generate_item_code(self):
+        prefix = 'IT'
+        try:
+            if self.category and getattr(self.category, 'name', None):
+                prefix = self.category.name[:2].upper()
+
+        except Exception:
+            prefix = 'IT'
+
+        last = items.objects.filter(
+            bussiness_name=self.bussiness_name,
+            code__startswith=prefix
+        ).order_by('-id').first()
+
+        if last and last.code:
+            m = re.search(r'(\d+)$', last.code)
+            if m:
+                next_num = int(m.group(1)) + 1
+
+            else:
+                next_num = items.objects.filter(bussiness_name=self.bussiness_name, category=self.category).count() + 1
+        else:
+            next_num = 1
+
+        return f"{prefix}{next_num:05d}"
+
     def save(self, *args, **kwargs):
         creating = self.pk is None
+
+        if creating and (not self.code or self.code.strip() == ""):
+            if not self.category or not self.bussiness_name:
+                super().save(*args, **kwargs)
+                if not self.code or self.code.strip() == "":
+                    self.code = self.generate_item_code()
+                    super().save(update_fields=['code'])
+                return
+            else:
+                self.code = self.generate_item_code()
+
         super().save(*args, **kwargs)
 
         if creating:
@@ -411,7 +449,7 @@ class sale(models.Model):
     gross_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     sub_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     net_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
-    location_address = models.ForeignKey(inventory_location, on_delete=models.CASCADE)
+    location_address = models.ForeignKey(inventory_location, on_delete=models.PROTECT)
     discount_percentage = models.CharField(max_length=100, default='')
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     tax_levy = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
@@ -468,7 +506,6 @@ class sale_history(models.Model):
         ]
 
 class purchase(models.Model):
-
     image = models.ImageField()
     code = models.CharField(max_length=20, unique=True, blank=True)
     due_date = models.DateField(default=date.today)
@@ -1082,9 +1119,9 @@ class account_balance(models.Model):
         ]
 
 class customer_balance(models.Model):
-    customer = models.ForeignKey(customer, on_delete=models.PROTECT)
-    business = models.ForeignKey(bussiness, on_delete=models.PROTECT)
-    period = models.ForeignKey(month_period, on_delete=models.PROTECT)
+    customer = models.ForeignKey(customer, on_delete=models.CASCADE)
+    business = models.ForeignKey(bussiness, on_delete=models.CASCADE)
+    period = models.ForeignKey(month_period, on_delete=models.CASCADE)
     opening_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
     closing_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
     debit_total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
@@ -1096,9 +1133,9 @@ class customer_balance(models.Model):
         ]
 
 class supplier_balance(models.Model):
-    supplier = models.ForeignKey(supplier, on_delete=models.PROTECT)
-    business = models.ForeignKey(bussiness, on_delete=models.PROTECT)
-    period = models.ForeignKey(month_period, on_delete=models.PROTECT)
+    supplier = models.ForeignKey(supplier, on_delete=models.CASCADE)
+    business = models.ForeignKey(bussiness, on_delete=models.CASCADE)
+    period = models.ForeignKey(month_period, on_delete=models.CASCADE)
     opening_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
     closing_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
     debit_total = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))

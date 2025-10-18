@@ -41,7 +41,6 @@ const Home = () => {
 
   return (
     <div className="app-container">
-      {/* Navigation Bar */}
       <header className={`header ${scrolled ? 'scrolled' : ''}`}>
         <div className="container">
           <div className="logo-container">

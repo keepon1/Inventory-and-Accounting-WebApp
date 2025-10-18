@@ -227,6 +227,60 @@ const CustomerMain = ({ business, user, access }) => {
     }
   };
 
+  const deleteCustomer = async () => {
+    if (!editData.originalName) {
+      toast.error('Original customer name is missing.');
+      return;
+    }
+
+    if (loading){
+      toast.info('Please wait, deleting customer');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.post(
+        'delete_customer',
+        { 
+          customer: editData.originalName,
+        }
+      );
+
+      if (response.status === 'error') {
+        setLoading(false);
+        toast.error(response.message || 'Failed to delete customer');
+        return;
+      }
+
+      toast.success(response.message || 'Customer deleted successfully');
+      setLoading(false);
+      setShowEdit(false);
+      const updated = await api.post(
+        'fetch_customers',
+        { business, user, page, searchQuery }
+      );
+
+      if (updated.status === 'error') {
+        toast.error(updated.message || 'Failed to fetch customers');
+        return;
+      }
+
+      setCustomers(prev => page === 1 ? updated.data.data : [...prev, ...updated.data.data]);
+      setHasNext(updated.data.has_more);
+      setEditData({ originalName: '', name: '', address: '', contact:'', email:'' });
+
+    } catch (error) {
+      setLoading(false);
+      toast.error('An error occurred while deleting customer.');
+      console.error(error);
+
+      if (error.response?.status === 401) {
+        navigate('/sign_in');
+      }
+    }
+  };
+
   return (
     <div className="dashboard-main">
       <div className="journal-header">
@@ -364,7 +418,7 @@ const CustomerMain = ({ business, user, access }) => {
                     
                   </div>
                   <div>
-                    <button className="btn btn-primary" onClick={handleCreate}>
+                    <button className="btn btn-outline" onClick={handleCreate}>
                       Create Customer
                     </button>
                   </div>
@@ -424,9 +478,13 @@ const CustomerMain = ({ business, user, access }) => {
                       onChange={(e) => setEditData({...editData, email: e.target.value})}
                     />
                   </div>
-                  <div>
-                    <button className="btn btn-primary" onClick={handleEdit}>
+                  <div style={{display: 'flex', gap: '10px'}}>
+                    <button className="btn btn-outline" onClick={handleEdit}>
                       Save Changes
+                    </button>
+
+                    <button className='btn btn-outline-red' onClick={deleteCustomer}>
+                      Delete Customer
                     </button>
                   </div>
                 </div>

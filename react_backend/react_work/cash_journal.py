@@ -36,17 +36,12 @@ def fetch_cash_for_main_view(search, date_search, business, company, page, user,
             payment = payment.filter(search_filter)
         
         if date_search:
-            if date_search.get('type') == 'period':
-                start_month = int(date_search.get('start_month', 0))
-                end_month = int(date_search.get('end_month', 0))
-                if start_month and end_month:
-                    payment = payment.filter(date__month__gte=start_month, date__month__lte=end_month)
 
-            elif date_search.get('type') == 'date':
-                start_date = date_search.get('start_date')
-                end_date = date_search.get('end_date')
-                if start_date and end_date:
-                    payment = payment.filter(date__date__range=(start_date, end_date))
+            if date_search.get('start') and date_search.get('end'):
+                start_date = date_search.get('start')
+                end_date = date_search.get('end')
+
+                payment = payment.filter(date__range=(start_date, end_date))
         
         payment = payment.order_by('-code').values(
             'code', 'date', 'ref_type', 'external_no', 'description', 'transaction_number', 'from_account', 'to_account', 'amount', 'is_reversed',

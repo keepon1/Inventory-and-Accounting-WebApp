@@ -191,7 +191,7 @@ const Dashboard = () => {
                     onClick={handleNavClick}
                   >
                     <FontAwesomeIcon icon={faBoxes} />
-                    {sidebarExpanded && <span>Inventory</span>}
+                    {sidebarExpanded && <span>Inventory Items</span>}
                   </Link>
                 </li>
               )}
@@ -203,7 +203,7 @@ const Dashboard = () => {
                     onClick={handleNavClick}
                   >
                     <FontAwesomeIcon icon={faTruck} />
-                    {sidebarExpanded && <span>Transfer</span>}
+                    {sidebarExpanded && <span>Inventory Transfer</span>}
                   </Link>
                 </li>
               )}
@@ -215,7 +215,7 @@ const Dashboard = () => {
                     onClick={handleNavClick}
                   >
                     <FontAwesomeIcon icon={faShoppingCart} />
-                    {sidebarExpanded && <span>Sales</span>}
+                    {sidebarExpanded && <span>Sales Invoices</span>}
                   </Link>
                 </li>
               )}
@@ -227,7 +227,7 @@ const Dashboard = () => {
                     onClick={handleNavClick}
                   >
                     <FontAwesomeIcon icon={faTruck} />
-                    {sidebarExpanded && <span>Purchase</span>}
+                    {sidebarExpanded && <span>Purchase Invoices</span>}
                   </Link>
                 </li>
               )}
@@ -239,7 +239,7 @@ const Dashboard = () => {
                     onClick={handleNavClick}
                   >
                     <FontAwesomeIcon icon={faMapMarkerAlt} />
-                    {sidebarExpanded && <span>Location</span>}
+                    {sidebarExpanded && <span>Stores / Locations</span>}
                   </Link>
                 </li>
               )}
@@ -251,7 +251,7 @@ const Dashboard = () => {
                     onClick={handleNavClick}
                   >
                     <FontAwesomeIcon icon={faUserGroup} />
-                    {sidebarExpanded && <span>Supplier</span>}
+                    {sidebarExpanded && <span>Suppliers</span>}
                   </Link>
                 </li>
               )}
@@ -263,7 +263,7 @@ const Dashboard = () => {
                     onClick={handleNavClick}
                   >
                     <FontAwesomeIcon icon={faUsers} />
-                    {sidebarExpanded && <span>Customer</span>}
+                    {sidebarExpanded && <span>Customers</span>}
                   </Link>
                 </li>
               )}
@@ -275,7 +275,7 @@ const Dashboard = () => {
                     onClick={handleNavClick}
                   >
                     <FontAwesomeIcon icon={faReceipt} />
-                    {sidebarExpanded && <span>Cash Receipts</span>}
+                    {sidebarExpanded && <span>Cash Receipts Journals</span>}
                   </Link>
                 </li>
               )}
@@ -287,7 +287,7 @@ const Dashboard = () => {
                     onClick={handleNavClick}
                   >
                     <FontAwesomeIcon icon={faPaperPlane} />
-                    {sidebarExpanded && <span>Payment</span>}
+                    {sidebarExpanded && <span>Payment Journals</span>}
                   </Link>
                 </li>
               )}
@@ -299,7 +299,7 @@ const Dashboard = () => {
                     onClick={handleNavClick}
                   >
                     <FontAwesomeIcon icon={faBookOpen} />
-                    {sidebarExpanded && <span>Journal</span>}
+                    {sidebarExpanded && <span>General Journal</span>}
                   </Link>
                 </li>
               )}

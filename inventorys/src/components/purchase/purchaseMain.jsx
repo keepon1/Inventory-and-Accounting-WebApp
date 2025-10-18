@@ -5,16 +5,19 @@ import api from "../api";
 import { useNavigate, Routes, Route, Link, useParams } from "react-router-dom";
 import CreatePurchase from "./createPurchase";
 import ViewPurchase from "./viewPurchase";
-import { handleDateSearch, isCompleteInput } from "../../utils/dateformat";
 import AccessDenied from "../access";
 import { format } from "date-fns";
 import { toast } from "react-toastify";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { handleDateSearch, isCompleteInput } from "../../utils/dateformat";
 
 const PurchaseMain = ({ business, user, access }) => {
   const [purchases, setPurchases] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [searchDateInput, setSearchDateInput] = useState('');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
   const [parsed, setParsed] = useState('{}');
   const [waitTimeout, setWaitTimeout] = useState(null);
   const [page, setPage] = useState(1);
@@ -37,25 +40,18 @@ const PurchaseMain = ({ business, user, access }) => {
     setWaitTimeout(timeout);
   };
 
+  // when both start and end selected, set parsed JSON for backend
   useEffect(() => {
-    const trimmed = searchDateInput.trim();
-    
-    if (!trimmed) {
+    if (!startDate || !endDate) {
       setParsed('{}');
       return;
     }
-    
-    if (isCompleteInput(trimmed)) {
-      try {
-        setPage(1);
-        const result = handleDateSearch(trimmed);
-        setParsed(JSON.stringify(result));
-      } catch (err) {
-        setParsed('{}');
-      }
-    }
-  }, [searchDateInput]);
-
+    setPage(1);
+    const s = format(startDate, "yyyy-MM-dd");
+    const e = format(endDate, "yyyy-MM-dd");
+    setParsed(JSON.stringify({ start: s, end: e }));
+  }, [startDate, endDate]);
+  
   useEffect(() => {
     const fetchPurchases = async () => {
       try {
@@ -122,13 +118,34 @@ const PurchaseMain = ({ business, user, access }) => {
               
               <div className="ivi_display_box1">
                 <div className="ivi_subboxes1">
-                  <div className="ivi_holder_box1">
-                    <input 
-                      type="search"
+                  <div className="ivi_holder_box1" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <DatePicker
+                      selected={startDate}
+                      onChange={(date) => setStartDate(date)}
+                      selectsStart
+                      startDate={startDate}
+                      endDate={endDate}
+                      placeholderText="Start date"
+                      dateFormat="dd/MM/yyyy"
                       className="ivi_input"
-                      placeholder="date e.g.p1 or p1...p3 or 01/01/2025"
-                      value={searchDateInput}
-                      onChange={e => setSearchDateInput(e.target.value)}
+                      isClearable
+                    />
+                  </div>
+                </div>
+                
+                <div className="ivi_subboxes1">
+                  <div className="ivi_holder_box1" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <DatePicker
+                      selected={endDate}
+                      onChange={(date) => setEndDate(date)}
+                      selectsEnd
+                      startDate={startDate}
+                      endDate={endDate}
+                      minDate={startDate}
+                      placeholderText="End date"
+                      dateFormat="dd/MM/yyyy"
+                      className="ivi_input"
+                      isClearable
                     />
                   </div>
                 </div>

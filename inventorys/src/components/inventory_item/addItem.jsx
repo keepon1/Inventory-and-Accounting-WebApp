@@ -10,8 +10,8 @@ import { toast } from "react-toastify";
 
 const AddItem = (props) => {
     const [itemDetail, setItemDetail] = useState({
-        code: '', brand: '', name: '', unit: {value:'', label:''}, model: '',
-        status: { value: '', label: '' }, category: {value:'', label:''},
+        price: 0.00, brand: '', name: '', unit: {value:'', label:''}, model: '',
+        status: { value: 'active', label: 'Active' }, category: {value:'', label:''},
         reorder: '', description: ''
     });
     const [fullList, setFullList] = useState([]);
@@ -78,7 +78,6 @@ const AddItem = (props) => {
         try {
             setLoading(true);
             const payload = {
-                code: itemDetail.code,
                 name: itemDetail.name,
                 business: props.business,
                 status: itemDetail.status?.value || ''
@@ -135,10 +134,9 @@ const AddItem = (props) => {
         try {
             setLoading(true);
 
-            // send as form arrays so backend can use request.data.getlist(...)
             const formData = new FormData();
             fullList.forEach(item => {
-                formData.append('code', item.code || '');
+                formData.append('price', item.price || '');
                 formData.append('brand', item.brand || '');
                 formData.append('name', item.name || '');
                 formData.append('model', item.model || '');
@@ -190,28 +188,27 @@ const AddItem = (props) => {
                     <div className="ivi_display_box">
                         <div className="ivi_subboxes">
                             <div className="ivi_holder_box">
-                                <label className="ivi_label">Item Code</label>
-                                <input type="text" name="code" value={itemDetail.code} onChange={handleChange} className="ivi_input" />
+                                <label className="ivi_label">Item Name*</label>
+                                <input type="text" name="name" value={itemDetail.name} onChange={handleChange} className="ivi_input" />
                             </div>
+
                             <div className="ivi_holder_box">
                                 <label className="ivi_label">Brand</label>
                                 <input type="text" name="brand" value={itemDetail.brand} onChange={handleChange} className="ivi_input" />
                             </div>
+
                             <div className="ivi_holder_box">
                                 <label className="ivi_label">Model Number</label>
                                 <input type="text" name="model" value={itemDetail.model} onChange={handleChange} className="ivi_input" />
                             </div>
                         </div>
 
-                        <div className="ivi_subboxes">
-                            <div className="ivi_holder_box">
-                                <label className="ivi_label">Item Name*</label>
-                                <input type="text" name="name" value={itemDetail.name} onChange={handleChange} className="ivi_input" />
-                            </div>
+                        <div className="ivi_subboxes"> 
                             <div className="ivi_holder_box">
                                 <label className="ivi_label">Description</label>
                                 <input type="text" name="description" value={itemDetail.description} onChange={handleChange} className="ivi_input" />
                             </div>
+
                             <div className="ivi_holder_box">
                                 <label className="ivi_label">Status</label>
                                 <Select
@@ -221,6 +218,11 @@ const AddItem = (props) => {
                                     className="ivi_select"
                                     classNamePrefix="ivi_select"
                                 />
+                            </div>
+
+                            <div className="ivi_holder_box">
+                                <label className="ivi_label">Sales Price</label>
+                                <input type="number" step={0.01} min={0.00} className="ivi_input" onChange={handleChange} name="price" value={itemDetail.price} />
                             </div>
                         </div>
 
@@ -233,6 +235,7 @@ const AddItem = (props) => {
                                 <label className="ivi_label">Unit</label>
                                 <Select options={unit} value={itemDetail.unit} onChange={selected => setItemDetail({ ...itemDetail, unit: selected })} className="ivi_select" classNamePrefix="ivi_select" />
                             </div>
+
                             <div className="ivi_holder_box">
                                 <label className="ivi_label">Reorder Level</label>
                                 <input type="number" className="ivi_input" onChange={handleChange} name="reorder" value={itemDetail.reorder} />
@@ -252,11 +255,11 @@ const AddItem = (props) => {
                                 <th>Category</th>
                                 <th>Brand</th>
                                 <th>Model No.</th>
-                                <th>Item Code</th>
                                 <th>Item Name</th>
                                 <th>Status</th>
                                 <th>Description</th>
                                 <th>Unit</th>
+                                <th>Sales Price</th>
                                 <th>Reorder level</th>
                                 <th>Actions</th>
                             </tr>
@@ -267,11 +270,11 @@ const AddItem = (props) => {
                                     <td>{item.category.value}</td>
                                     <td>{item.brand}</td>
                                     <td>{item.model}</td>
-                                    <td>{item.code}</td>
                                     <td>{item.name}</td>
                                     <td>{item.status?.label || item.status?.value}</td>
                                     <td>{item.description}</td>
                                     <td>{item.unit.value}</td>
+                                    <td> GHS {item.price}</td>
                                     <td>{item.reorder}</td>
                                     <td>
                                         <FontAwesomeIcon onClick={() => editPreviewItem(index)} className="item_action" icon={faEdit} />

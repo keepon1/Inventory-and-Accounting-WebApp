@@ -18,7 +18,8 @@ from django.db import transaction
 from . import models, coa, inventory_item, transfer, inventory_location, inventory_sales, inventory_purchase
 from . import payment_journal, cash_journal, general_journal, report, user_permissions, history
 from .utils import set_tokens_as_cookies
-from django.db.models import Sum, F, Count, Q
+from django.db.models import Sum, F, Count, Q, Value
+from django.db.models.functions import Concat
 from datetime import date, datetime
 import json
 from decimal import Decimal
@@ -241,24 +242,24 @@ def sign_in_google(request):
 
                 base_name = full_name
                 counter = 1
-                name_list = models.current_user.objects.values_list('user_name', flat=True)
-                while full_name in name_list:
+                name_list = list(models.current_user.objects.values_list('user_name', flat=True))
+                
+                while full_name.capitalize() in (n.capitalize() for n in name_list):
                     full_name = f"{base_name}{counter}"
                     counter += 1
 
-
-                user = User.objects.create(username=base_name, first_name=first_name, last_name=last_name, email=email)
+                user = User.objects.create(username=full_name, first_name=first_name, last_name=last_name, email=email)
                 models.company_info.objects.create(
-                    company_name=email, owner_name=base_name, email=email, phone_number='0'
+                    company_name=email, owner_name=full_name, email=email, phone_number='0'
                 )
                     
                 business = models.bussiness.objects.create(
                     bussiness_name=email, location='', company=user,
-                    description='', user_created=base_name, new=True, google=True
+                    description='', user_created=full_name, new=True, google=True
                 )
                 
                 users = models.current_user.objects.create(
-                    user_name=base_name, email=email, admin=True,
+                    user_name=full_name, email=email, admin=True,
                     bussiness_name=business, google=True, user=user
                 )
 
@@ -733,9 +734,10 @@ def fetch_unit(request):
     if request.method == 'POST':
         business = request.data['business']
         business = models.bussiness.objects.get(bussiness_name=business)
+
         items = models.inventory_unit.objects.filter(bussiness_name=business).annotate(
             value=F('suffix'),
-            label=F('suffix')
+            label=Concat(F('name'), Value(' ('), F('suffix'), Value(')'))
         ).values('value', 'label')
     
     return Response(items)
@@ -1053,6 +1055,62 @@ def get_tax(request):
     except Exception as error:
         logger.exception(error)
         return Response({'status': 'error', 'message': 'Failed to get tax', 'data': {}})
+    
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def delete_tax(request):
+    try:
+        if request.method != 'POST':
+            return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
+        
+        tax_name = request.data.get('tax')
+
+        user_profile = getattr(request.user, 'current', None)
+        if user_profile is None:
+            user_profile = models.current_user.objects.filter(user=request.user).first()
+
+        if user_profile is None:
+            return Response({'status': 'error', 'message': 'User profile not found', 'data': {}})
+        
+        if user_profile.admin is False and user_profile.settings_access is False:
+            return Response({'status': 'error', 'message': 'You do not have permission to delete taxes', 'data': {}})
+        
+        tax = models.taxes_levies.objects.filter(name=tax_name, bussiness_name=user_profile.bussiness_name).first()
+        if tax is None:
+            return Response({'status': 'error', 'message': f'{tax_name} not found', 'data': {}})
+        
+        sales_with_tax = models.sale.objects.filter(
+                Q(tax_levy_types__icontains=tax_name),
+            bussiness_name=user_profile.bussiness_name
+        ).exists()
+
+        purchase_with_tax = models.purchase.objects.filter(
+            Q(tax_levy_types__icontains=tax_name),
+            bussiness_name=user_profile.bussiness_name
+        ).exists()
+
+        if sales_with_tax or purchase_with_tax:
+            return Response({
+                'status': 'error',
+                'message': f'Cannot delete {tax_name} because it is used in existing sales or purchases.',
+                'data': {}
+            })
+        
+        with transaction.atomic(durable=False, savepoint=False, using='default'):
+            tax.delete()
+
+            models.tracking_history.objects.create(
+                user=user_profile,
+                head=f'Deleted tax: {tax_name}',
+                area='Delete Tax',
+                bussiness_name=user_profile.bussiness_name
+            )
+
+        return Response({'status': 'success', 'message': f'{tax_name} deleted successfully', 'data': {}})
+    
+    except Exception as error:
+        logger.warning(error)
+        return Response({'status': 'error', 'message': 'Failed to delete tax', 'data': {}})
 
 
 @api_view(['GET', 'POST'])
@@ -1250,6 +1308,57 @@ def get_currency(request):
         logger.exception(error)
         return Response({'status': 'error', 'message': 'Failed to get currency', 'data': {}})
 
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def delete_currency(request):
+    try:
+        if request.method != 'POST':
+            return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
+        
+        currency_name = request.data.get('currency')
+
+        if not isinstance(currency_name, str) or not currency_name.strip():
+            return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})
+        
+        user_profile = getattr(request.user, 'current', None)
+        if user_profile is None:
+            user_profile = models.current_user.objects.filter(user=request.user).first()
+
+        if user_profile is None:
+            return Response({'status': 'error', 'message': 'User profile not found', 'data': {}})
+        
+        if not user_profile.admin and not user_profile.settings_access:
+            return Response({'status': 'error', 'message': 'You do not have access to settings', 'data': {}})
+        
+        business = user_profile.bussiness_name
+
+        currency = models.currency.objects.filter(name=currency_name, bussiness_name=business).first()
+        if currency is None:
+            return Response({'status': 'error', 'message': f'Currency {currency_name} not found', 'data': {}})
+        
+        '''if models.sale.objects.filter(bussiness_name=business, currency=currency).exists() or \
+           models.purchase.objects.filter(bussiness_name=business, currency=currency).exists():
+            return Response({'status': 'error', 'message': f'Currency {currency_name} is in use and cannot be deleted', 'data': {}})'''
+        
+        with transaction.atomic(durable=False, savepoint=False, using='default'):
+            currency.delete()
+
+            models.tracking_history.objects.create(
+                bussiness_name=business,
+                user=user_profile,
+                head='Currency Deleted',
+                area=f'Currency {currency_name} was deleted by {request.user.username}',
+            )
+
+        return Response({'status': 'success', 'message': f'Currency {currency_name} deleted successfully', 'data': {}})
+    
+    except ValueError as ve:
+        logger.warning(ve)
+        return Response({'status': 'error', 'message': 'Invalid data was submitted', 'data': {}})
+    
+    except Exception as error:
+        logger.warning(error)
+        return Response({'status': 'error', 'message': 'Failed to delete currency', 'data': {}})
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -1436,7 +1545,48 @@ def get_measurement_unit(request):
     except Exception as error:
         logger.exception(error)
         return Response({'status': 'error', 'message': 'Failed to get measurement unit', 'data': {}})
+    
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def delete_measurement_unit(request):
+    try:
+        if request.method != 'POST':
+            return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
+        
+        unit_name = request.data.get('unit')
 
+        user_profile = getattr(request.user, 'current', None)
+        if user_profile is None:
+            user_profile = models.current_user.objects.filter(user=request.user).first()
+
+        if user_profile is None:
+            return Response({'status': 'error', 'message': 'User profile not found', 'data': {}})
+        
+        if user_profile.admin is False and user_profile.settings_access is False:
+            return Response({'status': 'error', 'message': 'User does not have permission to delete measurement units', 'data': {}})
+        
+        unit = models.inventory_unit.objects.filter(name=unit_name, bussiness_name=user_profile.bussiness_name).first()
+        if unit is None:
+            return Response({'status': 'error', 'message': f'Unit {unit_name} not found', 'data': {}})
+        
+        if models.items.objects.filter(bussiness_name=user_profile.bussiness_name, unit=unit).exists():
+            return Response({'status': 'error', 'message': f'Unit {unit_name} is in use and cannot be deleted', 'data': {}})
+        
+        with transaction.atomic(durable=False, savepoint=False, using='default'):
+            unit.delete()
+
+            models.tracking_history.objects.create(
+                bussiness_name=user_profile.bussiness_name,
+                user=user_profile,
+                head='Delete Measurement Unit',
+                area=f'Measurement Unit {unit_name} deleted successfully'
+            )
+
+        return Response({'status': 'success', 'message': f'Unit {unit_name} deleted successfully', 'data': {}})
+    
+    except Exception as error:
+        logger.warning(error)
+        return Response({'status': 'error', 'message': 'Failed to delete measurement unit', 'data': {}})
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -1615,6 +1765,54 @@ def get_category(request):
     except Exception as error:
         logger.exception(error)
         return Response({'status': 'error', 'message': 'Failed to get category', 'data': {}})
+    
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def delete_category(request):
+    if request.method == 'POST':
+        try:
+            data = request.data.get('data')
+            category = data.get('name')
+
+            if not isinstance(category, str) or not category.strip():
+                return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})
+            
+            user_profile = getattr(request.user, 'current', None)
+            if user_profile is None:
+                user_profile = models.current_user.objects.filter(user=request.user).first()
+
+            if not user_profile:
+                logger.warning(f'User profile not found for user: {request.user.username}')
+                return Response({'status': 'error', 'message': 'User profile not found', 'data': {}})
+            
+            if not user_profile.admin and not user_profile.settings_access:
+                logger.warning(f'User {user_profile.user_name} does not have permission to delete categories')
+                return Response({'status': 'error', 'message': 'You do not have permission to delete categories', 'data': {}})
+            
+            category_obj = models.inventory_category.objects.filter(name=category, bussiness_name=user_profile.bussiness_name).first()
+            if not category_obj:
+                return Response({'status': 'error', 'message': f'Category {category} not found', 'data': {}})
+            
+            if models.items.objects.filter(category=category_obj, bussiness_name=user_profile.bussiness_name).exists():
+                return Response({'status': 'error', 'message': f'Category {category} is associated with existing items and cannot be deleted', 'data': {}})
+            
+            with transaction.atomic(durable=False, savepoint=False, using='default'):
+                category_obj.delete()
+                models.tracking_history.objects.create(
+                    bussiness_name=user_profile.bussiness_name,
+                    user=request.user,
+                    heading='Category Deletion',
+                    area=f'Category {category} deleted by {user_profile.user_name}'
+                )
+
+            return Response({'status': 'success', 'message': f'Category {category} deleted successfully', 'data': {}})
+        
+        except Exception as e:
+            logger.exception(f'Error deleting category: {e}')
+            return Response({'status': 'error', 'message': 'Failed to delete category', 'data': {}})
+        
+    return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
 
 
 @api_view(['GET', 'POST'])
@@ -1779,6 +1977,49 @@ def edit_user(request):
         logger.exception(error)
         return Response({'status': 'error', 'message': 'Failed to edit user', 'data': {}})
 
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def delete_user(request):
+    try:
+        if request.method != 'POST':
+            return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
+        
+        user_name = request.data.get('user_name')
+
+        if not isinstance(user_name, str) or not user_name.strip():
+            return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})
+        
+        user_profile = getattr(request.user, 'current', None)
+        if user_profile is None:
+            user_profile = models.current_user.objects.filter(user=request.user).first()
+
+        if user_profile is None:
+            return Response({'status': 'error', 'message': 'User profile not found', 'data': {}})
+        
+        if user_profile.admin is False and user_profile.settings_access is False:
+            return Response({'status': 'error', 'message': 'User does not have permission to delete users', 'data': {}})
+        
+        user_to_delete = models.current_user.objects.filter(user_name=user_name, bussiness_name=user_profile.bussiness_name).first()
+        if user_to_delete is None:
+            return Response({'status': 'error', 'message': f'User {user_name} not found', 'data': {}})
+        
+        if user_to_delete.user == request.user:
+            return Response({'status': 'error', 'message': 'You cannot delete your own user account', 'data': {}})
+        
+        with transaction.atomic(durable=False, savepoint=False, using='default'):
+            user_to_delete.user.delete()
+            models.tracking_history.objects.create(
+                bussiness_name=user_profile.bussiness_name,
+                head='User Deletion',
+                user=user_profile,
+                area=f'User {user_name} was deleted by {user_profile.user_name}'
+            )
+
+        return Response({'status': 'success', 'message': f'User {user_name} deleted successfully', 'data': {}})
+    
+    except Exception as error:
+        logger.warning(error)
+        return Response({'status': 'error', 'message': 'Failed to delete user', 'data': {}})
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -1934,7 +2175,7 @@ def edit_user_permissions(request):
             user_obj.add_user_access = data['add_user_access']
             user_obj.give_access = data['give_access']
             user_obj.info_access = data['info_access']
-            user_obj.receive_access = data['recieve_access']
+            user_obj.receive_access = data['receive_access']
             user_obj.save()
 
         return Response({'status': 'success', 'message': f'{data.get('user_name')}`s permissions updated successfully', 'data': {}})
@@ -1976,10 +2217,13 @@ def fetch_user_activities(request):
         if not caller_query.admin and not caller_query.settings_access:
             return Response({'status': 'error', 'message': f'{user} does not have access to settings', 'data': {}})
 
-        user_obj = models.current_user.objects.get(bussiness_name=business, user_name=user, user=request.user)
-        result = list(models.tracking_history.objects.filter(user=user_obj).order_by('-date').values(
+        user_obj = models.current_user.objects.filter(bussiness_name=business, user_name=username).first()
+        if not user_obj:
+            return Response({'status': 'error', 'message': f'{username} not found in this business', 'data': {}})
+        
+        result = models.tracking_history.objects.filter(user=user_obj).order_by('-date').values(
             'date', 'area', 'head'
-        ))
+        )
 
         return Response({'status': 'success', 'message': 'User activities fetched', 'data': result})
 
@@ -2099,17 +2343,15 @@ def verify_item(request):
     if request.method == 'POST':
         data = request.data
         business = request.data['business']
-        code = data['code']
         name = data['name']
 
-        verify_data = (isinstance(code, str) and isinstance(business, str) and
+        verify_data = (isinstance(business, str) and
                        business.strip() and isinstance(name, str) and name.strip())
         
         if not verify_data:
             return Response({'status':'error', 'message':'invalid data was submitted'})
         
-        company = request.user.id
-        result = inventory_item.verify_item(business=business, code=code, name=name)
+        result = inventory_item.verify_item(business=business, name=name)
         return Response(result)
     
     return Response('')
@@ -2122,7 +2364,7 @@ def add_items(request):
         data = request.data
         business = data['business']
         user = data['user']
-        code = data.getlist('code')
+        price = data.getlist('price')
         brand = data.getlist('brand')
         item_name = data.getlist('name')
         model = data.getlist('model')
@@ -2133,7 +2375,7 @@ def add_items(request):
         status = data.getlist('status')
 
         verify_data = (isinstance(business, str) and business.strip() and isinstance(user, str) and 
-                        user.strip() and isinstance(code, list) and code and isinstance(brand, list) and 
+                        user.strip() and isinstance(price, list) and price and isinstance(brand, list) and 
                         isinstance(item_name, list) and item_name and isinstance(model, list) and 
                         isinstance(description, list) and isinstance(reorder_level, list) and isinstance(categ, list) and
                         categ and isinstance(suffix, list) and suffix)
@@ -2141,7 +2383,7 @@ def add_items(request):
         if not verify_data:
             return Response({'status':'error', 'message':'invalid data was submitted'})
         
-        result = inventory_item.add_inventory_item(business=business, user=user, code=code,
+        result = inventory_item.add_inventory_item(business=business, user=user, price=price,
                                                    name=item_name, brand=brand, model=model, suffix=suffix, category=categ,
                                                    status=status, description=description, reorder=reorder_level)
     
@@ -2168,7 +2410,7 @@ def view_item(request):
             item_info = {'code':item.code, 'brand':item.brand, 'name':item.item_name, 'Sales':item.sales_price, 'description':item.description,
                     'unit':{'value':item.unit.suffix, 'label':item.unit.suffix},'quantity':item.quantity, 'model':item.model, 'Cost':item.purchase_price, 
                     'date':item.creation_date, 'by':item.created_by.user_name, 'category':{'value':item.category.name, 'label':item.category.name}, 'reorder':item.reorder_level,
-                    'status': {'value': 'active' if item.is_active else 'inactive', 'label': 'Active' if item.is_active else 'Inactive'}}
+                    'status': {'value': 'active' if item.is_active else 'inactive', 'label': 'Active' if item.is_active else 'Inactive'}, 'price':item.sales_price}
             
             return Response({'status':'success', 'data':item_info})
         
@@ -2208,18 +2450,64 @@ def update_item(request):
 def delete_item(request):
 
     if request.method == 'POST':
-        item_name = request.data['item']
-        business_name = request.data['business']
+        try:
+            user_profile = getattr(request.user, 'current', None)
+            if user_profile is None:
+                user_profile = models.current_user.objects.filter(user=request.user).first()
 
-        business = models.bussiness.objects.get(bussiness_name=business_name)
-        item = models.items.objects.get(bussiness_name_id=business.pk, item_name=item_name)
+            if not user_profile:
+                logger.warning(f"User profile for {request.user.username} not found.")
+                return Response({'status': 'error', 'message': 'User profile not found'}, status=403)
 
-        item.delete()
+            if user_profile.admin is False and user_profile.item_access is False:
+                logger.warning(f"Access denied: user={request.user.username} tried to delete item.")
+                return Response({'status': 'error', 'message': f'You do not have access to delete item'})
 
-        return Response('deleted')
+            
+            item_name = request.data['item']
+            business_name = request.data['business']
+
+            business = models.bussiness.objects.get(bussiness_name=business_name)
+            item = models.items.objects.filter(bussiness_name=business, item_name=item_name).first()
+
+            if not item:
+                logger.warning(f"Item '{item_name}' not found in business '{business_name}'.")
+                return Response({'status': 'error', 'message': f'Item {item_name} not found'}, status=404)
+            
+            if item.quantity > 0:
+                logger.warning(f"Attempt to delete item '{item_name}' with quantity {item.quantity}.")
+                return Response({'status': 'error', 'message': f'Cannot delete {item.item_name} as it has {item.quantity} in stock'})
+            
+            if models.sale_history.objects.filter(item_name=item).exists():
+                logger.warning(f"Attempt to delete item '{item_name}' linked to sales history.")
+                return Response({'status': 'error', 'message': f'Cannot delete {item.item_name} as it is linked to sales history'})
+            
+            if models.purchase_history.objects.filter(item_name=item).exists():
+                logger.warning(f"Attempt to delete item '{item_name}' linked to purchase history.")
+                return Response({'status': 'error', 'message': f'Cannot delete {item.item_name} as it is linked to purchase history'})
+            
+            if models.transfer_history.objects.filter(item_name=item).exists():
+                logger.warning(f"Attempt to delete item '{item_name}' linked to transfer history.")
+                return Response({'status': 'error', 'message': f'Cannot delete {item.item_name} as it is linked to transfer history'})
+
+            with transaction.atomic(savepoint=False, durable=False, using='default'):
+                item.delete()
+
+                models.tracking_history.objects.create(
+                    user=user_profile,
+                    bussiness_name=business,
+                    area='Inventory - Items',
+                    head='Delete Item',
+                )
+
+                return Response({'status': 'success', 'message': f'{item.item_name} deleted successfully'})
         
-    
-    return Response('')
+        except models.bussiness.DoesNotExist:
+            logger.warning(f"Business '{business_name}' not found.")
+            return Response({'status': 'error', 'message': f'Business {business_name} not found'}, status=404)
+        
+        
+    return Response({'status': 'error', 'message': 'Invalid request method'})
 
 #sales
 
@@ -2724,6 +3012,55 @@ def edit_location(request):
             return Response({'status': 'error', 'message': 'something happened'})  
         
     return Response('')
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def delete_location(request):
+    try:
+        if request.method != 'POST':
+            return Response({'status': 'error', 'message': 'Invalid request method'})
+        
+        location_name = request.data.get('location')
+
+        if not isinstance(location_name, str) or not location_name.strip():
+            return Response({'status': 'error', 'message': 'Invalid data was submitted'})
+        
+        user_profile = getattr(request.user, 'current', None)
+        if user_profile is None:
+            user_profile = models.current_user.objects.filter(user=request.user).first()
+
+        if not user_profile:
+            logger.warning(f"User profile for {request.user.username} not found.")
+            return Response({'status': 'error', 'message': 'User profile not found'})
+        
+        if user_profile.admin is False:
+            logger.warning(f"Access denied: user={request.user.username} tried to delete location.")
+            return Response({'status': 'error', 'message': f'You do not have access to delete location'})
+        
+        business = user_profile.bussiness_name
+        location = models.inventory_location.objects.filter(location_name=location_name, bussiness_name=business).first()
+
+        if not location:
+            logger.warning(f"Location '{location_name}' not found.")
+            return Response({'status': 'error', 'message': f'Location {location_name} not found'})
+        
+        if models.sale.objects.filter(location_address=location).exists() or \
+              models.purchase.objects.filter(location_address=location).exists() or \
+              models.inventory_transfer.objects.filter(Q(from_loc=location) | Q(to_loc=location), bussiness_name=business).exists():
+            logger.warning(f"Attempt to delete location '{location_name}' linked to sales.")
+            return Response({'status': 'error', 'message': f'Cannot delete {location_name} as it is linked to sales or purchases or transfers'})
+        
+        with transaction.atomic(savepoint=False, durable=True, using='default'):
+            models.location_items.objects.filter(location=location, bussiness_name=business).delete()
+            location.delete()
+
+            models.tracking_history.objects.create(user=user_profile, area=f'deleted location {location_name}', head='Location Deletion', bussiness_name=business)
+
+            return Response({'status': 'success', 'message': f'Location {location_name} deleted successfully'})
+    
+    except Exception as e:
+        logger.exception('Unhandled error during location deletion')
+        return Response({'status': 'error', 'message': 'something happened'})
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -3430,6 +3767,60 @@ def edit_customer(request):
         
     return Response('')
 
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def delete_customer(request):
+    try:
+        if request.method != 'POST':
+            return Response({'status': 'error', 'message': 'Invalid request method'})
+        
+        customer_name = request.data.get('customer')
+
+        if not isinstance(customer_name, str) or not customer_name.strip():
+            return Response({'status': 'error', 'message': 'Invalid customer name'})
+        
+        user_profile = getattr(request.user, 'current', None)
+        if user_profile is None:
+            user_profile = models.current_user.objects.filter(user=request.user).first()
+
+        if user_profile is None:
+            return Response({'status': 'error', 'message': 'User profile not found'})
+        
+        business_query = user_profile.bussiness_name
+
+        if not user_profile.admin:
+            return Response({'status': 'error', 'message': f'{user_profile.user_name} does not have access to delete customer'})
+        
+        customer = models.customer.objects.filter(name=customer_name.strip(), bussiness_name=business_query).first()
+
+        if customer is None:
+            return Response({'status': 'error', 'message': f'Customer {customer_name} not found'})
+        
+        if models.sale.objects.filter(customer_info=customer, bussiness_name=business_query).exists():
+            return Response({'status': 'error', 'message': f'Cannot delete customer {customer_name} with existing sales records'})
+        
+        if customer.name == 'Regular Customer':
+            return Response({'status': 'error', 'message': 'Cannot delete the Regular Customer'})
+
+        credit_balance = customer.credit if customer.credit is not None else Decimal('0.00')
+        debit_balance = customer.debit if customer.debit is not None else Decimal('0.00')
+        if credit_balance > Decimal('0.00') or debit_balance > Decimal('0.00'):
+            return Response({'status': 'error', 'message': f'Cannot delete customer {customer_name} with outstanding balance'})
+        
+        with transaction.atomic(savepoint=False, durable=True, using='default'):
+            customer.delete()
+            models.tracking_history.objects.create(
+                user=user_profile,
+                bussiness_name=business_query,
+                area=f'deleted customer {customer_name}',
+                head='delete customer'
+            )
+            return Response({'status': 'success', 'message': f'Customer {customer_name} deleted successfully'})
+
+    except Exception as error:
+        logger.error(f"Error deleting customer: {error}")
+        return Response({'status': 'error', 'message': 'An error occurred while deleting the customer'})
+    
 # supplier
 
 @api_view(['GET', 'POST'])
@@ -3622,6 +4013,58 @@ def edit_supplier(request):
             return Response({'status': 'error', 'message': 'something happened'})  
         
     return Response('')
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def delete_supplier(request):
+    try:
+        if request.method != 'POST':
+            return Response({'status': 'error', 'message': 'Invalid request method'})
+        
+        supplier_name = request.data.get('supplier')
+
+        if not isinstance(supplier_name, str) or not supplier_name.strip():
+            return Response({'status': 'error', 'message': 'Invalid supplier name'})
+        
+        user_profile = getattr(request.user, 'current', None)
+        if user_profile is None:
+            user_profile = models.current_user.objects.filter(user=request.user).first()
+
+        if user_profile is None:
+            return Response({'status': 'error', 'message': 'User profile not found'})
+        
+        business_query = user_profile.bussiness_name
+
+        if not user_profile.admin:
+            return Response({'status': 'error', 'message': f'{user_profile.user_name} does not have access to delete supplier'})
+        
+        supplier = models.supplier.objects.filter(name=supplier_name.strip(), bussiness_name=business_query).first()
+
+        if supplier is None:
+            return Response({'status': 'error', 'message': f'Supplier {supplier_name} not found'})
+        
+        if models.purchase.objects.filter(supplier=supplier, bussiness_name=business_query).exists():
+            return Response({'status': 'error', 'message': f'Cannot delete supplier {supplier_name} with existing purchase records'})
+        
+        credit_balance = supplier.credit if supplier.credit is not None else Decimal('0.00')
+        debit_balance = supplier.debit if supplier.debit is not None else Decimal('0.00')
+
+        if credit_balance > Decimal('0.00') or debit_balance > Decimal('0.00'):
+            return Response({'status': 'error', 'message': f'Cannot delete supplier {supplier_name} with outstanding balance'})
+
+        with transaction.atomic(savepoint=False, durable=True, using='default'):
+            supplier.delete()
+            models.tracking_history.objects.create(
+                user=user_profile,
+                bussiness_name=business_query,
+                area=f'deleted supplier {supplier_name}',
+                head='delete supplier'
+            )
+            return Response({'status': 'success', 'message': f'Supplier {supplier_name} deleted successfully'})
+    
+    except Exception as error:
+        logger.error(f"Error deleting supplier: {error}")
+        return Response({'status': 'error', 'message': 'An error occurred while deleting the supplier'})
 
 # COA
 
@@ -3959,7 +4402,7 @@ def fetch_customer_history(request):
             user = request.data['user']
             reference = request.data['reference'].split(' ')[0]
             company = request.user.id
-            print(reference)
+
             verify_data = (isinstance(business, str) and isinstance(user, str)
                            and isinstance(reference, str) and business.strip() and 
                            reference.strip())

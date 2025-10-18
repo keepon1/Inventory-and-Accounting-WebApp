@@ -8,7 +8,7 @@ def create_item_in_all_locations(sender, instance, created, **kwargs):
     if created:
         locations = models.inventory_location.objects.filter(bussiness_name=instance.bussiness_name)
         for i in locations:
-            models.location_items.objects.get_or_create(item_name=instance, location=i, quantity=0, defaults={'bussiness_name': instance.bussiness_name})
+            models.location_items.objects.get_or_create(item_name=instance, location=i, quantity=0, defaults={'bussiness_name': instance.bussiness_name, 'sales_price': instance.sales_price})
 
 @receiver(post_save, sender=models.inventory_location)
 def create_location_items_for_new_location(sender, instance, created, **kwargs):

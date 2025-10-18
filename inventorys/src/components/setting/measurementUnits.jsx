@@ -204,6 +204,45 @@ const MeasurementUnit = ({ business, user }) => {
         };
     };
 
+    const deleteUnit = async () => {
+        if (loading) {
+            toast.info('Please wait...');
+            return;
+        };
+
+        try{
+            setLoading(true);
+            const response = await api.post('delete_measurement_unit', {unit: editData.originalName});
+
+            if (response.status === 'success'){
+                toast.success(response.message || 'Measurement unit deleted successfully');
+                setLoading(false);
+                setShowEdit(false);
+                document.addEventListener('mousedown', handleEditOverlay);
+                setEditData({ originalName: '', name: '', suffix: '', description:'' });
+
+                const update = await api.post('fetch_measurement_units',{ business, user });
+                if (update.status === 'error') {
+                    toast.error(update.message || 'An error occurred while fetching measurement units.');
+                    return;
+                }
+
+                setUnits(update.data || []);
+            }else{
+                toast.error(response.message || 'An error occurred while deleting the measurement unit.');
+                setLoading(false);
+            }
+
+        }catch(error){
+            toast.error('An error occurred while deleting the measurement unit.');
+            console.error('Error deleting measurement unit:', error);
+            setLoading(false);
+            if (error.response?.status === 401) {
+                navigate('/sign_in');
+            }
+        };
+    };
+
     return (
         <div className="journal-container">
             <div className="journal-header">
@@ -305,7 +344,7 @@ const MeasurementUnit = ({ business, user }) => {
                           />
                         </div>
                         <div>
-                          <button className="btn btn-primary" onClick={addUnit}>
+                          <button className="btn btn-outline" onClick={addUnit}>
                             Create Unit
                           </button>
                         </div>
@@ -353,10 +392,14 @@ const MeasurementUnit = ({ business, user }) => {
                             onChange={(e) => setEditData({...editData, description: e.target.value})}
                           />
                         </div>
-                        <div>
-                          <button className="btn btn-primary" onClick={editUnit}>
-                            Save Changes
-                          </button>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button className="btn btn-outline" onClick={editUnit}>
+                                Save Changes
+                            </button>
+
+                            <button className='btn btn-outline-red' onClick={deleteUnit}>
+                                Delete Unit
+                            </button>
                         </div>
                     </div>
                 </div>

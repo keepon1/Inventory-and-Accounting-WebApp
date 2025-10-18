@@ -12,7 +12,7 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
     const [itemInfo, setItemInfo] = useState({
         code: '', brand: '', name: '', unit: {value:'', label:''}, model: '',
         status: { value: '', label: '' }, category: {value:'', label:''},
-        reorder: '', description: ''
+        reorder: '', description: '', price: ''
     });
     const [oldInfo, setOldInfo] = useState();
     const [category, setCategory] = useState([{value:'', label:''}]);
@@ -124,6 +124,7 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
                 formData.append('oldCode', oldInfo.code);
                 formData.append('status', itemInfo.status.value || 'inactive');
                 formData.append('oldName', oldInfo.name);
+                formData.append('newPrice', itemInfo.price || 0);
                 formData.append('business', business);
                 formData.append('user', user);
 
@@ -141,7 +142,7 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
                 handleApiError(error);
             }
         } else {
-            setConfirmDelete(true);
+            handleDelete();
         }
     };
 
@@ -152,8 +153,7 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
         else toast.error(errorType || "Update failed");
     };
 
-    const handleDelete = async (confirm) => {
-        if(!confirm) return setConfirmDelete(false);
+    const handleDelete = async () => {
 
         if (loading) {
             toast.info('Please wait, deleting item');
@@ -165,7 +165,7 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
             const response = await api.post('delete_item', { itemDetail: itemInfo, item, business });
             if (response.status === "success") {
                 toast.success(response.message || "Item deleted successfully");
-                item_view_control(state);
+                navigate(-1);
             } else {
                 toast.error(response.message || "Delete failed");
                 setLoading(false);
@@ -213,16 +213,17 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
                     <div className="ivi_display_box">
                         <div className="ivi_subboxes">
                             <div className="ivi_holder_box">
-                                <label className="ivi_label">Item Code</label>
+                                <label className="ivi_label">Item Name*</label>
                                 <input
                                     type="text"
-                                    name="code"
-                                    value={itemInfo.code}
+                                    name="name"
+                                    value={itemInfo.name}
                                     onChange={handleChange}
                                     className="ivi_input"
                                 />
-                                {codeError && <div className="error-message">{codeError}</div>}
+                                {nameError && <div className="error-message">{nameError}</div>}
                             </div>
+
                             <div className="ivi_holder_box">
                                 <label className="ivi_label">Brand</label>
                                 <input
@@ -246,17 +247,7 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
                         </div>
 
                         <div className="ivi_subboxes">
-                            <div className="ivi_holder_box">
-                                <label className="ivi_label">Item Name*</label>
-                                <input
-                                    type="text"
-                                    name="name"
-                                    value={itemInfo.name}
-                                    onChange={handleChange}
-                                    className="ivi_input"
-                                />
-                                {nameError && <div className="error-message">{nameError}</div>}
-                            </div>
+                            
                             <div className="ivi_holder_box">
                                 <label className="ivi_label">Description</label>
                                 <input
@@ -278,7 +269,18 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
                                     classNamePrefix="ivi_select"
                                 />
                                 {statusError && <div className="validation-error">{statusError}</div>}
-                        </div>
+                            </div>
+
+                            <div className="ivi_holder_box">
+                                <label className="ivi_label">Sales Price</label>
+                                <input
+                                    type="number"
+                                    value={itemInfo.price}
+                                    className="ivi_input"
+                                    onChange={handleChange}
+                                    name="price"
+                                />
+                            </div>
                         </div>
 
                         <div className="ivi_subboxes">

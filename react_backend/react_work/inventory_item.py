@@ -179,13 +179,10 @@ def fetch_items_for_select(business, user, company, search, location):
         return {"status": "error", "message": "Unhandled error during item fetch"}
 
 
-def verify_item(name, code, business):
+def verify_item(name, business):
     
     try:
         business_data = models.bussiness.objects.get(bussiness_name=business)
-        if models.items.objects.filter(bussiness_name=business_data, code=code).exists():
-            logger.warning(f"Item code '{code}' already exists in business '{business}'")
-            return {'status': 'error', 'message': f"Item code '{code}' already exists"}
         
         if models.items.objects.filter(bussiness_name=business_data, item_name=name).exists():
             logger.warning(f"Item name '{name}' already exists in business '{business}'")
@@ -202,7 +199,7 @@ def verify_item(name, code, business):
         return {"status": "error", "message": "Unhandled error during item verification"}
 
 
-def add_inventory_item(business, user, code, name, reorder, model, category, suffix, status, description, brand):
+def add_inventory_item(business, user, price, name, reorder, model, category, suffix, status, description, brand):
     try:
         business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
@@ -222,7 +219,6 @@ def add_inventory_item(business, user, code, name, reorder, model, category, suf
                 category_query = models.inventory_category.objects.get(name=category[j], bussiness_name=business_query)
 
                 models.items.objects.create(
-                    code=code[j],
                     brand=brand[j],
                     item_name=i,
                     model=model[j],
@@ -230,7 +226,7 @@ def add_inventory_item(business, user, code, name, reorder, model, category, suf
                     reorder_level=float(reorder[j]),
                     quantity=0,
                     purchase_price=0.0,
-                    sales_price="0",
+                    sales_price=price[j] if price[j] else 0.0,
                     is_active= True if status[j].lower() == 'active' else False,
                     created_by=user_query,
                     bussiness_name=business_query,
@@ -297,7 +293,7 @@ def update_item(data, company):
         item = models.items.objects.get(item_name=data['oldName'], bussiness_name=business_query)
         item.brand = data['newBrand']
         item.item_name = data['newName']
-        item.code = data['newCode']
+        item.sales_price = Decimal(str(data['newPrice'])) if data['newPrice'] else Decimal('0.0')
         item.description = data['newDescription']
         item.model = data['newModel']
         item.reorder_level = float(data['newReorder'])
@@ -306,6 +302,11 @@ def update_item(data, company):
         item.category = category
 
         item.save()
+
+        location_items = models.location_items.objects.filter(item_name=item, bussiness_name=business_query)
+        for loc_item in location_items:
+            loc_item.sales_price = item.sales_price
+            loc_item.save()
 
         models.tracking_history.objects.create(
             user=user_query,

@@ -12,7 +12,8 @@ import api from '../api';
 import GeneralJournal from './addJournal';
 import { format } from 'date-fns';
 import { toast } from 'react-toastify';
-import { handleDateSearch, isCompleteInput } from '../../utils/dateformat';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const JournalMain = ({ business, user, access }) => {
   const [journal, setJournal] = useState([]);
@@ -21,7 +22,8 @@ const JournalMain = ({ business, user, access }) => {
   const [waitTimeout, setWaitTimeout] = useState(null);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(true);
-  const [searchDateInput, setSearchDateInput] = useState('');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
   const [parsed, setParsed] = useState('{}');
   const observer = useRef(null);
   const navigate = useNavigate();
@@ -32,36 +34,28 @@ const JournalMain = ({ business, user, access }) => {
   const handleSearch = (e) => {
     setSearchInput(e.target.value);
     setPage(1);
-  
+
     if (waitTimeout) {
       clearTimeout(waitTimeout);
     }
-    
+
     const timeout = setTimeout(() => {
       setSearchQuery(e.target.value.trim().toLowerCase());
     }, 500); 
-    
+
     setWaitTimeout(timeout);
   };
 
   useEffect(() => {
-    const trimmed = searchDateInput.trim();
-        
-    if (!trimmed) {
+    if (!startDate || !endDate) {
       setParsed('{}');
       return;
     }
-        
-    if (isCompleteInput(trimmed)) {
-      try {
-        setPage(1);
-        const result = handleDateSearch(trimmed);
-        setParsed(JSON.stringify(result));
-      } catch (err) {
-        setParsed('{}');
-      }
-    }
-  }, [searchDateInput]);
+    setPage(1);
+    const s = format(startDate, "yyyy-MM-dd");
+    const e = format(endDate, "yyyy-MM-dd");
+    setParsed(JSON.stringify({ start: s, end: e }));
+  }, [startDate, endDate]);
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -140,13 +134,33 @@ const JournalMain = ({ business, user, access }) => {
 
               <div className="ivi_display_box1">
                 <div className="ivi_subboxes1">
-                  <div className="ivi_holder_box1">
-                    <input 
-                      type="search"
+                  <div className="ivi_holder_box1" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <DatePicker
+                      selected={startDate}
+                      onChange={(date) => setStartDate(date)}
+                      selectsStart
+                      startDate={startDate}
+                      endDate={endDate}
+                      placeholderText="Start date"
+                      dateFormat="dd/MM/yyyy"
                       className="ivi_input"
-                      placeholder="date e.g.p1 or p1...p3 or 01/01/2025"
-                      value={searchDateInput}
-                      onChange={e => setSearchDateInput(e.target.value)}
+                      isClearable
+                    />
+                  </div>
+                </div>
+                <div className="ivi_subboxes1">
+                  <div className="ivi_holder_box1" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <DatePicker
+                      selected={endDate}
+                      onChange={(date) => setEndDate(date)}
+                      selectsEnd
+                      startDate={startDate}
+                      endDate={endDate}
+                      minDate={startDate}
+                      placeholderText="End date"
+                      dateFormat="dd/MM/yyyy"
+                      className="ivi_input"
+                      isClearable
                     />
                   </div>
                 </div>
@@ -188,7 +202,7 @@ const JournalMain = ({ business, user, access }) => {
                           <FontAwesomeIcon icon={faEye} />
                         </Link>
                       </td>
-                      <td>{format(entry.date, 'dd/MM/yyy')}</td>
+                      <td>{format(new Date(entry.date), 'dd/MM/yyyy')}</td>
                       <td>{entry.code}</td>
                       <td>
                         <span className={`entry-type ${entry.entry_type.toLowerCase()}`}>

@@ -30,23 +30,19 @@ def fetch_sales_for_main_view(search, date_search, business, company, page, user
             search_filter = (
                 Q(description__icontains=search) |
                 Q(location_address__location_name__icontains=search) |
-                Q(customer__icontains=search) |
+                Q(customer_name__icontains=search) |
+                Q(customer_info__name__icontains=search) |
                 Q(code__icontains=search) |
                 Q(status__icontains=search)
             )
             sales = sales.filter(search_filter)
-
+        
         if date_search:
-            if date_search.get('type') == 'period':
-                start_month = int(date_search.get('start_month', 0))
-                end_month = int(date_search.get('end_month', 0))
-                if start_month and end_month:
-                    sales = sales.filter(date__month__gte=start_month, date__month__lte=end_month)
-            elif date_search.get('type') == 'date':
-                start_date = date_search.get('start_date')
-                end_date = date_search.get('end_date')
-                if start_date and end_date:
-                    sales = sales.filter(date__date__range=(start_date, end_date))
+            if date_search.get('start') and date_search.get('end'):
+                start_date = date_search.get('start')
+                end_date = date_search.get('end')
+
+                sales = sales.filter(date__range=(start_date, end_date))
 
         sales = sales.order_by('-code').values(
             'code', 'date', 'customer_name', 'customer_info__name', 'created_by__user_name',
@@ -183,7 +179,6 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
                 
                 else:
                     item_info.quantity -= int(item['qty'])
-                    item_info.sales_price = Decimal(str(item['price']))
                     item_info.last_sales = data['date']
 
                     cogs += Decimal(str(item['qty'])) * item_info.purchase_price
@@ -199,7 +194,6 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
                     })
 
                     loc_item.quantity -= Decimal(str(item['qty']))
-                    loc_item.sales_price = Decimal(str(item['price']))
                     loc_item.purchase_price = Decimal(str(item_info.purchase_price))
                     loc_item.last_sales = data['date']
                     item_info.save()

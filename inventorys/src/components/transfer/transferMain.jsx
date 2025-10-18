@@ -6,11 +6,12 @@ import { useNavigate, Routes, Route, Link, useParams } from "react-router-dom";
 import CreateTransfer from "./createTransfer";
 import ViewTransfer from "./viewTransfer";
 import EditTransfer from "./editTransfer";
-import { handleDateSearch, isCompleteInput } from "../../utils/dateformat";
 import AccessDenied from "../access";
 import { format } from "date-fns";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const TransferMain = ({ business, user, access }) => {
   const [transfers, setTransfers] = useState([]);
@@ -18,7 +19,8 @@ const TransferMain = ({ business, user, access }) => {
   const [hasNext, setHasNext] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [searchDateInput, setSearchDateInput] = useState('');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
   const [parsed, setParsed] = useState('{}');
   const [waitTimeout, setWaitTimeout] = useState(null);
   const observer = useRef(null);
@@ -35,21 +37,16 @@ const TransferMain = ({ business, user, access }) => {
   };
 
   useEffect(() => {
-    const trimmed = searchDateInput.trim();
-    if (!trimmed) {
+    // When both dates are selected, send parsed as JSON { start: 'YYYY-MM-DD', end: 'YYYY-MM-DD' }
+    if (!startDate || !endDate) {
       setParsed('{}');
       return;
     }
-    if (isCompleteInput(trimmed)) {
-      try {
-        setPage(1);
-        const result = handleDateSearch(trimmed);
-        setParsed(JSON.stringify(result));
-      } catch {
-        setParsed('{}');
-      }
-    }
-  }, [searchDateInput]);
+    setPage(1);
+    const s = format(startDate, "yyyy-MM-dd");
+    const e = format(endDate, "yyyy-MM-dd");
+    setParsed(JSON.stringify({ start: s, end: e }));
+  }, [startDate, endDate]);
 
   useEffect(() => {
     const fetchTransfers = async () => {
@@ -105,6 +102,7 @@ const TransferMain = ({ business, user, access }) => {
     }
   }, [transfers, observeSecondLast]);
 
+
   return (
     <div className="dashboard-main">
       <div className="journal-header">
@@ -128,13 +126,33 @@ const TransferMain = ({ business, user, access }) => {
                 </div>
                 <div className="ivi_display_box1">
                   <div className="ivi_subboxes1">
-                    <div className="ivi_holder_box1">
-                      <input
-                        type="search"
+                    <div className="ivi_holder_box1" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <DatePicker
+                        selected={startDate}
+                        onChange={(date) => setStartDate(date)}
+                        selectsStart
+                        startDate={startDate}
+                        endDate={endDate}
+                        placeholderText="Start date"
+                        dateFormat="dd/MM/yyyy"
                         className="ivi_input"
-                        placeholder="date e.g.p1 or p1...p3 or 01/01/2025"
-                        value={searchDateInput}
-                        onChange={(e) => setSearchDateInput(e.target.value)}
+                        isClearable
+                      />
+                    </div>
+                  </div>
+                  <div className="ivi_subboxes1">
+                    <div className="ivi_holder_box1" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <DatePicker
+                        selected={endDate}
+                        onChange={(date) => setEndDate(date)}
+                        selectsEnd
+                        startDate={startDate}
+                        endDate={endDate}
+                        minDate={startDate}
+                        placeholderText="End date"
+                        dateFormat="dd/MM/yyyy"
+                        className="ivi_input"
+                        isClearable
                       />
                     </div>
                   </div>

@@ -215,6 +215,55 @@ const UserAccount = ({ business, user }) => {
         }
     };
 
+    const deleteUser = async () => {
+        if (!editData.originalName) {
+            toast.error('Original username is missing.');
+            return;
+        };
+
+        if (loading){
+            toast.info('Please wait... delete in progress');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const response = await api.post('delete_user', { user_name: editData.originalName});
+
+            if (response.status === 'success') {
+                toast.success(response.message || 'User deleted successfully');
+                setLoading(false);
+                setShowEdit(false);
+                document.removeEventListener('mousedown', handleEditOverlay);
+
+                setEditData({ 
+                    originalName: '', 
+                    user_name: '', 
+                    admin: false,  
+                });
+
+                const usersResponse = await api.post('fetch_users', { business, user });
+
+                if (usersResponse.status === 'error'){
+                    toast.error(usersResponse.message || 'Error fetching users');
+                    return;
+                }
+                setUsers(usersResponse.data || []);
+            }else{
+                toast.error(response.message || 'Error deleting user');
+                setLoading(false);
+                return;
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('An error occurred while deleting user');
+            setLoading(false);
+            if (error.response?.status === 401) {
+                navigate('/sign_in');
+            }
+        }
+    };
+
     return (
         <div className="journal-container">
             <div className="journal-header">
@@ -328,7 +377,7 @@ const UserAccount = ({ business, user }) => {
                             </label>
                         </div>
                         <div>
-                            <button className="btn btn-primary" onClick={addUser}>
+                            <button className="btn btn-outline" onClick={addUser}>
                                 Create User
                             </button>
                         </div>
@@ -368,9 +417,13 @@ const UserAccount = ({ business, user }) => {
                                 Admin Privileges
                             </label>
                         </div>
-                        <div>
-                            <button className="btn btn-primary" onClick={editUser}>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button className="btn btn-outline" onClick={editUser}>
                                 Save Changes
+                            </button>
+
+                            <button className='btn btn-outline-red' onClick={deleteUser}>
+                                Delete User
                             </button>
                         </div>
                     </div>

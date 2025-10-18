@@ -45,6 +45,7 @@ const LocationMain = ({ business, user, access }) => {
           'fetch_location',
           { business, searchQuery, user },
         );
+
         if (response.status == 'success'){
           setLocations(response.data);
         }else{
@@ -216,6 +217,52 @@ const LocationMain = ({ business, user, access }) => {
     }
   };
 
+  const deleteLocation = async () => {
+    if (loading){
+      toast.info('Please wait... deleting location');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.post(
+        'delete_location',
+        { 
+          location: editData.originalName
+        },
+      );
+
+      if (response.status === 'error') {
+        toast.error(response.message || 'Error deleting location');
+        setLoading(false);
+        return;
+      }
+
+      toast.success(response.message || 'Location deleted successfully');
+      setLoading(false);
+      setShowEdit(false);
+      const updated = await api.post(
+        'fetch_location',
+        { business, searchQuery, user },
+      );
+
+      if (updated.status == 'error'){
+        toast.error(updated.message || 'Error fetching locations');
+        return;
+      }
+
+      setLocations(updated.data);
+      setEditData({ originalName: '', name: '', descript: '' });
+    } catch (error) {
+      toast.error('Error deleting location');
+      setLoading(false);
+      console.error('Error details:', error);
+      if (error.response?.status === 401) {
+        navigate('/sign_in');
+      }
+    }
+  };
+
   return (
     <div className="dashboard-main">
       <div className="journal-header">
@@ -330,7 +377,7 @@ const LocationMain = ({ business, user, access }) => {
                     
                   </div>
                   <div>
-                    <button className="btn btn-primary" onClick={handleCreate}>
+                    <button className="btn btn-outline" onClick={handleCreate}>
                       Create Location
                     </button>
                   </div>
@@ -371,9 +418,13 @@ const LocationMain = ({ business, user, access }) => {
                       onChange={(e) => setEditData({...editData, description: e.target.value})}
                     />
                   </div>
-                  <div>
-                    <button className="btn btn-primary" onClick={handleEdit}>
+                  <div style={{display: 'flex', gap: '10px'}}>
+                    <button className="btn btn-outline" onClick={handleEdit}>
                       Save Changes
+                    </button>
+
+                    <button className='btn btn-outline-red' onClick={deleteLocation}>
+                      Delete Location
                     </button>
                   </div>
                 </div>

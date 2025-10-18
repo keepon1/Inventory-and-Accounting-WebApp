@@ -20,7 +20,7 @@ const CurrencyMain = ({ business, user }) => {
     const [detail, setDetail] = useState({name: '', symbol: '', rate:0});
     const [editData, setEditData] = useState({ originalName: '', name: '', symbol: '', rate:0});
     const [errors, setErrors] = useState();
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const overlayRef = useRef(null);
     const editOverlayRef = useRef(null);
 
@@ -199,6 +199,45 @@ const CurrencyMain = ({ business, user }) => {
         };
     };
 
+    const deleteCurrency = async () => {
+        if (loading) {
+            toast.info('Please wait... deletion in progress');
+            return;
+        };
+
+        try{
+            setLoading(true);
+            const response = await api.post('delete_currency', {currency: editData.originalName});
+
+            if (response.status === 'success'){
+                toast.success(response.message || 'Currency deleted successfully');
+                setLoading(false);
+                setShowEdit(false);
+                document.addEventListener('mousedown', handleEditOverlay);
+
+                setEditData({ originalName: '', name: '', symbol: '', rate:0});
+
+                const update = await api.post('fetch_currencies', { business, user});
+
+                if (update.status === 'error') {
+                    toast.error(update.message || 'An error occurred while fetching currencies.');
+                    return;
+                }
+                setCurrencies(update.data || []);
+            }else{
+                toast.error(response.message || 'An error occurred while deleting the currency.');
+                setLoading(false);
+            };
+        }catch(error){
+            console.error('Error deleting currency:', error);
+            toast.error('An error occurred while deleting the currency.');
+            setLoading(false);
+            if (error.response?.status === 401) {
+                navigate('/sign_in');
+            }
+        };
+    };
+
     return (
         <div className="journal-container">
             <div className="journal-header">
@@ -303,7 +342,7 @@ const CurrencyMain = ({ business, user }) => {
                           />
                         </div>
                         <div>
-                          <button className="btn btn-primary" onClick={addCurrency}>
+                          <button className="btn btn-outline" onClick={addCurrency}>
                             Create Currency
                           </button>
                         </div>
@@ -353,10 +392,14 @@ const CurrencyMain = ({ business, user }) => {
                             onChange={(e) => setEditData({...editData, rate: e.target.value})}
                           />
                         </div>
-                        <div>
+                        <div style={{display: 'flex', gap: '10px'}}>
                           <button className="btn btn-primary" onClick={editCurrency}>
                             Save Changes
                           </button>
+
+                            <button className='btn btn-outline-red' onClick={deleteCurrency}>
+                                Delete Currency
+                            </button>
                         </div>
                     </div>
                 </div>
