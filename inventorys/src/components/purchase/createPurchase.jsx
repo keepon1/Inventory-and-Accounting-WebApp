@@ -113,6 +113,11 @@ const CreatePurchase = ({ business, user, access }) => {
       return;
     }
 
+    if (currentItem.item.is_active === false) {
+      toast.info('Cannot add inactive item');
+      return;
+    }
+
     if (currentItem.qty < 1) {
       toast.info('Quantity must be at least 1');
       return;

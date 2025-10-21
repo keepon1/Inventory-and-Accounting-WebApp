@@ -47,7 +47,7 @@ def fetch_sales_for_main_view(search, date_search, business, company, page, user
         sales = sales.order_by('-code').values(
             'code', 'date', 'customer_name', 'customer_info__name', 'created_by__user_name',
             'description', 'sub_total', 'discount', 'tax_levy', 'gross_total', 'status',
-            'location_address__location_name'
+            'location_address__location_name', 'customer_contact', 'customer_info__contact'
         )
 
         paginator = Paginator(sales, page_quantity)
@@ -123,7 +123,7 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
                     sub_total=totals.get('subtotal', 0), gross_total=totals.get('grandTotal', 0),
                     payment_term=data.get('terms', ''), type=data.get('type', ''), amount_paid=amount_paid,
                     discount=totals.get('discountAmount', 0), net_total=totals.get('netTotal', 0),
-                    tax_levy=totals.get('levyAmount', 0), tax_levy_types=levy
+                    tax_levy=totals.get('levyAmount', 0), tax_levy_types=levy, customer_contact=data.get('contact', '')
                 )
             elif data.get('type') == 'registered':
                 try:
@@ -172,6 +172,9 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
                     logger.warning(f"Location item for '{item.get('name', '')}' not found at location '{location}'.")
                     return {"status": "error", "message": f"Item '{item.get('name', '')}' not found in location '{location}'", "data": {}}
 
+                if loc_item.item_name.is_active is False:
+                    logger.warning(f"Item '{item.get('name', '')}' is inactive.")
+                    return {"status": "error", "message": f"Item '{item_info.item_name}' is inactive", "data": {}}
 
                 if (loc_item.quantity - Decimal(str(item['qty']))) < 0:
                     logger.warning(f"Insufficient stock for item '{item.get('name', '')}'.")

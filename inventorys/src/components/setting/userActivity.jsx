@@ -11,9 +11,10 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { toast } from 'react-toastify';
+import { set } from 'date-fns';
 
 const UserActivity = ({ business, user }) => {
-    const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState([{user_name: 'All Users', admin: false}]);
     const [activities, setActivities] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
@@ -38,7 +39,7 @@ const UserActivity = ({ business, user }) => {
                     console.error(response.message || 'Failed to fetch users');
                     return;
                 }
-                setUsers(response.data || []);
+                setUsers(prev => [...prev, ...response.data]);
             } catch (error) {
                 toast.error("An error occurred while fetching users");
                 console.error(error);
@@ -145,16 +146,14 @@ const UserActivity = ({ business, user }) => {
                                     <td>{user.user_name}</td>
                                     <td>
                                         {user.admin ? (
-                                            <>
-                                                <FontAwesomeIcon icon={faUserShield} className="admin-icon" />
-                                                <span> Admin</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <FontAwesomeIcon icon={faUserCheck} className="user-icon" />
-                                                <span> User</span>
-                                            </>
-                                        )}
+                                            <span className="role-badge admin-badge">
+                                                <FontAwesomeIcon icon={faUserShield} /> Admin
+                                            </span>
+                                        ) : user.user_name !== 'All Users' ? (
+                                            <span className="role-badge user-badge">
+                                                <FontAwesomeIcon icon={faUserCheck} /> User
+                                            </span>
+                                        ) : 'N/A'}
                                     </td>
                                 </tr>
                             );

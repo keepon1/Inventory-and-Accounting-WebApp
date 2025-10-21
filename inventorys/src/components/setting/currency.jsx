@@ -393,7 +393,7 @@ const CurrencyMain = ({ business, user }) => {
                           />
                         </div>
                         <div style={{display: 'flex', gap: '10px'}}>
-                          <button className="btn btn-primary" onClick={editCurrency}>
+                          <button className="btn btn-outline" onClick={editCurrency}>
                             Save Changes
                           </button>
 

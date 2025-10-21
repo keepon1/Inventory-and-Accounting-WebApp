@@ -730,6 +730,20 @@ def fetch_category(request):
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
+def fetch_brand(request):
+    if request.method == 'POST':
+        business = request.data['business']
+        business = models.bussiness.objects.get(bussiness_name=business)
+
+        items = models.inventory_brand.objects.filter(bussiness_name=business).annotate(
+            value=F('name'),
+            label=F('name')
+        ).values('value', 'label')
+    
+    return Response(items)
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def fetch_unit(request):
     if request.method == 'POST':
         business = request.data['business']
@@ -935,6 +949,13 @@ def add_tax(request):
                 bussiness_name=business
             )
 
+            models.tracking_history.objects.create(
+                user=user_query,
+                head=f'Added new tax: {name}',
+                area='Add Tax',
+                bussiness_name=business
+            )
+
         return Response({'status': 'success', 'message': f'Tax {name} created successfully', 'data': {}})
     
     except ValueError as ve:
@@ -994,6 +1015,13 @@ def edit_tax(request):
             tax.type = typ
             tax.description = description
             tax.save()
+
+            models.tracking_history.objects.create(
+                user=user_query,
+                head=f'Edited tax: {original} to {name}',
+                area='Edit Tax',
+                bussiness_name=business
+            )
 
         return Response({'status': 'success', 'message': f'{original} updated successfully', 'data': {}})
 
@@ -1193,6 +1221,12 @@ def add_currency(request):
 
         with transaction.atomic(durable=False, savepoint=False, using='default'):
             models.currency.objects.create(name=name, rate=rate, symbol=symbol, bussiness_name=business)
+            models.tracking_history.objects.create(
+                business_name=business,
+                user=user_query,
+                head='Currency Added',
+                area=f'Currency {name} was added by {request.user.username}',
+            )
 
         return Response({'status': 'success', 'message': f'{name} created successfully', 'data': {}})
     
@@ -1251,6 +1285,13 @@ def edit_currency(request):
             cur.rate = rate
             cur.symbol = symbol
             cur.save()
+
+            models.tracking_history.objects.create(
+                bussiness_name=business,
+                user=user_query,
+                head='Currency Edited',
+                area=f'Currency {original} was edited to {name} by {request.user.username}',
+            )
 
         return Response({'status': 'success', 'message': f'{original} updated successfully', 'data': {}})
 
@@ -1436,6 +1477,12 @@ def add_measurement_unit(request):
 
         with transaction.atomic(durable=False, savepoint=False, using='default'):
             models.inventory_unit.objects.create(name=name, suffix=suffix, description=description, bussiness_name=business)
+            models.tracking_history.objects.create(
+                bussiness_name=business,
+                user=user_query,
+                head='Add Measurement Unit',
+                area=f'Measurement Unit {name} created by {user_query.user_name}'
+            )
 
         return Response({'status': 'success', 'message': f'{name} created successfully', 'data': {}})
     
@@ -1490,6 +1537,13 @@ def edit_measurement_unit(request):
             unit.suffix = suffix
             unit.description = description
             unit.save()
+
+            models.tracking_history.objects.create(
+                bussiness_name=business,
+                user=user_query,
+                head='Edit Measurement Unit',
+                area=f'Measurement Unit {original} updated to {name} by {user_query.user_name}'
+            )
 
         return Response({'status': 'success', 'message': f'{original} updated successfully', 'data': {}})
 
@@ -1663,6 +1717,12 @@ def add_category(request):
 
         with transaction.atomic(durable=False, savepoint=False, using='default'):
             models.inventory_category.objects.create(name=name, description=description, bussiness_name=business)
+            models.tracking_history.objects.create(
+                bussiness_name=business,
+                user=user_query,
+                head='Category Added',
+                area=f'Category {name} added by {user_query.user_name}'
+            )
 
         return Response({'status': 'success', 'message': f'{name} created successfully', 'data': {}})
     
@@ -1715,6 +1775,13 @@ def edit_category(request):
             cat.name = name
             cat.description = description
             cat.save()
+
+            models.tracking_history.objects.create(
+                bussiness_name=business,
+                user=user_query,
+                head='Category Edited',
+                area=f'Category {original} edited to {name} by {user_query.user_name}'
+            )
 
         return Response({'status': 'success', 'message': f'{original} updated successfully', 'data': {}})
 
@@ -1801,8 +1868,8 @@ def delete_category(request):
                 category_obj.delete()
                 models.tracking_history.objects.create(
                     bussiness_name=user_profile.bussiness_name,
-                    user=request.user,
-                    heading='Category Deletion',
+                    user=user_profile,
+                    head='Category Deletion',
                     area=f'Category {category} deleted by {user_profile.user_name}'
                 )
 
@@ -1814,6 +1881,262 @@ def delete_category(request):
         
     return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
 
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def fetch_brands(request):
+    try:
+        if request.method != 'POST':
+            return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
+
+        user = request.data.get('user')
+        business_name = request.data.get('business')
+
+        if not isinstance(user, str) or not user.strip():
+            return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})
+        
+        user_profile = getattr(request.user, 'current', None)
+        if user_profile is None:
+            user_profile = models.current_user.objects.filter(user=request.user).first()
+
+        if user_profile is None:
+            return Response({'status': 'error', 'message': 'User profile not found', 'data': {}})
+
+        business = user_profile.bussiness_name
+
+        if not business:
+            return Response({'status': 'error', 'message': f'Business {business_name} not found', 'data': {}})
+
+        user_query = models.current_user.objects.filter(bussiness_name=business, user_name=user, user=request.user).first()
+        if not user_query:
+            return Response({'status': 'error', 'message': f'{user} not found in this business', 'data': {}})
+
+        if not user_query.admin and not user_query.settings_access:
+            return Response({'status': 'error', 'message': f'{user} does not have access to settings', 'data': {}})
+
+        items = list(models.inventory_brand.objects.filter(bussiness_name=business).values(
+            'name', 'description'
+        ))
+
+        return Response({'status': 'success', 'message': 'Brands fetched', 'data': items})
+    
+    except ValueError as ve:
+        logger.warning(ve)
+        return Response({'status': 'error', 'message': 'Invalid data was submitted', 'data': {}})
+
+    except Exception as error:
+        logger.exception(error)
+        return Response({'status': 'error', 'message': 'Failed to fetch brands', 'data': {}})
+    
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def add_brand(request):
+    try:
+        if request.method != 'POST':
+            return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
+
+        data = request.data.get('detail') or {}
+        business_name = request.data.get('business')
+        user = request.data.get('user')
+
+        if not isinstance(business_name, str) or not business_name.strip() or not isinstance(user, str) or not user.strip():
+            return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})
+
+        name = (data.get('name') or '').strip()
+        description = data.get('description') or ''
+
+        if not isinstance(name, str) or not name.strip():
+            return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})
+        
+        user_profile = getattr(request.user, 'current', None)
+        if user_profile is None:
+            user_profile = models.current_user.objects.filter(user=request.user).first()
+
+        if user_profile is None:
+            return Response({'status': 'error', 'message': 'User profile not found', 'data': {}})
+
+        business = user_profile.bussiness_name
+        if not business:
+            return Response({'status': 'error', 'message': f'Business {business_name} not found', 'data': {}})
+
+        user_query = models.current_user.objects.filter(bussiness_name=business, user_name=user, user=request.user).first()
+        if not user_query:
+            return Response({'status': 'error', 'message': f'{user} not found in this business', 'data': {}})
+
+        if not user_query.admin and not user_query.settings_access:
+            return Response({'status': 'error', 'message': f'{user} does not have access to settings', 'data': {}})
+
+        if models.inventory_brand.objects.filter(name=name, bussiness_name=business).exists():
+            return Response({'status': 'error', 'message': f'{name} already exist', 'data': {}})
+
+        with transaction.atomic(durable=False, savepoint=False, using='default'):
+            models.inventory_brand.objects.create(name=name, description=description, bussiness_name=business)
+            models.tracking_history.objects.create(
+                bussiness_name=business,
+                user=user_query,
+                head='Brand Created',
+                area=f'Brand {name} was created by {user_query.user_name}',
+            )
+
+        return Response({'status': 'success', 'message': f'{name} created successfully', 'data': {}})
+    
+    except ValueError as ve:
+        logger.warning(ve)
+        return Response({'status': 'error', 'message': 'Invalid data was submitted', 'data': {}})
+
+    except Exception as error:
+        logger.exception(error)
+        return Response({'status': 'error', 'message': 'Failed to add brand', 'data': {}})
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def edit_brand(request):
+    try:
+        if request.method != 'POST':
+            return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
+
+        data = request.data.get('detail') or {}
+        business_name = request.data.get('business')
+        user = request.data.get('user')
+
+        if not isinstance(business_name, str) or not business_name.strip() or not isinstance(user, str) or not user.strip():
+            return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})
+
+        original = (data.get('original') or '').strip()
+        name = (data.get('name') or '').strip()
+        description = data.get('description') or ''
+
+        if not isinstance(original, str) or not original.strip() or not isinstance(name, str) or not name.strip():
+            return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})
+        
+        user_profile = getattr(request.user, 'current', None)
+        if user_profile is None:
+            user_profile = models.current_user.objects.filter(user=request.user).first()
+
+        if user_profile is None:
+            return Response({'status': 'error', 'message': 'User profile not found', 'data': {}})
+
+        business = user_profile.bussiness_name
+        if not business:
+            return Response({'status': 'error', 'message': f'Business {business_name} not found', 'data': {}})
+
+        user_query = models.current_user.objects.filter(bussiness_name=business, user_name=user, user=request.user).first()
+        if not user_query:
+            return Response({'status': 'error', 'message': f'{user} not found in this business', 'data': {}})
+
+        if not user_query.admin and not user_query.settings_access:
+            return Response({'status': 'error', 'message': f'{user} does not have access to settings', 'data': {}})
+
+        if models.inventory_brand.objects.filter(name=name, bussiness_name=business).exclude(name=original).exists():
+            return Response({'status': 'error', 'message': f'{name} already exist', 'data': {}})
+
+        with transaction.atomic(durable=False, savepoint=False, using='default'):
+            brand = models.inventory_brand.objects.get(name=original, bussiness_name=business)
+            brand.name = name
+            brand.description = description
+            brand.save()
+
+            models.tracking_history.objects.create(
+                bussiness_name=business,
+                user=user_query,
+                head='Brand Edited',
+                area=f'Brand {original} was edited to {name} by {user_query.user_name}',
+            )
+
+        return Response({'status': 'success', 'message': f'{original} updated successfully', 'data': {}})
+
+    except models.inventory_brand.DoesNotExist:
+        return Response({'status': 'error', 'message': f'{original} not found', 'data': {}})
+    
+    except ValueError as ve:
+        logger.warning(ve)
+        return Response({'status': 'error', 'message': 'Invalid data was submitted', 'data': {}})
+    
+    except Exception as error:
+        logger.warning(error)
+        return Response({'status': 'error', 'message': 'Failed to edit brand', 'data': {}})
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def get_brand(request):
+    try:
+        if request.method != 'POST':
+            return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
+
+        brand_name = request.data.get('brand')
+        business_name = request.data.get('business')
+        user = request.data.get('user')
+
+        if not isinstance(brand_name, str) or not brand_name.strip() or not isinstance(business_name, str) or not business_name.strip() or not isinstance(user, str) or not user.strip():
+            return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})
+
+        business = models.bussiness.objects.filter(bussiness_name=business_name).first()
+        if not business:
+            return Response({'status': 'error', 'message': f'Business {business_name} not found', 'data': {}})
+
+        user_query = models.current_user.objects.filter(bussiness_name=business, user_name=user, user=request.user).first()
+        if not user_query:
+            return Response({'status': 'error', 'message': f'{user} not found in this business', 'data': {}})
+
+        if not user_query.admin and not user_query.settings_access:
+            return Response({'status': 'error', 'message': f'{user} does not have access to settings', 'data': {}})
+
+        brand = models.inventory_brand.objects.get(bussiness_name=business, name=brand_name)
+        result = {'name': brand.name, 'description': brand.description}
+
+        return Response({'status': 'success', 'message': 'Brand fetched', 'data': result})
+
+    except models.inventory_brand.DoesNotExist:
+        return Response({'status': 'error', 'message': f'{brand_name} not found', 'data': {}})
+    
+    except ValueError as ve:
+        logger.warning(ve)
+        return Response({'status': 'error', 'message': 'Invalid data was submitted', 'data': {}})
+    
+    except Exception as error:
+        logger.exception(error)
+        return Response({'status': 'error', 'message': 'Failed to get brand', 'data': {}})
+    
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def delete_brand(request):
+    try:
+        if request.method != 'POST':
+            return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
+        
+        brand_name = request.data.get('brand')
+
+        user_profile = getattr(request.user, 'current', None)
+        if user_profile is None:
+            user_profile = models.current_user.objects.filter(user=request.user).first()
+
+        if user_profile is None:
+            return Response({'status': 'error', 'message': 'User profile not found', 'data': {}})
+        
+        if user_profile.admin is False and user_profile.settings_access is False:
+            return Response({'status': 'error', 'message': 'User does not have permission to delete brands', 'data': {}})
+        
+        brand = models.inventory_brand.objects.filter(name=brand_name, bussiness_name=user_profile.bussiness_name).first()
+        if brand is None:
+            return Response({'status': 'error', 'message': f'Brand {brand_name} not found', 'data': {}})
+        
+        if models.items.objects.filter(bussiness_name=user_profile.bussiness_name, brand=brand).exists():
+            return Response({'status': 'error', 'message': f'Brand {brand_name} is in use and cannot be deleted', 'data': {}})
+        
+        with transaction.atomic(durable=False, savepoint=False, using='default'):
+            brand.delete()
+
+            models.tracking_history.objects.create(
+                bussiness_name=user_profile.bussiness_name,
+                user=user_profile,
+                head='Delete Brand',
+                area=f'Brand {brand_name} deleted successfully'
+            )
+
+        return Response({'status': 'success', 'message': f'Brand {brand_name} deleted successfully', 'data': {}})
+    
+    except Exception as error:
+        logger.warning(error)
+        return Response({'status': 'error', 'message': 'Failed to delete brand', 'data': {}})
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -1840,9 +2163,9 @@ def fetch_users(request):
         if not user_query.admin and not user_query.settings_access:
             return Response({'status': 'error', 'message': f'{user} does not have access to settings', 'data': {}})
 
-        items = list(models.current_user.objects.filter(bussiness_name=business).values(
+        items = models.current_user.objects.filter(bussiness_name=business).values(
             'user_name', 'admin', 'per_location_access'
-        ))
+        )
 
         return Response({'status': 'success', 'message': 'Users fetched', 'data': items})
     
@@ -1963,6 +2286,13 @@ def edit_user(request):
             cu.user_name = user_name
             cu.admin = bool(admin_flag)
             cu.save()
+
+            models.tracking_history.objects.create(
+                bussiness_name=business,
+                user=user_query,
+                head='User Edited',
+                area=f'User {original} was edited to {user_name} by {user_query.user_name}',
+            )
 
         return Response({'status': 'success', 'message': f'{original} updated successfully', 'data': {}})
 
@@ -2178,6 +2508,13 @@ def edit_user_permissions(request):
             user_obj.receive_access = data['receive_access']
             user_obj.save()
 
+            models.tracking_history.objects.create(
+                bussiness_name=business,
+                user=caller_query,
+                head='User Permissions Edited',
+                area=f'Permissions for user {data.get("user_name")} were edited by {caller_query.user_name}',
+            )
+
         return Response({'status': 'success', 'message': f'{data.get('user_name')}`s permissions updated successfully', 'data': {}})
 
     except models.current_user.DoesNotExist:
@@ -2216,6 +2553,12 @@ def fetch_user_activities(request):
 
         if not caller_query.admin and not caller_query.settings_access:
             return Response({'status': 'error', 'message': f'{user} does not have access to settings', 'data': {}})
+        
+        if username.lower() == 'all users':
+            result = models.tracking_history.objects.filter(bussiness_name=business).order_by('-date').values(
+                'date', 'area', 'head', 'user__user_name'
+            )
+            return Response({'status': 'success', 'message': 'All user activities fetched', 'data': result})
 
         user_obj = models.current_user.objects.filter(bussiness_name=business, user_name=username).first()
         if not user_obj:
@@ -2407,10 +2750,23 @@ def view_item(request):
                 logger.warning(f"Access denied: user={user.user_name} tried to view {request.data['item']} in {business}")
                 return Response({'status': 'error', 'message': f'{user.user_name} does not have access to view item'})
 
-            item_info = {'code':item.code, 'brand':item.brand, 'name':item.item_name, 'Sales':item.sales_price, 'description':item.description,
-                    'unit':{'value':item.unit.suffix, 'label':item.unit.suffix},'quantity':item.quantity, 'model':item.model, 'Cost':item.purchase_price, 
-                    'date':item.creation_date, 'by':item.created_by.user_name, 'category':{'value':item.category.name, 'label':item.category.name}, 'reorder':item.reorder_level,
-                    'status': {'value': 'active' if item.is_active else 'inactive', 'label': 'Active' if item.is_active else 'Inactive'}, 'price':item.sales_price}
+            item_info = {
+                'code': item.code,
+                'brand': {'value': item.brand.name, 'label': item.brand.name} if item.brand else None,
+                'name': item.item_name,
+                'Sales': item.sales_price,
+                'description': item.description,
+                'unit': {'value': item.unit.suffix, 'label': item.unit.suffix},
+                'quantity': item.quantity,
+                'model': item.model,
+                'Cost': item.purchase_price,
+                'date': item.creation_date,
+                'by': item.created_by.user_name,
+                'category': {'value': item.category.name, 'label': item.category.name} if item.category else None,
+                'reorder': item.reorder_level,
+                'status': {'value': 'active' if item.is_active else 'inactive', 'label': 'Active' if item.is_active else 'Inactive'},
+                'price': item.sales_price
+            }
             
             return Response({'status':'success', 'data':item_info})
         
@@ -2544,6 +2900,10 @@ def verify_sales_quantity(request):
             location = data['loc']
 
             item = models.location_items.objects.get(item_name__item_name=data['item'], bussiness_name=business, location__location_name=location)
+
+            if item.item_name.is_active is False:
+                return Response({'status':'error', 'message':f'Item {item.item_name} is inactive'})
+            
             if (int(item.quantity) - int(sales_quantity)) < 0:
                 return Response({'status':'error', 'message':f'Only {item.quantity} {item.item_name.unit.suffix} of {item.item_name} available in stock at {location}'})
             else:
@@ -2610,11 +2970,11 @@ def view_sale(request):
             sales = models.sale.objects.get(code=number, bussiness_name=business_query)
             items = models.sale_history.objects.filter(sales=sales)
 
-            sales = {'customer':sales.customer_name, 'number':sales.code, 'issueDate':sales.date, 'dueDate':sales.due_date, 'contact':sales.customer_info.contact, 
+            sales = {'customer':sales.customer_name, 'number':sales.code, 'issueDate':sales.date, 'dueDate':sales.due_date, 'contact': sales.customer_contact if sales.customer_info.name == 'Regular Customer' else sales.customer_info.contact, 
                     'address':sales.customer_info.address, 'description':sales.description, 'by':sales.created_by.user_name, 'total':sales.gross_total, 'customer_info':sales.customer_info.name,
                     'loc':sales.location_address.location_name, 'discount':sales.discount_percentage, 'tax_levy':sales.tax_levy_types, 'type':sales.type, 'status':sales.status}
             
-            items = [{'category':i.item_name.category.name, 'model':i.item_name.model, 'item':i.item_name.item_name, 'brand':i.item_name.brand, 'code':i.item_name.code,
+            items = [{'category':i.item_name.category.name, 'model':i.item_name.model, 'item':i.item_name.item_name, 'brand':i.item_name.brand.name if i.item_name.brand else '', 'code':i.item_name.code,
                     'unit':i.item_name.unit.suffix, 'qty':i.quantity, 'price':i.sales_price, 'total':i.quantity * i.purchase_price} for i in items]
             
             company = {'business':business_query.bussiness_name, 'contact':business_query.telephone, 'email':business_query.email, 'address':business_query.address}
@@ -2760,7 +3120,7 @@ def view_purchase(request):
                     'address':purchase.supplier.address, 'description':purchase.description, 'by':purchase.created_by.user_name, 'total':purchase.gross_total,
                     'loc':purchase.location_address.location_name, 'discount':purchase.discount_percentage, 'tax_levy':purchase.tax_levy_types, 'status':purchase.status}
             
-            items = [{'category':i.item_name.category.name, 'model':i.item_name.model, 'item':i.item_name.item_name, 'brand':i.item_name.brand, 'code':i.item_name.code,
+            items = [{'category':i.item_name.category.name, 'model':i.item_name.model, 'item':i.item_name.item_name, 'brand':i.item_name.brand.name if i.item_name.brand else '', 'code':i.item_name.code,
                     'unit':i.item_name.unit.suffix, 'qty':i.quantity, 'price':i.purchase_price, 'total':i.quantity * i.purchase_price} for i in items]
             
             data = {'customer':purchase, 'items':items}
@@ -3191,8 +3551,12 @@ def verify_transfer_quantity(request):
         item = models.items.objects.get(item_name=detail['item'], bussiness_name=business)
         loc_item= models.location_items.objects.get(item_name=item, location=from_loc, bussiness_name=business)
 
+        if loc_item.item_name.is_active is False:
+            return Response({'status':'error', 'message':f'Item {detail["item"]} is inactive'})
+
         if loc_item.quantity - int(detail['qty']) < 0:
             return Response({'status':'error', 'message':f'{detail["item"]} has only {loc_item.quantity} quantity'})
+        
         else:
             return Response({'status':'success', 'message':f'{detail['item']} has enough quantity'})
     return Response()
@@ -4467,3 +4831,153 @@ def fetch_account_history(request):
         except Exception as error:
             logger.warning(error)
             return Response({'status': 'error', 'message': 'Something happened'})
+        
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def get_business_details(request):
+    if request.method == 'POST':
+        try:
+            business_name = request.data.get('business')
+            company = request.user.id
+
+            verify_data = (isinstance(business_name, str) and business_name.strip())
+            
+            if not verify_data:
+                return Response({'status': 'error', 'message': 'Invalid data was submitted'})
+            
+            business_query = models.bussiness.objects.get(bussiness_name=business_name, company_id=company)
+
+            business_data = {
+                'bussiness_name': business_query.bussiness_name,
+                'address': business_query.address,
+                'contact': business_query.telephone,
+                'email': business_query.email,
+                'created_at': business_query.company.date_joined.strftime('%B %d, %Y'),
+            }
+
+            return Response({'status':'success', 'data':business_data})
+
+        except models.bussiness.DoesNotExist:
+            logger.warning(f"Business '{business_name}' not found.")
+            return Response({'status': 'error', 'message': f'Business {business_name} not found'})
+        
+        except Exception as error:
+            logger.warning(error)
+            return Response({'status': 'error', 'message': 'Something happened'})
+        
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def delete_business(request):
+    if request.method == 'POST':
+        try:
+            business_name = request.data.get('business')
+            company = request.user.id
+
+            if not isinstance(business_name, str) or not business_name.strip():
+                return Response({'status': 'error', 'message': 'Invalid business name.'})
+
+            user_profile = getattr(request.user, 'current', None)
+            if user_profile is None:
+                user_profile = models.current_user.objects.filter(user=request.user).first()
+
+            if user_profile is None:
+                return Response({'status': 'error', 'message': 'User profile not found.'})
+            
+            if not user_profile.admin:
+                return Response({'status': 'error', 'message': f'{user_profile.user_name} does not have access to delete business.'})
+            
+            business_query = models.bussiness.objects.get(
+                bussiness_name=business_name.strip(),
+                company_id=company
+            )
+
+            with transaction.atomic():
+                logger.info(f"Deleting business and related data for: {business_name}")
+
+                # 3️⃣ Financial balances
+                models.account_balance.objects.filter(business=business_query).delete()
+                models.customer_balance.objects.filter(business=business_query).delete()
+                models.supplier_balance.objects.filter(business=business_query).delete()
+                models.item_balance.objects.filter(business=business_query).delete()
+
+                # 4️⃣ Ledgers and journals
+                models.asset_ledger.objects.filter(bussiness_name=business_query).delete()
+                models.liabilities_ledger.objects.filter(bussiness_name=business_query).delete()
+                models.equity_ledger.objects.filter(bussiness_name=business_query).delete()
+                models.revenue_ledger.objects.filter(bussiness_name=business_query).delete()
+                models.expenses_ledger.objects.filter(bussiness_name=business_query).delete()
+                models.customer_ledger.objects.filter(bussiness_name=business_query).delete()
+                models.supplier_ledger.objects.filter(bussiness_name=business_query).delete()
+                models.journal.objects.filter(bussiness_name=business_query).delete()
+                models.journal_head.objects.filter(bussiness_name=business_query).delete()
+
+                # 5️⃣ Transactions and histories
+                models.sale_history.objects.filter(bussiness_name=business_query).delete()
+                models.sale.objects.filter(bussiness_name=business_query).delete()
+                models.purchase_history.objects.filter(bussiness_name=business_query).delete()
+                models.purchase.objects.filter(bussiness_name=business_query).delete()
+                models.payment.objects.filter(bussiness_name=business_query).delete()
+                models.cash_receipt.objects.filter(bussiness_name=business_query).delete()
+
+                # 6️⃣ Inventory and transfers
+                models.transfer_history.objects.filter(bussiness_name=business_query).delete()
+                models.inventory_transfer.objects.filter(bussiness_name=business_query).delete()
+                models.location_items.objects.filter(bussiness_name=business_query).delete()
+                models.items.objects.filter(bussiness_name=business_query).delete()
+                models.inventory_location.objects.filter(bussiness_name=business_query).delete()
+                models.inventory_category.objects.filter(bussiness_name=business_query).delete()
+                models.inventory_brand.objects.filter(bussiness_name=business_query).delete()
+                models.inventory_unit.objects.filter(bussiness_name=business_query).delete()
+
+                # 7️⃣ Customers, suppliers, taxes
+                models.customer.objects.filter(bussiness_name=business_query).delete()
+                models.supplier.objects.filter(bussiness_name=business_query).delete()
+                models.taxes_levies.objects.filter(bussiness_name=business_query).delete()
+                models.currency.objects.filter(bussiness_name=business_query).delete()
+
+                # 8️⃣ Accounts
+                models.real_account.objects.filter(bussiness_name=business_query).delete()
+                models.sub_account.objects.filter(bussiness_name=business_query).delete()
+                models.account.objects.filter(bussiness_name=business_query).delete()
+
+                # 9️⃣ Periods
+                models.month_period.objects.filter(business=business_query).delete()
+                models.quarter_period.objects.filter(bussiness_name=business_query).delete()
+                models.year_period.objects.filter(bussiness_name=business_query).delete()
+
+                # 🔟 Logs and tracking
+                models.tracking_history.objects.filter(bussiness_name=business_query).delete()
+
+                # 1️⃣ Delete all current_user accounts linked to this business
+                users_in_business = models.current_user.objects.filter(bussiness_name=business_query)
+                user_ids = [u.user.pk for u in users_in_business]
+                users_in_business.delete()
+
+                logout(request)
+
+                # 2️⃣ Delete User accounts (auth_user table)
+                User.objects.filter(id__in=user_ids).delete()
+
+                # 11️⃣ Finally delete the business itself
+                business_query.delete()
+            
+            response = Response({
+                'status': 'success',
+                'message': f'Business {business_name} and all related data deleted successfully. You have been logged out.'
+            })
+            response.delete_cookie('access')
+            response.delete_cookie('refresh')
+            response.delete_cookie('csrftoken')
+            response.delete_cookie('sessionid')
+
+            logger.info(f"✅ Business {business_name} deleted and user logged out.")
+            return response
+
+        except models.bussiness.DoesNotExist:
+            logger.warning(f"Business '{business_name}' not found.")
+            return Response({'status': 'error', 'message': f'Business {business_name} not found'})
+
+        except Exception as error:
+            logger.error(f"Error deleting business {business_name}: {error}")
+            return Response({'status': 'error', 'message': f'Failed to delete {business_name}'})

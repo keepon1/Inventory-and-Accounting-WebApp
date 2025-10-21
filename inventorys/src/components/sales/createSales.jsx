@@ -7,7 +7,7 @@ import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
 import { customerLoadOptions, itemsLoadOptions, sourceLocationsLoadOptions, taxLevyLoadOptions } from "../../utils/fetchData";
 import { toast } from "react-toastify";
-import { add, set } from "date-fns";
+import { add, set, format } from "date-fns";
 
 
 const CreateSales = ({ business, user, access }) => {
@@ -47,7 +47,6 @@ const CreateSales = ({ business, user, access }) => {
       saleType: type,
       customer: '',
       address: '',
-      contact: '',
       customerObject: null,
       account: null,
       description:'',
@@ -244,6 +243,7 @@ const CreateSales = ({ business, user, access }) => {
     formData.append('totals', JSON.stringify(totals));
     formData.append('levy', JSON.stringify(sales.selectedLevi));
     formData.append('type', sales.saleType);
+    formData.append('contact', sales.contact);
 
     salesItems.forEach((item) =>{
       formData.append('items', JSON.stringify({name:item.name, qty:item.qty, price:item.price}));
@@ -265,9 +265,9 @@ const CreateSales = ({ business, user, access }) => {
             business,
             user,
             customer: typeof sales.customer === 'object' ? sales.customer.label : sales.customer,
-            date: sales.issueDate,
-            dueDate: sales.dueDate,
-            location: sales.location.label,
+            date: new Date(sales.issueDate),
+            dueDate: new Date(sales.dueDate),
+            location: sales.location?.label || '',
             description: sales.description,
             discount: sales.discount,
             terms: typeof sales.terms === 'object' ? sales.terms.label : sales.terms,
@@ -283,6 +283,7 @@ const CreateSales = ({ business, user, access }) => {
             window.print();
             navigate(-1);
           }, 500);
+
         } else {
           navigate(-1);
         }
@@ -303,6 +304,12 @@ const CreateSales = ({ business, user, access }) => {
 
   const totals = calculateTotals();
 
+  // Safe helpers for print rendering to avoid runtime errors
+  const formattedPrintDate = printData?.date ? format(new Date(printData.date), 'dd/MM/yyyy') : '';
+  const pdTotals = printData?.totals || { subtotal: 0, discountAmount: 0, netTotal: 0, levyAmount: 0, grandTotal: 0 };
+  const pdItems = Array.isArray(printData?.items) ? printData.items : [];
+  const pdLevi = Array.isArray(sales?.selectedLevi) ? sales.selectedLevi : (Array.isArray(printData?.levy) ? printData.levy : []);
+  
   return (
     <>
       {!printData && (
@@ -342,7 +349,7 @@ const CreateSales = ({ business, user, access }) => {
               {sales.saleType === 'regular' ? (
                 <>
                 <div className="ivi_subboxes">
-                    <div className="ivi_holder_box">
+                  <div className="ivi_holder_box">
                     <label className="ivi_label">Customer Name</label>
                     <input
                         type="text"
@@ -351,9 +358,19 @@ const CreateSales = ({ business, user, access }) => {
                         onChange={e => [setSales({...sales, customer: e.target.value}), setErrors('')]}
                     />
                     {errors.customer && <div className="error-message">Type customer's name</div>}
-                    </div>
+                  </div>
+
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Phone</label>
+                    <input
+                      type="text"
+                      className="ivi_input"
+                      value={sales.contact}
+                      onChange={e => setSales({...sales, contact: e.target.value})}
+                    />
+                  </div>
                 
-                    <div className="ivi_holder_box">
+                  <div className="ivi_holder_box">
                     <label className="ivi_label">Account</label>
                     <Select
                       options={accounts}
@@ -368,29 +385,29 @@ const CreateSales = ({ business, user, access }) => {
                 </div>
 
                 <div className="ivi_subboxes">
-                    <div className="ivi_holder_box">
+                  <div className="ivi_holder_box">
                     <label className="ivi_label">Date</label>
                     <input
-                        type="date"
-                        className="ivi_input"
-                        value={sales.issueDate}
-                        onChange={e => setSales({...sales, issueDate: e.target.value})}
+                      type="date"
+                      className="ivi_input"
+                      value={sales.issueDate}
+                      onChange={e => setSales({...sales, issueDate: e.target.value})}
                     />
-                    </div>  
+                  </div>  
                 
-                    <div className="ivi_holder_box">
-                      <label className="ivi_label">Location*</label>
-                      <AsyncSelect
-                        cacheOptions
-                        defaultOptions={locations}
-                        className="ivi_select"
-                        classNamePrefix="ivi_select"
-                        loadOptions={sourceLocationsLoadOptions(business, user)}
-                        value={sales.location}
-                        onChange={selected => [setSales({...sales, location: selected}), setErrors({})]}
-                      />
-                      {errors.location && <div className="error-message">{errors.locations}</div>}
-                    </div>
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Location*</label>
+                    <AsyncSelect
+                      cacheOptions
+                      defaultOptions={locations}
+                      className="ivi_select"
+                      classNamePrefix="ivi_select"
+                      loadOptions={sourceLocationsLoadOptions(business, user)}
+                      value={sales.location}
+                      onChange={selected => [setSales({...sales, location: selected}), setErrors({})]}
+                    />
+                    {errors.location && <div className="error-message">{errors.locations}</div>}
+                  </div>
                 </div>
 
                 <div className="ivi_subboxes">
@@ -697,6 +714,10 @@ const CreateSales = ({ business, user, access }) => {
               </div>
             </div>
 
+            <div style={{ marginTop: 8, fontSize: 12, fontStyle: 'italic', textAlign: 'center' }}>
+              NB: Goods sold are not returnable EXCEPT on WARRANTY (Manufacturer Defect).
+            </div>
+          
             <div className="ia_add_item_mbox">
               <button className="btn btn-outline" onClick={() => handleSubmit(false)}>
                 Create Sales Invoice
@@ -714,96 +735,87 @@ const CreateSales = ({ business, user, access }) => {
       )}
 
       {printData && (
-        <div ref={printRef} className="print-container">
-          <div style={{ textAlign: "center", marginBottom: "1rem" }}>
-            <h2 style={{ margin: 0 }}>{printData.business}</h2>
-            <h3 style={{ margin: "0.5rem 0" }}>SALES INVOICE</h3>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
-            <div style={{ textAlign: "left" }}>
-              <h4>Company Info</h4>
-              {printData.address && <p><b>Address:</b> {printData.address}</p>}
-              {printData.phone && <p><b>Phone:</b> {printData.phone}</p>}
-              {printData.email && <p><b>Email:</b> {printData.email}</p>}
-              {printData.location && <p><b>Location:</b> {printData.location}</p>}
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <h3>Invoice To</h3>
-              <p><b>Invoice #:</b> {printData.id}</p>
-              <p><b>Customer:</b> {printData.customer}</p>
-              <p><b>Date:</b> {printData.date}</p>
-              <p><b>Due Date:</b> {printData.dueDate}</p>
-              <p><b>Payment Terms:</b> {printData.terms}</p>
-              {printData.description && <p><b>Description:</b> {printData.description}</p>}
-            </div>
-          </div>
-
-          <table className="ia_main_table" style={{ marginTop: "1rem", width: "100%" }}>
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Qty</th>
-                <th>Unit Price</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {printData.items.map((item, idx) => (
-                <tr key={idx}>
-                  <td>{item.name}</td>
-                  <td>{item.qty} {item.unit__suffix}</td>
-                  <td>GHS {item.price}</td>
-                  <td>GHS {(item.qty * item.price).toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div style={{ marginTop: "1rem", textAlign: "right" }}>
-            <div style={{ display: "inline-block", textAlign: "left" }}>
-              <p><b>Subtotal:</b> GHS {printData.totals.subtotal.toFixed(2)}</p>
-              <p><b>Discount ({printData.discount}%):</b> - GHS {printData.totals.discountAmount.toFixed(2)}</p>
-              {printData.totals.levyAmount > 0 && (
-                <p><b>Taxes/Levies:</b> + GHS {printData.totals.levyAmount.toFixed(2)}</p>
-              )}
-              <p style={{ fontSize: "1.1em", fontWeight: "bold" }}>
-                <b>Grand Total:</b> GHS {printData.totals.grandTotal.toFixed(2)}
-              </p>
-              {printData.partPaymentAmount > 0 && (
-                <p><b>Part Payment:</b> GHS {printData.partPaymentAmount.toFixed(2)}</p>
-              )}
-            </div>
-          </div>
-
-          <div style={{ marginTop: "3rem", display: "flex", justifyContent: "space-between" }}>
-            <div>
-            </div>
-            <div>
-              <p>{printData.customer}</p>
-              <p>____________________</p>
-              <p>Customer Signature</p>
-            </div>
-          </div>
-        </div>
-      )}
-
+        <div ref={printRef} className="print-container pos80">
+           <div style={{ textAlign: "center", marginBottom: "4px" }}>
+             <h2 style={{ margin: 0 }}>{printData.business}</h2>
+             <h3 style={{ margin: "2px 0", fontSize: "12px" }}>SALES INVOICE</h3>
+           </div>
+ 
+           <div className="info-row" style={{ marginBottom: "4px" }}>
+             <div style={{ textAlign: "left", width: "60%" }}>
+               {printData.address && <div><strong>Addr:</strong> {printData.address}</div>}
+               {printData.phone && <div><strong>Tel:</strong> {printData.phone}</div>}
+             </div>
+             <div style={{ textAlign: "right", width: "38%" }}>
+               <div><strong>Customer:</strong> {printData.customer}</div>
+               <div><strong>Inv#:</strong> {printData.id}</div>
+               <div><strong>Date:</strong> {formattedPrintDate}</div>
+             </div>
+           </div>
+ 
+           <div style={{ borderTop: "1px dashed #000", marginTop: "4px" }} />
+ 
+           <table className="ia_main_table" style={{ marginTop: "4px", width: "100%", fontSize: "11px" }}>
+             <thead>
+               <tr>
+                 <th style={{ textAlign: "left", width: "48%" }}>Item</th>
+                 <th style={{ textAlign: "center", width: "12%" }}>Qty</th>
+                 <th style={{ textAlign: "right", width: "20%" }}>Price</th>
+                 <th style={{ textAlign: "right", width: "20%" }}>Total</th>
+               </tr>
+             </thead>
+             <tbody>
+               {pdItems.map((item, idx) => (
+                 <tr key={idx}>
+                   <td style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</td>
+                   <td style={{ textAlign: "center" }}>{item.qty}{item.unit__suffix ? ` ${item.unit__suffix}` : ''}</td>
+                   <td style={{ textAlign: "right" }}>GHS {parseFloat(item.price).toFixed(2)}</td>
+                   <td style={{ textAlign: "right" }}>GHS {(Number(item.qty) * Number(item.price)).toFixed(2)}</td>
+                 </tr>
+               ))}
+             </tbody>
+           </table>
+ 
+           <div style={{ marginTop: "6px", textAlign: "right", fontSize: "11px" }}>
+             <div><strong>Subtotal:</strong> GHS {Number(pdTotals.subtotal).toFixed(2)}</div>
+             <div><strong>Discount ({printData.discount}%):</strong> - GHS {Number(pdTotals.discountAmount).toFixed(2)}</div>
+             {pdLevi.map(levy => (
+               <div key={levy.value || levy.label}><strong>{levy.label || levy.value}:</strong> + GHS {(Number(pdTotals.netTotal) * (Number(levy.rate)/100)).toFixed(2)}</div>
+             ))}
+             <div style={{ marginTop: "4px", fontWeight: "700" }}><strong>Grand Total:</strong> GHS {Number(pdTotals.grandTotal).toFixed(2)}</div>
+           </div>
+ 
+           <div style={{ marginTop: "8px", textAlign: "center", fontSize: "11px" }}>
+             <div>Thank you for buying from us.</div>
+           </div>
+           <div style={{ marginTop: "6px", textAlign: "center", fontSize: "11px", fontStyle: "italic" }}>
+             NB: Goods sold are not returnable EXCEPT on WARRANTY(Manufacturer Defect).
+           </div>
+         </div>
+        )}
+ 
       <style>{`
+        @page { size: 80mm auto; margin: 0; }
         @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print-container, .print-container * {
-            visibility: visible;
-          }
-          .print-container {
+          body * { visibility: hidden; }
+          .pos80, .pos80 * { visibility: visible; }
+          .pos80 {
             position: absolute;
             left: 0;
             top: 0;
-            width: 100%;
-            padding: 20px;
-            font-size: 14px;
+            width: 80mm;
+            max-width: 80mm;
+            padding: 4mm;
+            font-family: "Courier New", monospace;
+            font-size: 12px;
+            color: #000;
+            background: #fff;
           }
+          .pos80 h2, .pos80 h3 { margin: 0; padding: 0; }
+          .pos80 .info-row { display: flex; justify-content: space-between; font-size: 11px; }
+          .pos80 table { width: 100%; border-collapse: collapse; font-size: 11px; }
+          .pos80 thead th { border-bottom: 1px dashed #000; padding-bottom: 2px; }
+          .pos80 th, .pos80 td { padding: 2px 0; }
         }
       `}</style>
     </>

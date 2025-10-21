@@ -118,7 +118,7 @@ const SalesMain = ({ business, user, access }) => {
 
               <div className="ivi_display_box1">
                 <div className="ivi_subboxes1">
-                  <div className="ivi_holder_box1" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div className="ivi_holder_box1">
                     <DatePicker
                       selected={startDate}
                       onChange={date => setStartDate(date)}
@@ -128,12 +128,13 @@ const SalesMain = ({ business, user, access }) => {
                       placeholderText="Start date"
                       dateFormat="dd/MM/yyyy"
                       className="ivi_input"
+                      wrapperClassName="date-picker-wrapper"
                       isClearable
                     />
                   </div>
                 </div>
                 <div className="ivi_subboxes1">
-                  <div className="ivi_holder_box1" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div className="ivi_holder_box1">
                     <DatePicker
                       selected={endDate}
                       onChange={date => setEndDate(date)}
@@ -144,6 +145,7 @@ const SalesMain = ({ business, user, access }) => {
                       placeholderText="End date"
                       dateFormat="dd/MM/yyyy"
                       className="ivi_input"
+                      wrapperClassName="date-picker-wrapper"
                       isClearable
                     />
                   </div>
@@ -171,6 +173,7 @@ const SalesMain = ({ business, user, access }) => {
                     <th>Date</th>
                     <th>Description</th>
                     <th>Customer</th>
+                    <th>Phone No.</th>
                     <th>Location</th>
                     <th>Discount</th>
                     <th>Tax & Levy</th>
@@ -191,6 +194,7 @@ const SalesMain = ({ business, user, access }) => {
                       <td>{format(sale.date, 'dd/MM/yyyy')}</td>
                       <td>{sale.description}</td>
                       <td>{sale.customer_info__name !== 'Regular Customer' ? sale.customer_info__name : sale.customer_name}</td>
+                      <td>{sale.customer_info__name !== 'Regular Customer' ? sale.customer_info__contact : sale.customer_contact}</td>
                       <td>{sale.location_address__location_name}</td>
                       <td>GHS {sale.discount}</td>
                       <td>GHS {sale.tax_levy}</td>

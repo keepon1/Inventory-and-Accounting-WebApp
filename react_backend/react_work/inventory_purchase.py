@@ -109,7 +109,10 @@ def post_and_save_purchase(business, user, company, location, data, totals, item
 
             for i in items:
                 item = json.loads(i)
-                item_info = models.items.objects.get(item_name=item['name'], bussiness_name=business_query) 
+                item_info = models.items.objects.get(item_name=item['name'], bussiness_name=business_query)
+
+                if item_info.is_active is False:
+                    return {'status': 'error', 'message': f'Item {item_info.item_name} is inactive'}
 
                 models.purchase_history.objects.create(item_name=item_info, purchase=purchase_info, quantity=item['qty'], purchase_price=item['price'],
                                                                bussiness_name=business_query) 

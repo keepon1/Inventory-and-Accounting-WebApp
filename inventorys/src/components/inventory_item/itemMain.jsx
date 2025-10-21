@@ -138,7 +138,12 @@ const ItemMain = ({ business, user, access }) => {
                 </thead>
                 <tbody>
                   {items.map((item, index) => (
-                    <tr key={item.code} id={`row-${index}`} className="table-row">
+                    <tr
+                      key={item.code}
+                      id={`row-${index}`}
+                      className={`table-row ${item.is_active === false ? 'inactive' : ''}`}
+                      title={item.is_active === false ? 'Inactive item' : undefined}
+                    >
                       <td>
                         <Link to={`view/${item.item_name}`} className="action-button">
                           <FontAwesomeIcon icon={faEye} />
@@ -150,7 +155,7 @@ const ItemMain = ({ business, user, access }) => {
                         )}
                       </td>
                       <td>{item.category__name}</td>
-                      <td>{item.brand}</td>
+                      <td>{item.brand__name}</td>
                       <td>{item.code}</td>
                       <td>{item.model}</td>
                       <td>{item.item_name}</td>

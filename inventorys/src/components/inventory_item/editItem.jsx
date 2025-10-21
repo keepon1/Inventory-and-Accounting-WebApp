@@ -10,13 +10,14 @@ import { set } from "date-fns";
 
 const EditItem = ({item, business, user, access, item_view_control, state}) => {
     const [itemInfo, setItemInfo] = useState({
-        code: '', brand: '', name: '', unit: {value:'', label:''}, model: '',
+        code: '', brand: {value: '', label: ''}, name: '', unit: {value:'', label:''}, model: '',
         status: { value: '', label: '' }, category: {value:'', label:''},
         reorder: '', description: '', price: ''
     });
     const [oldInfo, setOldInfo] = useState();
     const [category, setCategory] = useState([{value:'', label:''}]);
     const [unit, setUnit] = useState([{value:'', label:''}]);
+    const [brand, setBrand] = useState([{value:'', label:''}]);
     const [codeError, setCodeError] = useState('');
     const [nameError, setNameError] = useState('');
     const [statusError, setStatusError] = useState('');
@@ -28,18 +29,17 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [categoryRes, unitRes, itemRes] = await Promise.all([
+                const [categoryRes, unitRes, itemRes, brandRes] = await Promise.all([
                     api.post('fetch_category', {business, user }),
                     api.post('fetch_unit', { business, user }),
-                    api.post('view_item', { business, item, user })
+                    api.post('view_item', { business, item, user }),
+                    api.post('fetch_brand', { business, user })
                 ]);
 
-                if (categoryRes.status === "success") {
-                    setCategory(categoryRes.data);
-                }
-                if (unitRes.status === "success") {
-                    setUnit(unitRes.data);
-                }
+                setCategory(categoryRes);
+                setUnit(unitRes);
+                setBrand(brandRes);
+
                 if (itemRes.status === "success") {
                     setItemInfo(itemRes.data);
                     setOldInfo(itemRes.data);
@@ -116,7 +116,7 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
                 formData.append('newName', itemInfo.name);
                 formData.append('newDescription', itemInfo.description);
                 formData.append('newModel', itemInfo.model);
-                formData.append('newBrand', itemInfo.brand);
+                formData.append('newBrand', itemInfo.brand.value || '');
                 formData.append('newImage', itemInfo.imageFile);
                 formData.append('newUnit', itemInfo.unit.value);
                 formData.append('newCategory', itemInfo.category.value);
@@ -226,12 +226,12 @@ const EditItem = ({item, business, user, access, item_view_control, state}) => {
 
                             <div className="ivi_holder_box">
                                 <label className="ivi_label">Brand</label>
-                                <input
-                                    type="text"
-                                    name="brand"
-                                    value={itemInfo.brand}
-                                    onChange={handleChange}
-                                    className="ivi_input"
+                                <Select 
+                                    options={brand} 
+                                    value={itemInfo.brand} 
+                                    onChange={selected => setItemInfo({...itemInfo, brand:selected})}
+                                    className="ivi_select"
+                                    classNamePrefix="ivi_select"
                                 />
                             </div>
                             <div className="ivi_holder_box">

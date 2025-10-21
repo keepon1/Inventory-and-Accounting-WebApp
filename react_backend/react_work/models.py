@@ -255,6 +255,17 @@ class inventory_category(models.Model):
             Index(fields=['bussiness_name','name']),
         ]
 
+class inventory_brand(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.CharField(max_length=100)
+    creation_date = models.DateField(auto_now_add=True)
+    bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
+
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name','name']),
+        ]
+
 class inventory_unit(models.Model):
     name = models.CharField(max_length=100)
     suffix = models.CharField(max_length=100)
@@ -269,7 +280,7 @@ class inventory_unit(models.Model):
 class items(models.Model):
     image = models.ImageField(upload_to='items')
     code = models.CharField(max_length = 100)
-    brand = models.CharField(max_length = 100)
+    brand = models.ForeignKey(inventory_brand, on_delete=models.CASCADE, null=True, blank=True)
     item_name = models.CharField(max_length = 100)
     description = models.CharField(max_length=100)
     model = models.CharField(max_length=100)
@@ -445,6 +456,7 @@ class sale(models.Model):
     date = models.DateField(default=date.today)
     description = models.CharField(max_length=100, default='')
     customer_name = models.CharField(max_length=100, default='')
+    customer_contact = models.CharField(max_length=100, default='')
     customer_info = models.ForeignKey(customer, on_delete=models.PROTECT)
     gross_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     sub_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))

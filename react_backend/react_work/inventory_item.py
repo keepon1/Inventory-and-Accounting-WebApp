@@ -36,16 +36,16 @@ def fetch_items_for_main_view(business, page, company, search, user, location, p
                     Q(code__icontains=search) |
                     Q(category__name__icontains=search) |
                     Q(model__icontains=search) |
-                    Q(brand__icontains=search)
+                    Q(brand__name__icontains=search)
                 )
                 items = items.filter(search_filter)
         
             items = items.order_by(
-                'category__name', 'brand', 'item_name'
+                '-is_active','category__name', 'brand__name', 'item_name'
             ).values(
-                'code', 'brand', 'item_name', 'quantity',
+                'code', 'brand__name', 'item_name', 'quantity',
                 'unit__suffix', 'purchase_price', 'sales_price',
-                'category__name', 'model', 'reorder_level'
+                'category__name', 'model', 'reorder_level', 'is_active'
             )
         else:
             if len(locations_access) < 1:
@@ -69,15 +69,15 @@ def fetch_items_for_main_view(business, page, company, search, user, location, p
                     Q(item_name__code__icontains=search) |
                     Q(item_name__category__name__icontains=search) |
                     Q(item_name__model__icontains=search) |
-                    Q(item_name__brand__icontains=search)
+                    Q(item_name__brand__name__icontains=search)
                 )
                 items = items.filter(search_filter)
 
             items = items.order_by(
-                'item_name__category__name', 'item_name__brand', 'item_name__item_name'
+                '-item_name__is_active','item_name__category__name', 'item_name__brand', 'item_name__item_name'
             ).values(
-                'item_name__code', 'item_name__brand', 'item_name__item_name', 'quantity',
-                'item_name__unit__suffix', 'purchase_price', 'sales_price',
+                'item_name__code', 'item_name__brand__name', 'item_name__item_name', 'quantity',
+                'item_name__unit__suffix', 'purchase_price', 'sales_price', 'item_name__is_active',
                 'item_name__category__name', 'item_name__model', 'reorder_level'
             )
             
@@ -91,7 +91,7 @@ def fetch_items_for_main_view(business, page, company, search, user, location, p
                 items = [
                     {
                         'code': i['item_name__code'],
-                        'brand': i['item_name__brand'],
+                        'brand__name': i['item_name__brand__name'] if i['item_name__brand'] else '',
                         'item_name': i['item_name__item_name'],
                         'quantity': i['quantity'],
                         'unit__suffix': i['item_name__unit__suffix'],
@@ -100,6 +100,7 @@ def fetch_items_for_main_view(business, page, company, search, user, location, p
                         'category__name': i['item_name__category__name'],
                         'model': i['item_name__model'],
                         'reorder_level': i['reorder_level'],
+                        'is_active': i['item_name__is_active'],
                     }
                     for i in list(current_page.object_list)
                 ]
@@ -139,9 +140,10 @@ def fetch_items_for_select(business, user, company, search, location):
             items_query = [
                 {
                     'value': i.item_name, 'label': i.item_name,
-                    'item_name': i.item_name, 'brand': i.brand, 'code': i.code,
+                    'item_name': i.item_name, 'brand': i.brand.name if i.brand else '', 'code': i.code,
                     'category__name': i.category.name, 'unit__suffix': i.unit.suffix,
-                    'model': i.model, 'cost': i.purchase_price, 'price': i.sales_price
+                    'model': i.model, 'cost': i.purchase_price, 'price': i.sales_price,
+                    'is_active': i.is_active
                 } for i in items_query
             ]
         else:
@@ -156,10 +158,10 @@ def fetch_items_for_select(business, user, company, search, location):
             items_query = [
                 {
                     'value': i.item_name.item_name, 'label': i.item_name.item_name,
-                    'item_name': i.item_name.item_name, 'brand': i.item_name.brand,
+                    'item_name': i.item_name.item_name, 'brand': i.item_name.brand.name if i.item_name.brand else '',
                     'code': i.item_name.code, 'category__name': i.item_name.category.name,
                     'unit__suffix': i.item_name.unit.suffix, 'model': i.item_name.model,
-                    'cost': i.purchase_price, 'price': i.sales_price
+                    'cost': i.purchase_price, 'price': i.sales_price, 'is_active': i.item_name.is_active
                 } for i in items_query
             ]
         
@@ -217,9 +219,10 @@ def add_inventory_item(business, user, price, name, reorder, model, category, su
 
                 unit_query = models.inventory_unit.objects.get(suffix=suffix[j], bussiness_name=business_query)
                 category_query = models.inventory_category.objects.get(name=category[j], bussiness_name=business_query)
+                brand_query = models.inventory_brand.objects.filter(name=brand[j], bussiness_name=business_query).first()
 
                 models.items.objects.create(
-                    brand=brand[j],
+                    brand=brand_query,
                     item_name=i,
                     model=model[j],
                     description=description[j],
@@ -289,9 +292,10 @@ def update_item(data, company):
         
         unit = models.inventory_unit.objects.get(suffix=data['newUnit'], bussiness_name=business_query)
         category = models.inventory_category.objects.get(name=data['newCategory'], bussiness_name=business_query)
+        brand = models.inventory_brand.objects.filter(name=data['newBrand'], bussiness_name=business_query).first()
 
         item = models.items.objects.get(item_name=data['oldName'], bussiness_name=business_query)
-        item.brand = data['newBrand']
+        item.brand = brand
         item.item_name = data['newName']
         item.sales_price = Decimal(str(data['newPrice'])) if data['newPrice'] else Decimal('0.0')
         item.description = data['newDescription']

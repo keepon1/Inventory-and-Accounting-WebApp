@@ -112,6 +112,9 @@ def create_transfer(items, business, user, company, description, date, source, d
                     location=source_query
                 )
 
+                if item.item_name.is_active is False:
+                    return {"status": "error", "message": f"Item {i['name']} is inactive"}
+
                 if item.quantity - Decimal(str(i['qty'])) < 0:
                     return {"status": "error", "message": f"Not enough quantity for {i['name']}"}
                 
@@ -165,7 +168,7 @@ def view_transfer(business, transfer_no, company):
         items_data = [
             {
                 'name': i.item_name.item_name,
-                'brand': i.item_name.brand,
+                'brand': i.item_name.brand.name if i.item_name.brand else '',
                 'code': i.item_name.code,
                 'qty': i.quantity,
                 'category': i.item_name.category.name,

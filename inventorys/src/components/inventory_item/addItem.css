@@ -166,6 +166,26 @@ table, input {
     border-color: #007bff;
 }
 
+
+.date-picker-wrapper,
+.react-datepicker-wrapper {
+  width: 100% !important;
+  display: block !important;
+}
+
+.date-picker-wrapper .react-datepicker__input-container,
+.react-datepicker__input-container {
+  width: 100% !important;
+}
+
+.date-picker-wrapper .react-datepicker__input-container input,
+.react-datepicker__input-container input,
+.ivi_input {
+  width: 100% !important;
+  box-sizing: border-box;
+  display: block;
+}
+
 .error-message {
     color: #dc3545;
     font-size: 0.9rem;

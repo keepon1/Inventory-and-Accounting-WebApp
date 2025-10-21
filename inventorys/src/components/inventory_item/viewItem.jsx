@@ -61,7 +61,7 @@ const ViewItem = (props) => {
           </div>
           <div className="ivi_holder_box">
             <span className="ivi_label">Brand</span>
-            <input className="ivi_input" value={itemInfo.brand} readOnly title={itemInfo.brand} />
+            <input className="ivi_input" value={itemInfo.brand.value} readOnly title={itemInfo.brand} />
           </div>
           <div className="ivi_holder_box">
             <span className="ivi_label">Model Name</span>

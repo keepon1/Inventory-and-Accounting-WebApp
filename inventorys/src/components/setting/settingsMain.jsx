@@ -13,6 +13,8 @@ import CategoryMain from './category';
 import UserAccount from './userAccounts';
 import RolePermission from './roleAccess';
 import UserActivity from './userActivity';
+import BrandMain from './brand';
+import DeleteBusiness from './delete';
 
 const SettingsMain = ({ business, user }) => {
   return (
@@ -40,12 +42,24 @@ const SettingsMain = ({ business, user }) => {
             </Link>
             <Link to="/dashboard/settings/currency" className="settings-link">
               • Currency
-            </Link>
+            </Link>      
+          </div>
+        </section>
+
+        <section className='settings-card'>
+          <h2 className="settings-title">
+            <FontAwesomeIcon icon={faPlug} />
+            Items Attributes
+          </h2>
+          <div className="settings-links">
             <Link to="/dashboard/settings/unit" className="settings-link">
               • Measurement Units
             </Link>
             <Link to="/dashboard/settings/category" className="settings-link">
               • Inventory Category
+            </Link>
+            <Link to="/dashboard/settings/brand" className="settings-link">
+              • Brands
             </Link>
           </div>
         </section>
@@ -91,17 +105,11 @@ const SettingsMain = ({ business, user }) => {
         <section className="settings-card">
           <h2 className="settings-title">
             <FontAwesomeIcon icon={faBell} />
-            Alerts
+            Manage Business
           </h2>
           <div className="settings-links">
-            <Link to="/dashboard/settings/email" className="settings-link">
-              • Email Notifications
-            </Link>
-            <Link to="/dashboard/settings/sms" className="settings-link">
-              • SMS Alerts
-            </Link>
-            <Link to="/dashboard/settings/webhooks" className="settings-link">
-              • Webhook Integrations
+            <Link to="/dashboard/settings/delete" className="settings-link">
+              • Delete Business
             </Link>
           </div>
         </section>
@@ -113,9 +121,11 @@ const SettingsMain = ({ business, user }) => {
         <Route path="currency" element={<CurrencyMain business={business} user={user}/>} />
         <Route path="unit" element={<MeasurementUnit business={business} user={user}/>} />
         <Route path="category" element={<CategoryMain business={business} user={user}/>} />
+        <Route path="brand" element={<BrandMain business={business} user={user}/>} />
         <Route path="users" element={<UserAccount business={business} user={user}/>} />
         <Route path="roles" element={<RolePermission business={business} user={user}/>} />
         <Route path="activity" element={<UserActivity business={business} user={user}/>} />
+        <Route path="delete" element={<DeleteBusiness business={business} user={user}/>} />
       </Routes>
     </div>
   );

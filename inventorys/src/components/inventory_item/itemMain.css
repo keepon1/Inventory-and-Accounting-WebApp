@@ -1,4 +1,4 @@
-  .item-header {
+.item-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -80,10 +80,6 @@
     padding: 0.5rem;
   }
   
-  .action-button:hover {
-    opacity: 0.8;
-  }
-  
   .add-item-button {
     background-color: var(--primary);
     color: white;
@@ -97,6 +93,25 @@
   
   .add-item-button:hover {
     background-color: var(--primary-dark);
+  }
+
+  .table-row.inactive {
+    opacity: 0.75; /* increased from 0.45 */
+    color: #808080; 
+    background: #f8f8f8;
+    transition: opacity 200ms ease, color 200ms ease, background 200ms ease;
+  }
+  
+  .table-row.inactive .action-button {
+    opacity: 0.5;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  .table-row.inactive .action-button:hover {
+    opacity: 1;
+    filter: brightness(100%);
   }
   
   @media (max-width: 480px) {

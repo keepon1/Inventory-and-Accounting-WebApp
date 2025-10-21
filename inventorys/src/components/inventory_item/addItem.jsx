@@ -10,13 +10,14 @@ import { toast } from "react-toastify";
 
 const AddItem = (props) => {
     const [itemDetail, setItemDetail] = useState({
-        price: 0.00, brand: '', name: '', unit: {value:'', label:''}, model: '',
+        price: 0.00, brand: {value: '', label: ''}, name: '', unit: {value:'', label:''}, model: '',
         status: { value: 'active', label: 'Active' }, category: {value:'', label:''},
         reorder: '', description: ''
     });
     const [fullList, setFullList] = useState([]);
     const [category, setCategory] = useState([{ value: '', label: '' }]);
     const [unit, setUnit] = useState([{ value: '', label: '' }]);
+    const [brand, setBrand] = useState([{ value: '', label: '' }]);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -26,12 +27,14 @@ const AddItem = (props) => {
     useEffect(() => {
         const fetchLocations = async () => {
             try {
-                const [catRes, unitRes] = await Promise.all([
+                const [catRes, unitRes, brandRes] = await Promise.all([
                     api.post('fetch_category', { business: props.business }),
-                    api.post('fetch_unit', { business: props.business })
+                    api.post('fetch_unit', { business: props.business }),
+                    api.post('fetch_brand', { business: props.business })
                 ]);
                 setCategory(catRes.length ? catRes : [{ value: '', label: '' }]);
                 setUnit(unitRes.length ? unitRes : [{ value: '', label: '' }]);
+                setBrand(brandRes.length ? brandRes : [{ value: '', label: '' }]);
             } catch (error) {
                 if (error.response?.status === 401) {
                     localStorage.removeItem('access');
@@ -60,6 +63,11 @@ const AddItem = (props) => {
         }
         if (!itemDetail.category.value.trim()) {
             toast.error("Category is required");
+            return;
+        }
+
+        if (!itemDetail.brand.value.trim()) {
+            toast.error("Brand is required");
             return;
         }
 
@@ -102,9 +110,9 @@ const AddItem = (props) => {
 
     const resetForm = () => {
         setItemDetail({
-            code: '', brand: '', name: '', unit: {value:'', label:''}, model: '',
-            status: { value: '', label: '' }, category: {value:'', label:''},
-            reorder: '', description: ''
+            code: '', brand: { value: '', label: ''}, name: '', unit: {value:'', label:''}, model: '',
+            status: { value: 'active', label: 'Active' }, category: {value:'', label:''},
+            reorder: '', description: '', price: 0.00
         });
     };
 
@@ -137,7 +145,7 @@ const AddItem = (props) => {
             const formData = new FormData();
             fullList.forEach(item => {
                 formData.append('price', item.price || '');
-                formData.append('brand', item.brand || '');
+                formData.append('brand', item.brand?.value || '');
                 formData.append('name', item.name || '');
                 formData.append('model', item.model || '');
                 formData.append('description', item.description || '');
@@ -194,7 +202,7 @@ const AddItem = (props) => {
 
                             <div className="ivi_holder_box">
                                 <label className="ivi_label">Brand</label>
-                                <input type="text" name="brand" value={itemDetail.brand} onChange={handleChange} className="ivi_input" />
+                                <Select options={brand} value={itemDetail.brand} onChange={selected => setItemDetail({ ...itemDetail, brand: selected })} className="ivi_select" classNamePrefix="ivi_select" />
                             </div>
 
                             <div className="ivi_holder_box">
@@ -268,7 +276,7 @@ const AddItem = (props) => {
                             {fullList.map((item, index) => (
                                 <tr key={index}>
                                     <td>{item.category.value}</td>
-                                    <td>{item.brand}</td>
+                                    <td>{item.brand.value}</td>
                                     <td>{item.model}</td>
                                     <td>{item.name}</td>
                                     <td>{item.status?.label || item.status?.value}</td>
