@@ -7,10 +7,11 @@ from collections import defaultdict
 from django.db import transaction
 from django.db.models import Q
 import logging
+from . import export_format
 
 logger = logging.getLogger(__name__)
 
-def fetch_items_for_main_view(business, page, company, search, user, location, page_quantity=30):
+def fetch_items_for_main_view(business, page, company, search, user, location, format, category, brand, page_quantity=30):
     try:
         business_obj = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_obj, user_name=user)
@@ -29,7 +30,15 @@ def fetch_items_for_main_view(business, page, company, search, user, location, p
             locations_access.extend([loc.location_name for loc in location_query])
            
         if user_query.admin and (not location or location.lower() == 'all locations'):
+
             items = models.items.objects.filter(bussiness_name=business_obj)
+
+            if category and category.lower() != 'all categories':
+                items = items.filter(category__name=category)
+
+            if brand and brand.lower() != 'all brands':
+                items = items.filter(brand__name=brand)
+
             if search.strip():
                 search_filter = (
                     Q(item_name__icontains=search) |
@@ -83,7 +92,7 @@ def fetch_items_for_main_view(business, page, company, search, user, location, p
             
             locations = [{'value': i, 'label': i} for i in locations_access]
 
-        if page != 0:
+        if page != 0 and not format:
             paginator = Paginator(items, page_quantity)
             current_page = paginator.get_page(page)
 
@@ -91,7 +100,7 @@ def fetch_items_for_main_view(business, page, company, search, user, location, p
                 items = [
                     {
                         'code': i['item_name__code'],
-                        'brand__name': i['item_name__brand__name'] if i['item_name__brand'] else '',
+                        'brand__name': i['item_name__brand__name'] if i['item_name__brand__name'] else '',
                         'item_name': i['item_name__item_name'],
                         'quantity': i['quantity'],
                         'unit__suffix': i['item_name__unit__suffix'],
@@ -107,10 +116,50 @@ def fetch_items_for_main_view(business, page, company, search, user, location, p
             else:
                 items = list(current_page.object_list)
 
-            result = {"items": items, 'has_more': current_page.has_next(), 'locations': locations}
+            cagetories = [{'value': 'All Categories', 'label': 'All Categories'}]
+            category_query = models.inventory_category.objects.filter(bussiness_name=business_obj).order_by('name')
+            cagetories.extend([{'value': i.name, 'label': i.name} for i in category_query])
+
+            brands = [{'value': 'All Brands', 'label': 'All Brands'}]
+            brand_query = models.inventory_brand.objects.filter(bussiness_name=business_obj).order_by('name')
+            brands.extend([{'value': i.name, 'label': i.name} for i in brand_query])
+
+            result = {"items": items, 'has_more': current_page.has_next(), 'locations': locations, 
+                      'categories': cagetories, 'brands': brands}
             logger.info(f"Items fetched for user '{user}' in business '{business}'")
             return {"status": "success", "data": result}
-    
+
+        else:
+            if not (user_query.admin and (not location or location.lower() == 'all locations')):
+                items = [
+                    {
+                        'code': i['item_name__code'],
+                        'brand__name': i['item_name__brand__name'] if i['item_name__brand__name'] else '',
+                        'item_name': i['item_name__item_name'],
+                        'quantity': i['quantity'],
+                        'unit__suffix': i['item_name__unit__suffix'],
+                        'purchase_price': i['purchase_price'],
+                        'sales_price': i['sales_price'],
+                        'category__name': i['item_name__category__name'],
+                        'model': i['item_name__model'],
+                        'reorder_level': i['reorder_level'],
+                        'is_active': i['item_name__is_active'],
+                    }
+                    for i in list(items)
+                ]
+
+            if format == 'csv':
+                export = export_format.CSV(data=items, location=location, start=None, end=None, user=user_query).generate_item_csv()
+                return {"status": "success", "data": export}
+            
+            if format == 'excel':
+                export = export_format.XLSX(data=items, location=location, start=None, end=None, user=user_query).generate_item_xlsx()
+                return {"status": "success", "data": export}
+            
+            if format == 'pdf':
+                export = export_format.PDF(data=items, location=location, start=None, end=None, user=user_query).generate_item_pdf()
+                return {"status": "success", "data": export}
+
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
         return {"status": "error", "message": f"Business '{business}' not found."}

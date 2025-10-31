@@ -41,6 +41,8 @@ const StockMovement = ({ business, user }) => {
   const [endDate, setEndDate] = useState(today);
   const [activeChart, setActiveChart] = useState('quantity');
   const [detailsCollapsed, setDetailsCollapsed] = useState(true);
+  const [locationFilter, setLocationFilter] = useState({value: 'All Locations', label: 'All Locations'});
+  const [typeFilter, setTypeFilter] = useState({value: 'all', label: 'All Types'});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -295,10 +297,11 @@ const StockMovement = ({ business, user }) => {
                   { value: 'sale', label: 'Sales' },
                   { value: 'purchase', label: 'Purchases' }
                 ]}
-                onChange={e => setSelectedType(e.value)}
+                onChange={e => {setSelectedType(e.value); setTypeFilter(e);}}
                 className="ivi_select"
                 classNamePrefix="ivi_select"
                 placeholder="Filter by type"
+                value={typeFilter}
               />
             </div>
           </div>
@@ -307,10 +310,11 @@ const StockMovement = ({ business, user }) => {
             <div className="ivi_holder_box1">
               <Select 
                 options={locations}
-                onChange={e => setSelectedLocation(e.value)}
+                onChange={e => {setSelectedLocation(e.value); setLocationFilter(e);}}
                 className="ivi_select"
                 classNamePrefix="ivi_select"
                 placeholder="Filter by location"
+                value={locationFilter}
               />
             </div>
           </div>

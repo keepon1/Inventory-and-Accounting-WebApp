@@ -19,6 +19,7 @@ import api from '../api';
 import './itemSummary.css';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -36,6 +37,7 @@ const CustomerInsights = ({ business, user }) => {
   const [endDate, setEndDate] = useState(today);
   const [activeChart, setActiveChart] = useState('value');
   const [segmentBy, setSegmentBy] = useState('revenue');
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,6 +46,12 @@ const CustomerInsights = ({ business, user }) => {
           api.post('fetch_report_data_sales_performance', { business, user, selectedLocation,
           startDate: format(startDate, 'yyyy-MM-dd'), endDate: format(endDate, 'yyyy-MM-dd') }),
         ]);
+
+        if (data === 'no access') {
+          setHasAccess(false);
+          return;
+        }
+
         const customerMap = {};
         data.sales.forEach(sale => {
           const account = sale.customer_info__account || 'Unknown';
@@ -252,6 +260,10 @@ const CustomerInsights = ({ business, user }) => {
       default:
         return null;
     }
+  };
+
+  if (!hasAccess) {
+    return <AccessDenied />;
   };
 
   return (

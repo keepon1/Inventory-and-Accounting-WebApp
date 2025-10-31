@@ -6,7 +6,6 @@ import {
 import Select from 'react-select';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faChartPie,
   faDollarSign,
   faArrowDown,
   faChartLine,
@@ -18,6 +17,7 @@ import api from '../api';
 import './itemSummary.css';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -30,6 +30,7 @@ const ProfitAndLoss = ({ business, user }) => {
   const [endDate, setEndDate] = useState(today);
   const [activeChart, setActiveChart] = useState('overview');
   const [timeframe, setTimeframe] = useState('monthly');
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,6 +38,12 @@ const ProfitAndLoss = ({ business, user }) => {
         const plRes = await api.post('fetch_profit_loss', { business, user,
           timeframe, startDate:format(startDate, 'yyyy-MM-dd'), endDate:format(endDate, 'yyyy-MM-dd')
          });
+
+        if (plRes === 'no access') {
+          setHasAccess(false);
+          return;
+        }
+
         setPlData(plRes);
         setFilteredData(plRes);
       } catch (error) {
@@ -142,6 +149,10 @@ const ProfitAndLoss = ({ business, user }) => {
       default:
         return null;
     }
+  };
+
+  if (!hasAccess) {
+    return <AccessDenied />;
   };
 
   return (

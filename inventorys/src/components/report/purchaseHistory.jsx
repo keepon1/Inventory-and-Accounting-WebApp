@@ -18,6 +18,7 @@ import api from '../api';
 import './itemSummary.css';
 import { format, set, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
+import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -34,6 +35,7 @@ const PurchaseMetric = ({ business, user }) => {
   const [startDate, setStartDate] = useState(firstDayOfMonth);
   const [endDate, setEndDate] = useState(today);
   const [activeChart, setActiveChart] = useState('expenses');
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,6 +44,12 @@ const PurchaseMetric = ({ business, user }) => {
           api.post('fetch_report_data_purchase_metric', { business, user, selectedLocation,
           startDate: format(startDate, 'yyyy-MM-dd'), endDate: format(endDate, 'yyyy-MM-dd') }),
         ]);
+
+        if (data === 'no access') {
+          setHasAccess(false);
+          return;
+        }
+
         setSales(data.sales);
         setFilteredSales(data.sales);
         setLocations(data.locations);
@@ -219,6 +227,10 @@ const PurchaseMetric = ({ business, user }) => {
       default:
         return null;
     }
+  };
+
+  if (!hasAccess) {
+    return <AccessDenied />;
   };
 
   return (

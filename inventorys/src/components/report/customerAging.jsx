@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, PieChart, Pie, XAxis, YAxis, 
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell 
@@ -18,6 +18,7 @@ import api from '../api';
 import './itemSummary.css';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -31,6 +32,7 @@ const CustomerAgingReport = ({ business, user }) => {
   const [asOfDate, setAsOfDate] = useState(new Date());
   const [activeChart, setActiveChart] = useState('aging');
   const [alertsCollapsed, setAlertsCollapsed] = useState(false);
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,6 +40,12 @@ const CustomerAgingReport = ({ business, user }) => {
         const [agingRes] = await Promise.all([
           api.post('fetch_customer_aging', { business, endDate: format(asOfDate, 'yyyy-MM-dd'), user, selectedLocation }),
         ]);
+
+        if (agingRes === 'no access') {
+          setHasAccess(false);
+          return;
+        }
+
         setAgingData(agingRes.sales || []);
         setFilteredData(agingRes.sales || []);
         setLocations(agingRes.locations || []);
@@ -217,6 +225,10 @@ const CustomerAgingReport = ({ business, user }) => {
     customerAggregates[key].total += (item.gross_total || 0) - (item.amount_paid || 0);
   });
   const customerRows = Object.values(customerAggregates);
+
+  if (!hasAccess) {
+    return <AccessDenied />;
+  };
 
   return (
     <div className="dashboard-main">

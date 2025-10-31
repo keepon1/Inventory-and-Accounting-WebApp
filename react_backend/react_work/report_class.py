@@ -105,6 +105,10 @@ class Report_Data:
     
 
     def fetch_sales_records(self):
+        report_permission, created = models.report_permissions.objects.get_or_create(user=self.user, bussiness_name=self.business)
+
+        can_view_cost_profit = report_permission.sales_profit
+
         qs = models.sale_history.objects.filter(
             sales__bussiness_name=self.business,
             sales__date__range=(self.start, self.end),
@@ -119,9 +123,10 @@ class Report_Data:
             customer=F("sales__customer_info__name"),
             item_name1=F("item_name__item_name"),
             category=F("item_name__category__name"),
+            brand=F("item_name__brand__name"),
             quantity1=F("quantity"),
             unit_price=F("sales_price"),
-            cost_price=F("purchase_price"),
+            cost_price=F("purchase_price") if can_view_cost_profit else Value(0, output_field=DecimalField()),
         ).annotate(
             total_price=F("quantity") * F("sales_price"),
         )
@@ -139,10 +144,34 @@ class Report_Data:
             revenue=Sum(F("quantity") * F("sales_price"))
         ).order_by("-revenue")[:10]
 
-        by_category = qs.values(
-            name=F("item_name__category__name")
-        ).annotate(
-            value=Sum("quantity")
+        by_category = (
+            qs.annotate(
+                total_value=ExpressionWrapper(
+                    F('quantity') * F('sales_price'),
+                    output_field=DecimalField()
+                )
+            )
+            .values('item_name__category__name')
+            .annotate(
+                name=F('item_name__category__name'),
+                quantity=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField()),
+                value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField())
+            )
+        )
+
+        by_brand = (
+            qs.annotate(
+                total_value=ExpressionWrapper(
+                    F('quantity') * F('sales_price'),
+                    output_field=DecimalField()
+                )
+            )
+            .values('item_name__brand__name')
+            .annotate(
+                name=F('item_name__brand__name'),
+                quantity=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField()),
+                value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField())
+            )
         )
 
         daily_trend = qs.annotate(
@@ -150,19 +179,19 @@ class Report_Data:
         ).values("date").annotate(
             quantity1=Sum("quantity"),
             revenue=Sum(F("quantity") * F("sales_price")),
-            cost=Sum(F("quantity") * F("purchase_price")),
-            profit=Sum(F("quantity") * (F("sales_price") - F("purchase_price"))),
+            cost=Sum(F("quantity") * F("purchase_price")) if can_view_cost_profit else Value(0, output_field=DecimalField()),
+            profit=Sum(F("quantity") * (F("sales_price") - F("purchase_price"))) if can_view_cost_profit else Value(0, output_field=DecimalField()),
         ).order_by("date")
 
         profit_by_item = qs.values(
             name=F("item_name__item_name")
         ).annotate(
             revenue=Sum(F("quantity") * F("sales_price")),
-            cost=Sum(F("quantity") * F("purchase_price")),
+            cost=Sum(F("quantity") * F("purchase_price")) if can_view_cost_profit else Value(0, output_field=DecimalField()),
             quantity1=Sum("quantity")
         ).annotate(
-            profit=F("revenue") - F("cost"),
-            margin=(F("revenue") - F("cost")) * 100.0 / F("revenue")
+            profit=F("revenue") - F("cost") if can_view_cost_profit else Value(0, output_field=DecimalField()),
+            margin=(F("revenue") - F("cost")) * 100.0 / F("revenue") if can_view_cost_profit else Value(0, output_field=DecimalField()),
         ).order_by("-profit")
 
         return {
@@ -171,6 +200,7 @@ class Report_Data:
             "charts": {
                 "topItems": list(top_items),
                 "byCategory": list(by_category),
+                "byBrand": list(by_brand),
                 "dailyTrend": list(daily_trend),
                 "profitByItem": list(profit_by_item),
             }
@@ -195,10 +225,26 @@ class Dashboard_Report:
                 total_quantity=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField())
             )
 
-            category = items.annotate(name = F('category__name')).values('name').annotate(
-                value = Coalesce(Sum('quantity'), Value(0), output_field=DecimalField()),
-                values = Coalesce(Sum('purchase_price'), Value(0), output_field=DecimalField())
-            )
+            category = items.values('category__name').annotate(
+                name=F('category__name'),
+                value=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField()),
+                values=Coalesce(
+                    Sum(F('quantity') * F('purchase_price')), 
+                    Value(0), 
+                    output_field=DecimalField()
+                )
+            ).order_by('name')
+
+            brand = items.values('brand__name').annotate(
+                name=F('brand__name'),
+                value=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField()),
+                values=Coalesce(
+                    Sum(F('quantity') * F('purchase_price')), 
+                    Value(0), 
+                    output_field=DecimalField()
+                )
+            ).order_by('name')
+
 
             low_stock = items.filter(
                 reorder_level__gt=F('quantity')
@@ -221,11 +267,26 @@ class Dashboard_Report:
                 total_quantity = Coalesce(Sum('quantity'), Value(0), output_field=DecimalField())
             )
 
-            category = items.annotate(name = F('item_name__category__name')).values('name').annotate(
-                value = Coalesce(Sum('quantity'), Value(0), output_field=DecimalField()),
-                values = Coalesce(Sum('purchase_price'), Value(0), output_field=DecimalField())
-            )
+            category = items.values('item_name__category__name').annotate(
+                name=F('item_name__category__name'),
+                value=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField()),
+                values=Coalesce(
+                    Sum(F('quantity') * F('purchase_price')), 
+                    Value(0), 
+                    output_field=DecimalField()
+                )
+            ).order_by('name')
 
+            brand = items.values('item_name__brand__name').annotate(
+                name=F('item_name__brand__name'),
+                value=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField()),
+                values=Coalesce(
+                    Sum(F('quantity') * F('purchase_price')), 
+                    Value(0), 
+                    output_field=DecimalField()
+                )
+            ).order_by('name')
+            
             low_stock = items.filter(
                 reorder_level__gt=F('quantity')
             ).annotate(
@@ -235,7 +296,7 @@ class Dashboard_Report:
                 difference=ExpressionWrapper(F('reorder_level') - F('quantity'), output_field=DecimalField())
             ).values('name', 'reorder', 'stock', 'difference')
         
-        return {'quantity':quantity, 'category':category, 'low_stock':low_stock}
+        return {'quantity':quantity, 'category':category, 'low_stock':low_stock, 'brand':brand}
     
     def fetch_sales(self):
         sales = models.sale.objects.filter(
@@ -270,8 +331,6 @@ class Dashboard_Report:
             total_quantity=Coalesce(Sum('total_quantity'), Value(0), output_field=DecimalField())
         )
 
-        top_sales = sales.order_by('-gross_total')[:10].values('code', 'date', 'customer_info__name', 'customer_name', 'gross_total','total_quantity')
-
         current_week_sales = sales.filter(date__range=[(self.end - timedelta(days=self.end.weekday())), self.end]).annotate(
             weekday = ExtractWeekDay('date')
         ).values('weekday').annotate(
@@ -283,7 +342,6 @@ class Dashboard_Report:
             'month_sales_total': month_sales_total,
             'today_sales_total': today_sales_total,
             'top_items': top_items,
-            'top_sales': top_sales,
             'current_week_sales': current_week_sales
         }
     
@@ -363,7 +421,6 @@ class Dashboard_Report:
             'week_trend':sales_data['current_week_sales'],
             'purchase_vs_sales':merged_data,
             'top_items':sales_data['top_items'],
-            'top_sales':sales_data['top_sales'],
         }
 
         return data
@@ -689,7 +746,7 @@ class Inventory_Valuation:
                     ),
                     output_field=DecimalField(max_digits=12, decimal_places=2)
                 )
-            ).values("item_name", "code", "category__name", "quantity", "purchase_price", "sales_price", "turnover_rate")
+            ).values("item_name", "code", "category__name", "brand__name", "quantity", "purchase_price", "sales_price", "turnover_rate")
 
             current_balance = []
             if current_month:
@@ -735,7 +792,7 @@ class Inventory_Valuation:
                             output_field=DecimalField(max_digits=12, decimal_places=2),
                         ),
                     )
-                    .values("item_name", "code", "sales_price", "purchase_price", "category__name", "quantity", "cogs", "turnover_rate")
+                    .values("item_name", "code", "sales_price", "purchase_price", "category__name", "brand__name", "quantity", "cogs", "turnover_rate")
                 )
 
             merged = {}
@@ -750,7 +807,6 @@ class Inventory_Valuation:
                     merged[key]["sales_price"] = (merged[key].get("sales_price") or 0) + row["sales_price"]
                     merged[key]["turnover_rate"] = ((merged[key].get("turnover_rate") or 0) + row["turnover_rate"]) / 2 if merged[key].get("turnover_rate") and row.get("turnover_rate") else merged[key].get("turnover_rate") or row.get("turnover_rate")
 
-            print(merged.values())
             return list(merged.values())
         
         except Exception as error:

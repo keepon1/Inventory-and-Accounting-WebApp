@@ -17,21 +17,21 @@ import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import "./itemSummary.css"
 import { Link } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, set } from 'date-fns';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 const StockSummary = ({ business, user }) => {
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [location, setLocation] = useState({value:'', label:''})
-  const [category, setCategory] = useState({value:'', label:''})
+  const [location, setLocation] = useState({value:'', label:''});
+  const [category, setCategory] = useState({value:'', label:''});
+  const [brand, setBrand] = useState({value:'All Brands', label:'All Brands'});
   const [locations, setLocations] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
   const [activeChart, setActiveChart] = useState('quantity');
   const [alertsCollapsed, setAlertsCollapsed] = useState(true);
 
@@ -44,6 +44,7 @@ const StockSummary = ({ business, user }) => {
         setItems(itemsRes.items);
         setFilteredItems(itemsRes.items);
         setLocations(itemsRes.locations);
+        setBrands(itemsRes.brands);
         if (!location.value.trim()){
             setLocation(itemsRes.locations[0])
         }
@@ -71,17 +72,14 @@ const StockSummary = ({ business, user }) => {
     
     if (selectedCategory !== 'All Categories') {
       result = result.filter(item => item.category__name === selectedCategory);
-    }
-    
-    if (startDate && endDate) {
-      result = result.filter(item => {
-        const itemDate = new Date(item.creation_date);
-        return itemDate >= startDate && itemDate <= endDate;
-      });
+    };
+
+    if (brand.value && brand.value !== 'All Brands') {
+      result = result.filter(item => item.brand__name === brand.value);
     }
     
     setFilteredItems(result);
-  }, [items, searchQuery, selectedCategory]);
+  }, [items, searchQuery, selectedCategory, brand]);
 
   const getQuantityChartData = () => {
     return filteredItems
@@ -95,14 +93,28 @@ const StockSummary = ({ business, user }) => {
   };
 
   const getValueChartData = () => {
-    return filteredItems
-      .sort((a, b) => (b.quantity * b.purchase_price) - (a.quantity * a.purchase_price))
-      .slice(0, 10)
-      .map(item => ({
-        name: item.item_name,
-        purchaseValue: item.quantity * item.purchase_price,
-        salesValue: item.quantity * item.sales_price
-      }));
+    const brandMap = {};
+    
+    filteredItems.forEach(item => {
+      const brandName = item.brand__name;
+      if (!brandMap[brandName]) {
+        brandMap[brandName] = {
+          quantity: 0,
+          value: 0
+        };
+      }
+      brandMap[brandName].quantity += item.quantity;
+      brandMap[brandName].value += item.quantity * item.purchase_price;
+    });
+
+    return Object.entries(brandMap)
+      .map(([name, data]) => ({
+        name,
+        quantity: data.quantity,
+        value: data.value
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
   };
 
   const getCategoryDistributionData = () => {
@@ -110,10 +122,21 @@ const StockSummary = ({ business, user }) => {
     
     filteredItems.forEach(item => {
       const categoryName = item.category__name;
-      categoryMap[categoryName] = (categoryMap[categoryName] || 0) + item.quantity;
+      if (!categoryMap[categoryName]) {
+        categoryMap[categoryName] = {
+          quantity: 0,
+          value: 0
+        };
+      }
+      categoryMap[categoryName].quantity += item.quantity;
+      categoryMap[categoryName].value += item.quantity * item.purchase_price;
     });
     
-    return Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
+    return Object.entries(categoryMap).map(([name, data]) => ({ 
+      name,
+      quantity: data.quantity,
+      value: data.value
+    }));
   };
 
   const getReorderItems = () => {
@@ -141,11 +164,28 @@ const StockSummary = ({ business, user }) => {
             <BarChart data={getValueChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
+              <YAxis yAxisId="value" orientation="left" />
+              <YAxis yAxisId="quantity" orientation="right" />
+              <Tooltip 
+                formatter={(value, name) => {
+                  return name === 'Stock Value' 
+                    ? [`GHS ${value.toFixed(2)}`, 'Value']
+                    : [value, 'Quantity'];
+                }}
+              />
               <Legend />
-              <Bar dataKey="purchaseValue" name="Purchase Value" fill="#ff7300" />
-              <Bar dataKey="salesValue" name="Sales Value" fill="#387908" />
+              <Bar 
+                dataKey="value" 
+                name="Stock Value" 
+                fill="#ff7300" 
+                yAxisId="value"
+              />
+              <Bar 
+                dataKey="quantity" 
+                name="Quantity" 
+                fill="#1e8be4ff" 
+                yAxisId="quantity"
+              />
             </BarChart>
           </ResponsiveContainer>
         );
@@ -161,7 +201,7 @@ const StockSummary = ({ business, user }) => {
                 innerRadius={60}
                 outerRadius={200}
                 fill="#8884d8"
-                dataKey="value"
+                dataKey="quantity"
                 nameKey="name"
                 label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
               >
@@ -169,7 +209,15 @@ const StockSummary = ({ business, user }) => {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip 
+                formatter={(value, name, props) => {
+                  const entry = props.payload;
+                  return [
+                    `Quantity: ${entry.quantity}, Value: GHS ${entry.value.toFixed(2)}`,
+                    entry.name
+                  ];
+                }}
+              />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
@@ -199,6 +247,18 @@ const StockSummary = ({ business, user }) => {
     }
   };
 
+  const calculateTotalValue = () => {
+    return filteredItems.reduce((total, item) => {
+      return total + (item.quantity * item.purchase_price);
+    }, 0);
+  };
+
+  const calculateTotalQuantity = () => {
+    return filteredItems.reduce((total, item) => {
+      return total + item.quantity;
+    }, 0);
+  };
+
   return (
     <div className="dashboard-main">
       <div className="journal-header">
@@ -210,6 +270,16 @@ const StockSummary = ({ business, user }) => {
             Stock Summary & Analytics
           </h2>
         </div>
+      </div>
+
+      {/* Display Total Value */}
+      <div className="total-value">
+        <h3>Total Value of Items: GHS {calculateTotalValue().toFixed(2)}</h3>
+      </div>
+
+      {/* Display Total Quantity */}
+      <div className="total-quantity">
+        <h3>Total Quantity of Items: {calculateTotalQuantity()}</h3>
       </div>
 
       <div className="journal-filters">
@@ -225,6 +295,19 @@ const StockSummary = ({ business, user }) => {
                 className="ivi_select"
                 classNamePrefix="ivi_select"
                 placeholder="filter categories"
+              />
+            </div>
+          </div>
+
+          <div className="ivi_subboxes1">
+            <div className="ivi_holder_box1">
+              <Select 
+                options={brands}
+                value={brand}
+                onChange={e => setBrand(e)}
+                className="ivi_select"
+                classNamePrefix="ivi_select"
+                placeholder="filter brands"
               />
             </div>
           </div>
@@ -267,7 +350,7 @@ const StockSummary = ({ business, user }) => {
           className={`chart-btn ${activeChart === 'value' ? 'active' : ''}`}
           onClick={() => setActiveChart('value')}
         >
-          <FontAwesomeIcon icon={faChartBar} /> Value
+          <FontAwesomeIcon icon={faChartBar} /> Brands
         </button>
         <button 
           className={`chart-btn ${activeChart === 'category' ? 'active' : ''}`}

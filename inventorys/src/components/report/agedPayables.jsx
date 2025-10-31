@@ -19,6 +19,7 @@ import api from '../api';
 import './itemSummary.css';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -32,11 +33,20 @@ const AgedPayables = ({ business, user }) => {
   const [asOfDate, setAsOfDate] = useState(new Date());
   const [activeChart, setActiveChart] = useState('aging');
   const [alertsCollapsed, setAlertsCollapsed] = useState(true);
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const payablesRes = await api.post('fetch_supplier_performance', { business, endDate: format(asOfDate, 'yyyy-MM-dd'), user, selectedLocation });
+
+        if (payablesRes === 'no access') {
+          setPayables([]);
+          setFilteredPayables([]);
+          setLocations([]);
+          setHasAccess(false);
+          return;
+        }
 
         setPayables(payablesRes.sales || []);
         setFilteredPayables(payablesRes.sales || []);
@@ -218,6 +228,10 @@ const AgedPayables = ({ business, user }) => {
     supplierAggregates[key].total += (item.gross_total || 0) - (item.amount_paid || 0);
   });
   const supplierRows = Object.values(supplierAggregates);
+
+  if (!hasAccess) {
+    return <AccessDenied />;
+  }
 
   return (
     <div className="dashboard-main">

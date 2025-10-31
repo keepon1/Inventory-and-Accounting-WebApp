@@ -9,7 +9,6 @@ import {
   faChartLine,
   faDollarSign,
   faUsers,
-  faCartShopping,
   faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
 import DatePicker from 'react-datepicker';
@@ -18,6 +17,7 @@ import api from '../api';
 import './itemSummary.css';
 import { format, set, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
+import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -35,6 +35,7 @@ const SalesPerformance = ({ business, user }) => {
   const [endDate, setEndDate] = useState(today);
   const [activeChart, setActiveChart] = useState('revenue');
   const [timeframe, setTimeframe] = useState('monthly');
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,6 +44,12 @@ const SalesPerformance = ({ business, user }) => {
           api.post('fetch_report_data_sales_performance', { business, user, selectedLocation,
           startDate: format(startDate, 'yyyy-MM-dd'), endDate: format(endDate, 'yyyy-MM-dd') }),
         ]);
+
+        if (data === 'no access') {
+          setHasAccess(false);
+          return;
+        }
+
         setSales(data.sales);
         setFilteredSales(data.sales);
         setLocations(data.locations);
@@ -220,6 +227,10 @@ const SalesPerformance = ({ business, user }) => {
       default:
         return null;
     }
+  };
+
+  if (!hasAccess) {
+    return <AccessDenied />;
   };
 
   return (

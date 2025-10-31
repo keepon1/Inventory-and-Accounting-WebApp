@@ -60,8 +60,6 @@ const LocationMain = ({ business, user, access }) => {
       }
     };
     fetchLocations();
-    const cleanup = enableKeyboardScrollFix();
-    return cleanup;
   }, [searchQuery]);
 
   const handleCreateOverlay = (e) => {

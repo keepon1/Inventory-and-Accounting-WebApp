@@ -16,6 +16,8 @@ import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import './itemSummary.css';
 import { Link } from 'react-router-dom';
+import { set } from 'date-fns';
+import AccessDenied from '../access';
 
 const CashFlow = ({ business, user }) => {
   const [cashFlow, setCashFlow] = useState([]);
@@ -29,6 +31,12 @@ const CashFlow = ({ business, user }) => {
     const fetchData = async () => {
       try {
         const flowRes = await api.post('fetch_cash_flow', { business });
+
+        if (flowRes.data === 'no access') {
+          setCashFlow([]);
+          setFilteredFlow([]);
+          return <AccessDenied />;
+        }
         setCashFlow(flowRes);
         setFilteredFlow(flowRes);
       } catch (error) {

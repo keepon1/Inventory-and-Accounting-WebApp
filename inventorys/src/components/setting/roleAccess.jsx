@@ -699,7 +699,7 @@ const RolePermission = ({ business, user }) => {
                         )}
 
                         <div className="form-actions">
-                            <button className="btn btn-primary" onClick={editUser}>
+                            <button className="btn btn-outline" onClick={editUser}>
                                 Save Permission Changes
                             </button>
                         </div>

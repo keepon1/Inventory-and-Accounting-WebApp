@@ -19,6 +19,7 @@ import api from '../api';
 import './itemSummary.css';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
+import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -41,6 +42,7 @@ const SalesRecords = ({ business, user }) => {
   const [activeChart, setActiveChart] = useState('items');
   const [expandedItems, setExpandedItems] = useState({});
   const [alertsCollapsed, setAlertsCollapsed] = useState(true);
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     fetchSalesData();
@@ -55,6 +57,11 @@ const SalesRecords = ({ business, user }) => {
         startDate: startDate.toISOString().split('T')[0], 
         endDate: endDate.toISOString().split('T')[0] 
       });
+
+      if (response === 'no access') {
+        setHasAccess(false);
+        return;
+      };
       
       setSalesData(response.sales || { records: [], summary: {}, charts: {} });
       setFilteredRecords(response.sales.records || []);
@@ -73,10 +80,12 @@ const SalesRecords = ({ business, user }) => {
     
     if (searchQuery) {
       result = result.filter(record =>
-        record.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.item_name1.toLowerCase().includes(searchQuery.toLowerCase()) ||
         record.invoice_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
         record.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        record.customer.toLowerCase().includes(searchQuery.toLowerCase())
+        record.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.brand.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
@@ -122,31 +131,69 @@ const SalesRecords = ({ business, user }) => {
             </ResponsiveContainer>
           </div>
         );
+      case 'brands':
+        return (
+          <div>
+            <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Sales by Brand</h3>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={salesData.charts.byBrand || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis
+                  yAxisId="value"
+                  tickFormatter={(v) => `GHS ${Number(v).toLocaleString()}`}
+                  label={{ value: 'Value (GHS)', angle: -90, position: 'insideLeft' }}
+                />
+                <YAxis
+                  yAxisId="quantity"
+                  orientation="right"
+                  label={{ value: 'Quantity', angle: 90, position: 'insideRight' }}
+                />
+                <Tooltip
+                  formatter={(value, name) => {
+                    if (name && name.toLowerCase().includes('value')) {
+                      return [`GHS ${Number(value).toFixed(2)}`, name];
+                    }
+                    return [value, name];
+                  }}
+                />
+                <Legend />
+                <Bar yAxisId="value" dataKey="value" name="Revenue" fill="#82ca9d" />
+                <Bar yAxisId="quantity" dataKey="quantity" name="Quantity" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        );
       case 'categories':
         return (
           <div>
             <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Sales by Category</h3>
             <ResponsiveContainer width="100%" height={400}>
-              <PieChart>
-                <Pie
-                  data={salesData.charts.byCategory || []}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={150}
-                  innerRadius={70}
-                  fill="#8884d8"
-                  dataKey="value"
-                  nameKey="name"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                >
-                  {(salesData.charts.byCategory || []).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => [`${value} units`, 'Quantity']} />
+              <BarChart data={salesData.charts.byCategory || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis
+                  yAxisId="value"
+                  tickFormatter={(v) => `GHS ${Number(v).toLocaleString()}`}
+                  label={{ value: 'Value (GHS)', angle: -90, position: 'insideLeft' }}
+                />
+                <YAxis
+                  yAxisId="quantity"
+                  orientation="right"
+                  label={{ value: 'Quantity', angle: 90, position: 'insideRight' }}
+                />
+                <Tooltip
+                  formatter={(value, name) => {
+                    if (name && name.toLowerCase().includes('value')) {
+                      return [`GHS ${Number(value).toFixed(2)}`, name];
+                    }
+                    return [value, name];
+                  }}
+                />
                 <Legend />
-              </PieChart>
+                <Bar yAxisId="value" dataKey="value" name="Revenue" fill="#ffc658" />
+                <Bar yAxisId="quantity" dataKey="quantity" name="Quantity" fill="#0088FE" />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         );
@@ -225,7 +272,7 @@ const SalesRecords = ({ business, user }) => {
     
     acc[record.invoice_code].items.push(record);
     acc[record.invoice_code].total_amount += record.total_price;
-    acc[record.invoice_code].total_profit += (record.total_price - (record.cost_price * record.quantity1));
+    acc[record.invoice_code].total_profit += record.cost ? (record.total_price - (record.cost_price * record.quantity1)) : 0;
     
     return acc;
   }, {});
@@ -237,7 +284,7 @@ const SalesRecords = ({ business, user }) => {
   const totals = filteredRecords.reduce(
     (acc, record) => {
       const cost = record.cost_price * record.quantity1;
-      const profit = record.total_price - cost;
+      const profit = cost ? record.total_price - cost : 0;
 
       acc.quantity += record.quantity1;
       acc.totalPrice += record.total_price;
@@ -248,6 +295,10 @@ const SalesRecords = ({ business, user }) => {
     },
     { quantity: 0, totalPrice: 0, cost: 0, profit: 0 }
   );
+
+  if (!hasAccess) {
+    return <AccessDenied />;
+  }
 
   return (
     <div className="dashboard-main">
@@ -331,6 +382,12 @@ const SalesRecords = ({ business, user }) => {
         >
           <FontAwesomeIcon icon={faBox} /> Top Items
         </button>
+        <button
+          className={`chart-btn ${activeChart === 'brands' ? 'active' : ''}`}
+          onClick={() => setActiveChart('brands')}
+        >
+          <FontAwesomeIcon icon={faFilter} /> Brands
+        </button>
         <button 
           className={`chart-btn ${activeChart === 'categories' ? 'active' : ''}`}
           onClick={() => setActiveChart('categories')}
@@ -406,7 +463,7 @@ const SalesRecords = ({ business, user }) => {
               {invoiceList.flatMap(inv =>
                 inv.items.map(item => {
                   const cost = item.cost_price * item.quantity1;
-                  const profit = item.total_price - cost;
+                  const profit = cost ? item.total_price - cost : 0;
                   return (
                     <tr key={`${inv.invoice_code}-${item.item_name1}`}>
                       <td>{format(inv.sale_date, 'dd/MM/yyyy')}</td>

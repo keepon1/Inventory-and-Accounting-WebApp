@@ -743,13 +743,13 @@ const CreateSales = ({ business, user, access }) => {
  
            <div className="info-row" style={{ marginBottom: "4px" }}>
              <div style={{ textAlign: "left", width: "60%" }}>
-               {printData.address && <div><strong>Addr:</strong> {printData.address}</div>}
-               {printData.phone && <div><strong>Tel:</strong> {printData.phone}</div>}
+               {printData.address && <div><strong>Addr: {printData.address}</strong></div>}
+               {printData.phone && <div><strong>Tel: {printData.phone}</strong></div>}
              </div>
              <div style={{ textAlign: "right", width: "38%" }}>
-               <div><strong>Customer:</strong> {printData.customer}</div>
-               <div><strong>Inv#:</strong> {printData.id}</div>
-               <div><strong>Date:</strong> {formattedPrintDate}</div>
+               <div><strong>Customer: {printData.customer}</strong></div>
+               <div><strong>Inv#:{printData.id}</strong></div>
+               <div><strong>Date: {formattedPrintDate}</strong></div>
              </div>
            </div>
  
@@ -767,10 +767,10 @@ const CreateSales = ({ business, user, access }) => {
              <tbody>
                {pdItems.map((item, idx) => (
                  <tr key={idx}>
-                   <td style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</td>
-                   <td style={{ textAlign: "center" }}>{item.qty}{item.unit__suffix ? ` ${item.unit__suffix}` : ''}</td>
-                   <td style={{ textAlign: "right" }}>GHS {parseFloat(item.price).toFixed(2)}</td>
-                   <td style={{ textAlign: "right" }}>GHS {(Number(item.qty) * Number(item.price)).toFixed(2)}</td>
+                   <td style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><strong>{item.name}</strong></td>
+                   <td style={{ textAlign: "center" }}><strong>{item.qty}{item.unit__suffix ? ` ${item.unit__suffix}` : ''}</strong></td>
+                   <td style={{ textAlign: "right" }}><strong>GHS {parseFloat(item.price).toFixed(2)}</strong></td>
+                   <td style={{ textAlign: "right" }}><strong>GHS {(Number(item.qty) * Number(item.price)).toFixed(2)}</strong></td>
                  </tr>
                ))}
              </tbody>
@@ -786,10 +786,10 @@ const CreateSales = ({ business, user, access }) => {
            </div>
  
            <div style={{ marginTop: "8px", textAlign: "center", fontSize: "11px" }}>
-             <div>Thank you for buying from us.</div>
+             <div><strong>Thank you for buying from us.</strong></div>
            </div>
            <div style={{ marginTop: "6px", textAlign: "center", fontSize: "11px", fontStyle: "italic" }}>
-             NB: Goods sold are not returnable EXCEPT on WARRANTY(Manufacturer Defect).
+             <strong>NB: Goods sold are not returnable EXCEPT on WARRANTY(Manufacturer Defect).</strong>
            </div>
          </div>
         )}

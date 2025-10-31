@@ -307,13 +307,13 @@ const ViewSales = ({ business, user, access, sales }) => {
 
           <div className="info-row" style={{ marginBottom: "4px" }}>
             <div style={{ textAlign: "left", width: "60%" }}>
-              {printData.company.address && <div><strong>Addr:</strong> {printData.company.address}</div>}
-              {printData.company.contact && <div><strong>Tel:</strong> {printData.company.contact}</div>}
+              {printData.company.address && <div><strong>Addr: {printData.company.address}</strong></div>}
+              {printData.company.contact && <div><strong>Tel: {printData.company.contact}</strong></div>}
             </div>
             <div style={{ textAlign: "right", width: "38%" }}>
-              <div><strong>Customer:</strong> {printData.customer}</div>
-              <div><strong>Inv#:</strong> {printData.id}</div>
-              <div><strong>Date:</strong> {format(printData.date, 'dd/MM/yyyy')}</div>
+              <div><strong>Customer: {printData.customer}</strong></div>
+              <div><strong>Inv#: {printData.id}</strong></div>
+              <div><strong>Date: {format(printData.date, 'dd/MM/yyyy')}</strong></div>
             </div>
           </div>
 
@@ -331,10 +331,10 @@ const ViewSales = ({ business, user, access, sales }) => {
             <tbody>
               {printData.items.map((item, idx) => (
                 <tr key={idx}>
-                  <td style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.item}</td>
-                  <td style={{ textAlign: "center" }}>{item.qty}{item.unit ? ` ${item.unit}` : ''}</td>
-                  <td style={{ textAlign: "right" }}>GHS {parseFloat(item.price).toFixed(2)}</td>
-                  <td style={{ textAlign: "right" }}>GHS {(item.qty * item.price).toFixed(2)}</td>
+                  <td style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><strong>{item.item}</strong></td>
+                  <td style={{ textAlign: "center" }}><strong>{item.qty}{item.unit ? ` ${item.unit}` : ''}</strong></td>
+                  <td style={{ textAlign: "right" }}><strong>GHS {parseFloat(item.price).toFixed(2)}</strong></td>
+                  <td style={{ textAlign: "right" }}><strong>GHS {(item.qty * item.price).toFixed(2)}</strong></td>
                 </tr>
               ))}
             </tbody>
@@ -350,10 +350,10 @@ const ViewSales = ({ business, user, access, sales }) => {
           </div>
 
           <div style={{ marginTop: "8px", textAlign: "center", fontSize: "11px" }}>
-            <div>Thank you for buying from us.</div>
+            <div><strong>Thank you for buying from us.</strong></div>
           </div>
          <div style={{ marginTop: "6px", textAlign: "center", fontSize: "11px", fontStyle: "italic" }}>
-           NB: Goods sold are not returnable EXCEPT on WARRANTY (Manufacturer Defect).
+           <strong>NB: Goods sold are not returnable EXCEPT on WARRANTY (Manufacturer Defect).</strong>
          </div>
         </div>
       )}

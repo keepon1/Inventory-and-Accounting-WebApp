@@ -2527,7 +2527,263 @@ def edit_user_permissions(request):
     except Exception as error:
         logger.exception(error)
         return Response({'status': 'error', 'message': 'Failed to edit user permissions', 'data': {}})
+    
 
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def get_user_report_permissions(request):
+    if request.method != 'POST':
+        return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
+    
+    user_profile = getattr(request.user, 'current', None)
+    if user_profile is None:
+        user_profile = models.current_user.objects.filter(user=request.user).first()
+
+    if user_profile is None:
+        return Response({'status': 'error', 'message': 'User profile not found', 'data': {}})
+    
+    if user_profile.admin is False and user_profile.settings_access is False:
+        return Response({'status': 'error', 'message': 'User does not have permission to view report permissions', 'data': {}})
+    
+    settings, created = models.setting_permissions.objects.get_or_create(user=user_profile, bussiness_name=user_profile.bussiness_name)
+
+    if settings is None:
+        return Response({'status': 'error', 'message': 'User settings not found', 'data': {}})
+
+    if (not settings and not settings.user_permissions_settings) and not settings.user.admin:
+        return Response({'status': 'error', 'message': 'User does not have access to report permissions', 'data': {}})
+    
+    chosen_user = request.data.get('username')
+    if not isinstance(chosen_user, str) or not chosen_user.strip():
+        return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})
+    
+    try:
+        chosen_user_query = models.current_user.objects.filter(bussiness_name=user_profile.bussiness_name, user_name=chosen_user).first()
+
+        if not chosen_user_query:
+            return Response({'status': 'error', 'message': f'User {chosen_user} not found in this business', 'data': {}})
+
+        chosen_user_permissions, created = models.report_permissions.objects.get_or_create(user=chosen_user_query, bussiness_name=chosen_user_query.bussiness_name)
+
+        if not chosen_user_permissions:
+            return Response({'status': 'error', 'message': f'No report permissions found for user {chosen_user}', 'data': {}})
+        
+        result = {
+            'item_summary': chosen_user_permissions.item_summary,
+            'stock_movement': chosen_user_permissions.stock_movement,
+            'stock_ageing': chosen_user_permissions.stock_ageing,
+            'inventory_valuation': chosen_user_permissions.inventory_valuation,
+            'sales_records': chosen_user_permissions.sales_records,
+            'purchase_records': chosen_user_permissions.purchase_records,
+            'cash_flow': chosen_user_permissions.cash_flow,
+            'sales_performance': chosen_user_permissions.sales_performance,
+            'profit_and_loss': chosen_user_permissions.profit_and_loss,
+            'trial_balance': chosen_user_permissions.trial_balance,
+            'customer_insights': chosen_user_permissions.customer_insights,
+            'supplier_insights': chosen_user_permissions.supplier_insights,
+            'purchase_metrics': chosen_user_permissions.purchase_metrics,
+            'aged_receivables': chosen_user_permissions.aged_receivables,
+            'aged_payables': chosen_user_permissions.aged_payables,
+            'sales_profit': chosen_user_permissions.sales_profit,
+        }
+
+        return Response({'status': 'success', 'message': 'User report permissions fetched', 'data': result})
+    
+    except ValueError as ve:
+        logger.warning(ve)
+        return Response({'status': 'error', 'message': 'Invalid data was submitted', 'data': {}})
+    
+    except Exception as error:
+        logger.exception(error)
+        return Response({'status': 'error', 'message': 'Failed to get user report permissions', 'data': {}})
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def update_report_permissions(request):
+    if request.method != 'POST':
+        return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
+
+    user_profile = getattr(request.user, 'current', None)
+
+    if user_profile is None:
+        user_profile = models.current_user.objects.filter(user=request.user).first()
+
+    if user_profile is None:
+        return Response({'status': 'error', 'message': 'User profile not found', 'data': {}})
+    
+    if user_profile.admin is False and user_profile.settings_access is False:
+        return Response({'status': 'error', 'message': 'User does not have permission to update report permissions', 'data': {}})
+    
+    settings = models.setting_permissions.objects.filter(user=user_profile).first()
+    if settings is None:
+        return Response({'status': 'error', 'message': 'User settings not found', 'data': {}})  
+    
+    if settings is None :
+        return Response({'status': 'error', 'message': 'User permission not found', 'data': {}})
+    
+    if settings.user_permissions_settings is False and user_profile.admin is False:
+        return Response({'status': 'error', 'message': 'User does not have access to update report permissions', 'data': {}})
+    
+    data = request.data.get('detail') or {}
+    chosen_user = data.get('user_name')
+    if not isinstance(chosen_user, str) or not chosen_user.strip():
+        return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})
+    
+    try:
+        chosen_user_query = models.current_user.objects.filter(bussiness_name=user_profile.bussiness_name, user_name=chosen_user).first()
+
+        if not chosen_user_query:
+            return Response({'status': 'error', 'message': f'User {chosen_user} not found in this business', 'data': {}})
+
+        report_permissions, created = models.report_permissions.objects.get_or_create(user=chosen_user_query)
+
+        report_permissions.item_summary = data.get('item_summary', False)
+        report_permissions.stock_movement = data.get('stock_movement', False)
+        report_permissions.stock_ageing = data.get('stock_ageing', False)
+        report_permissions.inventory_valuation = data.get('inventory_valuation', False)
+        report_permissions.sales_records = data.get('sales_records', False)
+        report_permissions.purchase_records = data.get('purchase_records', False)
+        report_permissions.cash_flow = data.get('cash_flow', False)
+        report_permissions.sales_performance = data.get('sales_performance', False)
+        report_permissions.profit_and_loss = data.get('profit_and_loss', False)
+        report_permissions.trial_balance = data.get('trial_balance', False)
+        report_permissions.customer_insights = data.get('customer_insights', False)
+        report_permissions.supplier_insights = data.get('supplier_insights', False)
+        report_permissions.purchase_metrics = data.get('purchase_metrics', False)
+        report_permissions.aged_receivables = data.get('aged_receivables', False)
+        report_permissions.aged_payables = data.get('aged_payables', False)
+        report_permissions.sales_profit = data.get('sales_profit', False)
+        report_permissions.save()
+
+        return Response({'status': 'success', 'message': 'User report permissions updated successfully', 'data': {}})
+    
+    except ValueError as ve:
+        logger.warning(ve)
+        return Response({'status': 'error', 'message': 'Invalid data was submitted', 'data': {}})
+    
+    except Exception as error:
+        logger.exception(error)
+        return Response({'status': 'error', 'message': 'Failed to update user report permissions', 'data': {}})
+    
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def get_user_setting_permissions(request):
+    if request.method != 'POST':
+        return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
+    
+    user_profile = getattr(request.user, 'current', None)
+    if user_profile is None:
+        user_profile = models.current_user.objects.filter(user=request.user).first()
+
+    if user_profile is None:
+        return Response({'status': 'error', 'message': 'User profile not found', 'data': {}})
+    
+    if user_profile.admin is False and user_profile.settings_access is False:
+        return Response({'status': 'error', 'message': 'User does not have permission to view setting permissions', 'data': {}})
+    
+    settings, created = models.setting_permissions.objects.get_or_create(user=user_profile, bussiness_name=user_profile.bussiness_name)
+
+    if settings is None:
+        return Response({'status': 'error', 'message': 'User settings not found', 'data': {}})
+    
+    if (not settings and not settings.user_permissions_settings) and not settings.user.admin:
+        return Response({'status': 'error', 'message': 'User does not have access to setting permissions', 'data': {}})
+    
+    chosen_user = request.data.get('username')
+
+    if not isinstance(chosen_user, str) or not chosen_user.strip():
+        return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})
+    
+    try:
+        chosen_user_query = models.current_user.objects.filter(bussiness_name=user_profile.bussiness_name, user_name=chosen_user).first()
+
+        if not chosen_user_query:
+            return Response({'status': 'error', 'message': f'User {chosen_user} not found in this business', 'data': {}})
+
+        chosen_user_settings, created = models.setting_permissions.objects.get_or_create(user=chosen_user_query, bussiness_name=chosen_user_query.bussiness_name)
+
+        if not chosen_user_settings:
+            return Response({'status': 'error', 'message': f'No setting permissions found for user {chosen_user}', 'data': {}})
+        
+        result = {
+            'general_settings': chosen_user_settings.general_settings,
+            'user_permissions_settings': chosen_user_settings.user_permissions_settings,
+            'tax_levy_settings': chosen_user_settings.tax_levy_settings,
+            'category_settings': chosen_user_settings.category_settings,
+            'brand_settings': chosen_user_settings.brand_settings,
+            'unit_settings': chosen_user_settings.unit_settings,
+            'currency_settings': chosen_user_settings.currency_settings,
+            'user_management_settings': chosen_user_settings.user_management_settings,
+        }
+
+        return Response({'status': 'success', 'message': 'User setting permissions fetched', 'data': result})
+    
+    except ValueError as ve:
+        logger.warning(ve)
+        return Response({'status': 'error', 'message': 'Invalid data was submitted', 'data': {}})
+    
+    except Exception as error:
+        logger.exception(error)
+        return Response({'status': 'error', 'message': 'Failed to get user setting permissions', 'data': {}})
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def update_setting_permissions(request):
+    if request.method != 'POST':
+        return Response({'status': 'error', 'message': 'Invalid method', 'data': {}})
+
+    user_profile = getattr(request.user, 'current', None)
+
+    if user_profile is None:
+        user_profile = models.current_user.objects.filter(user=request.user).first()
+
+    if user_profile is None:
+        return Response({'status': 'error', 'message': 'User profile not found', 'data': {}})
+    
+    if user_profile.admin is False and user_profile.settings_access is False:
+        return Response({'status': 'error', 'message': 'User does not have permission to update setting permissions', 'data': {}})
+    
+    settings = models.setting_permissions.objects.filter(user=user_profile).first()
+    if settings is None:
+        return Response({'status': 'error', 'message': 'User settings not found', 'data': {}})  
+    
+    if settings.user_permissions_settings is False and user_profile.admin is False:
+        return Response({'status': 'error', 'message': 'User does not have access to setting permissions', 'data': {}})
+    
+    data = request.data.get('detail') or {}
+    chosen_user = data.get('user_name')
+    if not isinstance(chosen_user, str) or not chosen_user.strip():
+        return Response({'status': 'error', 'message': 'Invalid data submitted', 'data': {}})
+    
+    try:
+        chosen_user_query = models.current_user.objects.filter(bussiness_name=user_profile.bussiness_name, user_name=chosen_user).first()
+
+        if not chosen_user_query:
+            return Response({'status': 'error', 'message': f'User {chosen_user} not found in this business', 'data': {}})
+
+        setting_permissions, created = models.setting_permissions.objects.get_or_create(user=chosen_user_query)
+
+        setting_permissions.general_settings = data.get('general_settings', False)
+        setting_permissions.user_permissions_settings = data.get('user_permissions_settings', False)
+        setting_permissions.tax_levy_settings = data.get('tax_levy_settings', False)
+        setting_permissions.category_settings = data.get('category_settings', False)
+        setting_permissions.brand_settings = data.get('brand_settings', False)
+        setting_permissions.unit_settings = data.get('unit_settings', False)
+        setting_permissions.currency_settings = data.get('currency_settings', False)
+        setting_permissions.user_management_settings = data.get('user_management_settings', False)
+        setting_permissions.save()
+
+        return Response({'status': 'success', 'message': 'User setting permissions updated successfully', 'data': {}})
+    
+    except ValueError as ve:
+        logger.warning(ve)
+        return Response({'status': 'error', 'message': 'Invalid data was submitted', 'data': {}})
+
+    except Exception as error:
+        logger.exception(error)
+        return Response({'status': 'error', 'message': 'Failed to update user setting permissions', 'data': {}})
+    
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -2649,14 +2905,18 @@ def fetch_items(request):
         company = request.user.id
         user = request.data['user']
         location = request.data['location']
+        format = request.data.get('format')
+        category = request.data.get('category')
+        brand = request.data.get('brand')
 
         verify_data = (isinstance(business, str) and business.strip() and isinstance(page, (float,int)) and 
-                       isinstance(user, str) and user.strip() and isinstance(location, str))
+                       isinstance(user, str) and user.strip() and isinstance(location, str) and isinstance(format, str)
+                        and category.strip() and isinstance(category, str) and brand.strip() and isinstance(brand, str))
 
         if not verify_data:
             return Response({'status':'error', 'message':'invalid data was submitted'})
         
-        result = inventory_item.fetch_items_for_main_view(business=business, page=page, company=company, search=search, user=user, location=location)
+        result = inventory_item.fetch_items_for_main_view(business=business, page=page, company=company, search=search, user=user, location=location, format=format, category=category, brand=brand)
     
         return Response(result)
     

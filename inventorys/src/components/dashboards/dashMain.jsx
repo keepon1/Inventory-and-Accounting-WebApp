@@ -37,16 +37,15 @@ const DashMain = ({business, user}) => {
   });
 
   const [additionalData, setAdditionalData] = useState({
-    salesTrendData: [],
     purchasesVsSalesData: [],
     stockByCategoryData: [],
+    stockByBrandData: [],
     topSellingItems: [],
-    recentSales: [],
     lowStockItems: [],
   });
 
   const navigate = useNavigate();
-  const COLORS = ['#4361ee', '#4895ef', '#4cc9f0', '#7209b7'];
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -60,6 +59,7 @@ const DashMain = ({business, user}) => {
           
           const data = response.dashboard_data;
           const category = response.category;
+          const brand = response.brand;
           const total_quantity = response.total_quantity;
           const low_stock = response.low_stock
 
@@ -87,10 +87,9 @@ const DashMain = ({business, user}) => {
 
           setAdditionalData({
             purchasesVsSalesData: data.purchase_vs_sales,
-            salesTrendData: data.week_trend,
             stockByCategoryData: category,
+            stockByBrandData: brand,
             topSellingItems: data.top_items,
-            recentSales: data.top_sales,
             lowStockItems:low_stock
           });
           
@@ -296,16 +295,16 @@ const DashMain = ({business, user}) => {
 
         <div className="chart-card">
           <h3>Stock by Category</h3>
-          <ResponsiveContainer width="100%" height={250}>
+          <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
                 data={additionalData.stockByCategoryData}
-                dataKey="value"
+                dataKey="values"
                 nameKey="name"
                 cx="50%"
                 cy="50%"
                 outerRadius={100}
-                innerRadius={40}
+                innerRadius={65}
                 labelLine={false}
                 label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
               >
@@ -313,36 +312,71 @@ const DashMain = ({business, user}) => {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Pie
+                data={additionalData.stockByCategoryData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={65}
+                innerRadius={30}
+                labelLine={false}
+                legendType="none"
+              >
+                {additionalData.stockByCategoryData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value, name, props) => {
+                const dataKey = props.dataKey;
+                return [`${dataKey === 'value' ? 'Quantity: ' : 'Value: GHS '}${value}`, name];
+              }}/>
               <Legend />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="ia_table_box">
-          <h3>Top 10 Sales This Month</h3>
-          <table className="ia_main_table">
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Quantity</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {additionalData.recentSales.map((sale, idx) => (
-                <tr key={idx}>
-                  <td>{sale.code}</td>
-                  <td>{sale.date}</td>
-                  <td>{sale.customer_info__name === 'Regular Customer' ? sale.customer_name : sale.customer_info__name}</td>
-                  <td className="text-right">{sale.total_quantity}</td>
-                  <td className="text-right">GHS {sale.gross_total}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="chart-card">
+          <h3>Stock by brands</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={additionalData.stockByBrandData}
+                dataKey="values"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                innerRadius={65}
+                labelLine={false}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              >
+                {additionalData.stockByBrandData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Pie
+                data={additionalData.stockByBrandData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={65}
+                innerRadius={30}
+                labelLine={false}
+                legendType="none"
+              >
+                {additionalData.stockByBrandData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value, name, props) => {
+                const dataKey = props.dataKey;
+                return [`${dataKey === 'value' ? 'Quantity: ' : 'Value: GHS '}${value}`, name];
+              }}/>
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>

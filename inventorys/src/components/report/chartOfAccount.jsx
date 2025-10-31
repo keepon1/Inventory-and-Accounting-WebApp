@@ -13,7 +13,8 @@ import {
 import api from '../api';
 import './itemSummary.css';
 import { Link } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, set } from 'date-fns';
+import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -23,11 +24,17 @@ const ChartOfAccounts = ({ business, user }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [accountType, setAccountType] = useState('all');
   const [activeChart, setActiveChart] = useState('balance');
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const accountsRes = await api.post('fetch_chart_of_accounts', { business });
+
+        if (accountsRes === 'no access') {
+          setHasAccess(false);
+          return;
+        }
         setAccounts(accountsRes);
         setFilteredAccounts(accountsRes);
       } catch (error) {
@@ -120,6 +127,10 @@ const ChartOfAccounts = ({ business, user }) => {
         return null;
     }
   };
+
+  if (!hasAccess) {
+    return <AccessDenied />;
+  }
 
   return (
     <div className="dashboard-main">

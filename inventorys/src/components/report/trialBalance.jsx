@@ -5,7 +5,6 @@ import {
 } from 'recharts';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faBalanceScale,
   faChevronDown,
   faChevronUp,
   faTable,
@@ -18,6 +17,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import AccessDenied from '../access';
 
 const TrialBalance = ({ business, user }) => {
   const today = new Date();
@@ -30,6 +30,7 @@ const TrialBalance = ({ business, user }) => {
   const [expandedAccounts, setExpandedAccounts] = useState({});
   const [activeView, setActiveView] = useState('table');
   const [alertsCollapsed, setAlertsCollapsed] = useState(true);
+  const [hasAccess, setHasAccess] = useState(true);
 
   const processTrialBalanceData = (response) => {
     const groups = {
@@ -69,6 +70,11 @@ const TrialBalance = ({ business, user }) => {
           startDate: format(startDate, 'yyyy-MM-dd'),
           endDate: format(endDate, 'yyyy-MM-dd')
         });
+
+        if (response === 'no access') {
+          setHasAccess(false);
+          return;
+        }
         
         const processedData = processTrialBalanceData(response);
         
@@ -205,6 +211,10 @@ const TrialBalance = ({ business, user }) => {
         </ResponsiveContainer>
       </div>
     );
+  };
+
+  if (!hasAccess) {
+    return <AccessDenied />;
   };
 
   return (

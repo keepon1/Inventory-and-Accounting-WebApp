@@ -88,6 +88,49 @@ class current_user(models.Model):
             Index(fields=['email']),
         ]
 
+class report_permissions(models.Model):
+    user = models.OneToOneField(current_user, on_delete=models.PROTECT, related_name="report_user")
+    item_summary = models.BooleanField(default=False)
+    stock_movement = models.BooleanField(default=False)
+    stock_ageing = models.BooleanField(default=False)
+    inventory_valuation = models.BooleanField(default=False)
+    sales_records = models.BooleanField(default=False)
+    sales_profit = models.BooleanField(default=False)
+    purchase_records = models.BooleanField(default=False)
+    cash_flow = models.BooleanField(default=False)
+    sales_performance = models.BooleanField(default=False)
+    customer_insights = models.BooleanField(default=False)
+    supplier_insights = models.BooleanField(default=False)
+    profit_and_loss = models.BooleanField(default=False)
+    trial_balance = models.BooleanField(default=False)
+    purchase_metrics = models.BooleanField(default=False)
+    aged_payables = models.BooleanField(default=False)
+    aged_receivables = models.BooleanField(default=False)
+    bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
+
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name']),
+            Index(fields=['user']),
+        ]
+
+class setting_permissions(models.Model):
+    user = models.OneToOneField(current_user, on_delete=models.PROTECT, related_name="setting_user")
+    bussiness_name = models.ForeignKey(bussiness, on_delete=models.CASCADE)
+    general_settings = models.BooleanField(default=False)
+    category_settings = models.BooleanField(default=False)
+    unit_settings = models.BooleanField(default=False)
+    brand_settings = models.BooleanField(default=False)
+    tax_levy_settings = models.BooleanField(default=False)
+    currency_settings = models.BooleanField(default=False)
+    user_management_settings = models.BooleanField(default=False)
+    user_permissions_settings = models.BooleanField(default=False)
+
+    class Meta:
+        indexes = [
+            Index(fields=['bussiness_name']),
+            Index(fields=['user']),
+        ]
     
 class tracking_history(models.Model):
     user = models.ForeignKey(current_user, on_delete=models.PROTECT)

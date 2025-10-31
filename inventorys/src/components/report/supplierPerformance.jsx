@@ -17,6 +17,7 @@ import api from '../api';
 import './itemSummary.css';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -33,6 +34,7 @@ const SupplierPerformance = ({ business, user }) => {
   const [startDate, setStartDate] = useState(firstDayOfMonth);
   const [endDate, setEndDate] = useState(today);
   const [activeChart, setActiveChart] = useState('spend');
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,6 +44,11 @@ const SupplierPerformance = ({ business, user }) => {
           startDate: format(startDate, 'yyyy-MM-dd'), endDate: format(endDate, 'yyyy-MM-dd')
         }
         );
+
+        if (suppliersRes === 'no access') {
+          setHasAccess(false);
+          return;
+        }
 
         const supplierMap = {};
         suppliersRes.sales.forEach(purchase => {
@@ -226,6 +233,10 @@ const SupplierPerformance = ({ business, user }) => {
       default:
         return null;
     }
+  };
+
+  if (!hasAccess) {
+    return <AccessDenied />;
   };
 
   return (

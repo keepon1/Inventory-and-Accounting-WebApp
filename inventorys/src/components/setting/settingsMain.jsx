@@ -15,6 +15,8 @@ import RolePermission from './roleAccess';
 import UserActivity from './userActivity';
 import BrandMain from './brand';
 import DeleteBusiness from './delete';
+import ReportPermissions from './reports';
+import SettingsPermissions from './settings';
 
 const SettingsMain = ({ business, user }) => {
   return (
@@ -83,7 +85,21 @@ const SettingsMain = ({ business, user }) => {
           </div>
         </section>
 
-        {/* Security */}
+        <section className="settings-card">
+          <h2 className="settings-title">
+            <FontAwesomeIcon icon={faShieldAlt} />
+            Permissions
+          </h2>
+          <div className="settings-links">
+            <Link to="/dashboard/settings/report-permission" className="settings-link">
+              • Report Permissions
+            </Link>
+            <Link to="/dashboard/settings/setting-permission" className="settings-link">
+              • Settings Permissions
+            </Link>
+          </div>
+        </section>
+
         <section className="settings-card">
           <h2 className="settings-title">
             <FontAwesomeIcon icon={faShieldAlt} />
@@ -126,6 +142,8 @@ const SettingsMain = ({ business, user }) => {
         <Route path="roles" element={<RolePermission business={business} user={user}/>} />
         <Route path="activity" element={<UserActivity business={business} user={user}/>} />
         <Route path="delete" element={<DeleteBusiness business={business} user={user}/>} />
+        <Route path='report-permission' element={<ReportPermissions business={business} user={user}/>} />
+        <Route path="setting-permission" element={<SettingsPermissions business={business} user={user}/>} />
       </Routes>
     </div>
   );

@@ -16,6 +16,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
+import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -31,6 +32,7 @@ const StockAging = ({ business, user }) => {
   const [selectedAgingBucket, setSelectedAgingBucket] = useState('all');
   const [activeChart, setActiveChart] = useState('quantity');
   const [alertsCollapsed, setAlertsCollapsed] = useState(true);
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,6 +40,11 @@ const StockAging = ({ business, user }) => {
         const [itemsRes] = await Promise.all([
           api.post('fetch_items_for_report', { business, user, location:location.value }),
         ]);
+
+        if (itemsRes === 'no access') {
+          setHasAccess(false);
+          return;
+        }
         setItems(itemsRes.items);
         setFilteredItems(itemsRes.items);
         setCategories(itemsRes.categories);
@@ -201,6 +208,10 @@ const StockAging = ({ business, user }) => {
       default:
         return null;
     }
+  };
+
+  if (!hasAccess) {
+    return <AccessDenied />;
   };
 
   return (

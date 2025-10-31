@@ -17,6 +17,7 @@ import api from '../api';
 import './itemSummary.css';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -33,6 +34,7 @@ const InventoryValuation = ({ business, user }) => {
   const [timeframe, setTimeframe] = useState('monthly');
   const [startDate, setStartDate] = useState(startOfYear);
   const [endDate, setEndDate] = useState(today);
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,6 +50,12 @@ const InventoryValuation = ({ business, user }) => {
           }),
           api.post('fetch_category', { business, user })
         ]);
+
+        if (inventoryRes === 'no access') {
+          setHasAccess(false);
+          return;
+        }
+
         setInventory(inventoryRes);
         setFilteredInventory(inventoryRes);
         setCategories(categoriesRes);
@@ -172,6 +180,10 @@ const InventoryValuation = ({ business, user }) => {
       default:
         return null;
     }
+  };
+
+  if (!hasAccess) {
+    return <AccessDenied />;
   };
 
   return (
