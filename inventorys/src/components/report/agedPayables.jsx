@@ -350,7 +350,7 @@ const AgedPayables = ({ business, user }) => {
       <div className="stock-table">
         <h3>Payables Details ({supplierRows.length} suppliers)</h3>
         <table>
-          <thead>
+          <thead className="table-header">
             <tr>
               <th>Supplier</th>
               <th>Current</th>
@@ -363,7 +363,7 @@ const AgedPayables = ({ business, user }) => {
           </thead>
           <tbody>
             {supplierRows.map(row => (
-              <tr key={row.supplier}>
+              <tr key={row.supplier} className='table-row'>
                 <td>{row.supplier}</td>
                 <td>GHS {row.current.toFixed(2)}</td>
                 <td>GHS {row.days_30.toFixed(2)}</td>

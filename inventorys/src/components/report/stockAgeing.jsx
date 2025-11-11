@@ -352,7 +352,7 @@ const StockAging = ({ business, user }) => {
       <div className="stock-table">
         <h3>Inventory Aging Report ({filteredItems.length} items)</h3>
         <table>
-          <thead>
+          <thead className='table-header'>
             <tr>
               <th>Item</th>
               <th>Code</th>

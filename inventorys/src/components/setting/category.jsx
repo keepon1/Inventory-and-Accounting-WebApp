@@ -246,14 +246,14 @@ const CategoryMain = ({ business, user }) => {
 
             <div className="journal-filters">
 
-                <div className="create_access">
+
                     <button className="btn btn-outline" onClick={() => {
                         setShowCreate(true);
                         document.addEventListener('mousedown', handleCreateOverlay);
                     }}>
                         Add Category
                     </button>
-                </div>
+
 
                 <div className="ivi_display_box1">
                     <div className="ivi_subboxes1">

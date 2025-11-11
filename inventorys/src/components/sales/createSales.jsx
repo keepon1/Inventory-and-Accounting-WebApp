@@ -144,8 +144,8 @@ const CreateSales = ({ business, user, access }) => {
       return;
     }
 
-    if (currentItem.price < 0) {
-      toast.info('Price cannot be negative');
+    if (currentItem.price <= 0) {
+      toast.info('Price must be greater than 0');
       return;
     }
 

@@ -146,7 +146,7 @@ const AddItem = (props) => {
             fullList.forEach(item => {
                 formData.append('price', item.price || '');
                 formData.append('brand', item.brand?.value || '');
-                formData.append('name', item.name || '');
+                formData.append('name', item.name.trim() || '');
                 formData.append('model', item.model || '');
                 formData.append('description', item.description || '');
                 formData.append('reorder', item.reorder || 0);

@@ -4,6 +4,7 @@ import { faEdit, faTimesCircle, faArrowLeft } from "@fortawesome/free-solid-svg-
 import api from "../api";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import Select from 'react-select';
 import { set } from "date-fns";
 
 const LocationItem = ({location, business, user, access }) => {
@@ -13,6 +14,12 @@ const LocationItem = ({location, business, user, access }) => {
   const [waitTimeout, setWaitTimeout] = useState(null);
   const [detail, setDetail] = useState({name:'', category:'', price:0, reorder:0})
   const [showEdit, setShowEdit] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [category, setCategory] = useState({ value: 'All Categories', label: 'All Categories' });
+  const [brands, setBrands] = useState([]);
+  const [brand, setBrand] = useState({ value: 'All Brands', label: 'All Brands' });
+  const [countMode, setCountMode] = useState(true);
+  const [exportingFormat, setExportingFormat] = useState('');
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -41,11 +48,13 @@ const LocationItem = ({location, business, user, access }) => {
       try {
         const response = await api.post(
           'fetch_items',
-          { business, page, searchQuery, user, location},
+          { business, page, searchQuery, user, location, count: countMode, format: exportingFormat, category: category.value, brand: brand.value },
         );
         if (response.status === 'success'){
           setItems(prev => page === 1 ? response.data.items : [...prev, ...response.data.items]);
           setHasNext(response.has_more);
+          setBrands(response.data.brands);
+          setCategories(response.data.categories);
         }else{
           toast.error(response.message || 'Error fetching items');
           return;
@@ -59,7 +68,7 @@ const LocationItem = ({location, business, user, access }) => {
     };
 
     fetchItems();
-  }, [navigate, page, searchQuery]);
+  }, [navigate, page, searchQuery, countMode, exportingFormat, category, brand]);
 
   const handleEditOverlay = (e) => {
     if (editOverlayRef.current && !editOverlayRef.current.contains(e.target)) {
@@ -89,7 +98,7 @@ const LocationItem = ({location, business, user, access }) => {
 
   const openedit = (index) => {
     const info = items[index];
-    setDetail({name:info.item_name, category:info.category__name, price:info.sales_price, reorder:info.reorder_level});
+    setDetail({name:info.item_name_1, category:info.category__name, price:info.sales_price, reorder:info.reorder_level});
     setShowEdit(true);
     document.addEventListener('mousedown', handleEditOverlay);
   }
@@ -123,11 +132,12 @@ const LocationItem = ({location, business, user, access }) => {
 
         const updated = await api.post(
           'fetch_items',
-          { business, page, searchQuery, user, location},
+          { business, page, searchQuery, user, location, count: countMode, format: exportingFormat, category: category.value, brand: brand.value },
         );
         if (updated.status === 'success'){
           setItems(prev => page === 1 ? updated.data.items : [...prev, ...updated.data.items]);
           setHasNext(updated.data.has_more);
+          setLoading(false);
         }else{
           toast.error(updated.message || 'Error fetching items');
           return;
@@ -165,7 +175,43 @@ const LocationItem = ({location, business, user, access }) => {
           )}
         </div>
 
-        <div className="ivi_display_box1">               
+        <div className="ivi_display_box1">
+          <div >
+            <div style={{display: 'flex', flexDirection: 'row', gap: '10px'}}>
+              <span>Count mode</span>
+              <input
+                type="checkbox"
+                checked={countMode}
+                onChange={e => {setCountMode(e.target.checked); setPage(1);}}
+              />
+            </div>
+          </div>
+
+          <div className="ivi_subboxes1">
+            <div className="ivi_holder_box1">
+              <Select
+                options={categories}
+                  value={category}
+                  className="ivi_select"
+                  classNamePrefix="ivi_select"
+                  placeholder="Select category..."
+                  onChange={selected => setCategory(selected)}
+                />
+            </div>
+          </div>
+
+          <div className="ivi_subboxes1">
+            <div className="ivi_holder_box1">
+              <Select
+                options={brands}
+                value={brand}
+                className="ivi_select"
+                classNamePrefix="ivi_select"
+                placeholder="Select brand..."
+                onChange={selected => setBrand(selected)}
+              />
+            </div>
+          </div>          
           <div className="ivi_subboxes1">
             <div className="ivi_holder_box1">
               <input
@@ -201,7 +247,10 @@ const LocationItem = ({location, business, user, access }) => {
 
           <tbody>
             {items.map((item, index) => (
-              <tr key={item.code} id={`row-${index}`} className="table-row">
+              <tr key={item.code} id={`row-${index}`}
+                className={`table-row ${item.is_active === false ? 'inactive' : ''}`}
+                title={item.is_active === false ? 'Inactive item' : undefined}
+               >
                   {(access.admin || access.edit_access) &&(
                     <td>
                       <button className="action-button" onClick={() => openedit(index)}>
@@ -211,10 +260,10 @@ const LocationItem = ({location, business, user, access }) => {
                     </td>
                   )}
                 <td>{item.category__name}</td>
-                <td>{item.brand}</td>
+                <td>{item.brand__name}</td>
                 <td>{item.code}</td>
                 <td>{item.model}</td>
-                <td>{item.item_name}</td>
+                <td>{item.item_name_1}</td>
                 <td>{item.quantity}</td>
                 <td>{item.unit__suffix}</td>
                 <td>GHS {item.sales_price}</td>
@@ -265,7 +314,7 @@ const LocationItem = ({location, business, user, access }) => {
             </div>
 
             <div>
-              <button className="btn btn-primary" onClick={() => saveEdit()}>
+              <button className="btn btn-outline" onClick={() => saveEdit()}>
                 Save Changes
               </button>
             </div>

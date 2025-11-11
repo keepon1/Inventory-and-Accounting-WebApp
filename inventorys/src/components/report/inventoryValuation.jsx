@@ -89,8 +89,8 @@ const InventoryValuation = ({ business, user }) => {
       .slice(0, 10)
       .map(item => ({
         name: item.item_name,
-        purchaseValue: item.quantity * item.purchase_price,
-        salesValue: item.quantity * item.sales_price
+        purchaseValue: item.purchase_price,
+        salesValue: item.sales_price
       }));
   };
 
@@ -101,8 +101,8 @@ const InventoryValuation = ({ business, user }) => {
       if (!categoryMap[category]) {
         categoryMap[category] = { purchaseValue: 0, salesValue: 0 };
       }
-      categoryMap[category].purchaseValue += item.quantity * item.purchase_price;
-      categoryMap[category].salesValue += item.quantity * item.sales_price;
+      categoryMap[category].purchaseValue += item.purchase_price;
+      categoryMap[category].salesValue += quantity * item.sales_price;
     });
     
     return Object.entries(categoryMap).map(([name, values]) => ({
@@ -308,8 +308,8 @@ const InventoryValuation = ({ business, user }) => {
                 <td className='text-right'>{item.code}</td>
                 <td className='text-right'>{item.category__name}</td>
                 <td className='text-right'>{item.quantity}</td>
-                <td className='text-right'>GHS {(item.quantity * item.purchase_price).toFixed(2)}</td>
-                <td className='text-right'>GHS {(item.quantity * item.sales_price).toFixed(2)}</td>
+                <td className='text-right'>GHS {parseFloat(item.purchase_price).toFixed(2) || 0}</td>
+                <td className='text-right'>GHS {parseFloat(item.sales_price).toFixed() || 0}</td>
                 <td className='text-right'>{item.turnover_rate ? item.turnover_rate.toFixed(2) : 'N/A'}</td>
               </tr>
             ))}

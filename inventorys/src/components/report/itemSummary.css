@@ -118,7 +118,7 @@
 
 .details-section {
   background: white;
-  padding: 1.25rem; /* 20px */
+  padding: 0.1rem; /* 20px */
   border-radius: 0.5rem; /* 8px */
   margin-bottom: 1.5625rem; /* 25px */
   box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.05); /* 0 2px 4px */
@@ -283,7 +283,7 @@
 
 .stock-table {
   background: white;
-  padding: 1.25rem; /* 20px */
+  padding: 0rem; /* 20px */
   border-radius: 0.5rem; /* 8px */
   box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.05); /* 0 2px 4px */
   overflow-x: auto;
@@ -411,7 +411,7 @@
   }
   
   .stock-table {
-    padding: 0.4rem; /* 15px */
+    padding: 0.1rem; /* 15px */
   }
   
   .stock-table th,

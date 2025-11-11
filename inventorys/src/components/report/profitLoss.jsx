@@ -249,7 +249,7 @@ const ProfitAndLoss = ({ business, user }) => {
       <div className="stock-table">
         <h3>Profit & Loss Details</h3>
         <table>
-          <thead>
+          <thead className="table-header">
             <tr>
               <th>Period</th>
               <th>Revenue</th>
@@ -262,7 +262,7 @@ const ProfitAndLoss = ({ business, user }) => {
           </thead>
           <tbody>
             {filteredData.map(item => (
-              <tr key={item.period}>
+              <tr key={item.period} className="table-row">
                 <td>{item.period}</td>
                 <td className='text-right'>GHS {item.revenue.toFixed(2)}</td>
                 <td className='text-right'>GHS {item.cogs.toFixed(2)}</td>

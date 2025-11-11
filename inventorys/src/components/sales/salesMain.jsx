@@ -183,8 +183,8 @@ const SalesMain = ({ business, user, access }) => {
                 </thead>
 
                 <tbody>
-                  {sales.map((sale) => (
-                    <tr key={sale.code} className="table-row">
+                  {sales.map((sale, index) => (
+                    <tr key={sale.code} id={`row-${index}`} className="table-row">
                       <td>
                         <Link to={`view/${sale.code}`} className="action-button">
                           <FontAwesomeIcon icon={faEye} />

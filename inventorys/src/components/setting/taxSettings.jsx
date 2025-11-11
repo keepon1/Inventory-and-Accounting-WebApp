@@ -290,16 +290,14 @@ const TaxMain = ({ business, user }) => {
             </div>
 
             <div className="journal-filters">
-                <div className="filter-groups-left">
-                    <div>
-                        <button className="btn btn-outline" onClick={() => {
+
+                <button className="btn btn-outline" onClick={() => {
                             setShowCreate(true);
                             document.addEventListener('mousedown', handleCreateOverlay);
                         }}>
                             Add Tax/Levy
-                        </button>
-                    </div>
-                </div>
+                </button>
+
                 <div className="ivi_display_box1">
                     <div className="ivi_subboxes1">
                         <div className="ivi_holder_box1">

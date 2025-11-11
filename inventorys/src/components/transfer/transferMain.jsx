@@ -61,6 +61,7 @@ const TransferMain = ({ business, user, access }) => {
           searchQuery,
           user,
           parsed,
+          format: '',
         });
 
         if (response.status === "success") {
@@ -87,10 +88,12 @@ const TransferMain = ({ business, user, access }) => {
 
   const handleExport = async () => {
     try {
-      const response = await api.post("export_transfers", {
+      const response = await api.post("fetch_transfer", {
         business,
         user,
         parsed,
+        searchQuery,
+        page: 0,
         format: exportFormat,
       });
       if (response.status === "success") {
@@ -276,6 +279,7 @@ const TransferMain = ({ business, user, access }) => {
                         <input
                           type="radio"
                           name="exportFormat"
+                          id="csv"
                           value="csv"
                           checked={exportFormat === 'csv'}
                           onChange={() => setExportFormat('csv')}
@@ -286,6 +290,7 @@ const TransferMain = ({ business, user, access }) => {
                         <input
                           type="radio"
                           name="exportFormat"
+                          id="excel"
                           value="excel"
                           checked={exportFormat === 'excel'}
                           onChange={() => setExportFormat('excel')}
@@ -296,6 +301,7 @@ const TransferMain = ({ business, user, access }) => {
                         <input
                           type="radio"
                           name="exportFormat"
+                          id="pdf"
                           value="pdf"
                           checked={exportFormat === 'pdf'}
                           onChange={() => setExportFormat('pdf')}
@@ -303,7 +309,7 @@ const TransferMain = ({ business, user, access }) => {
                         <label htmlFor="pdf">PDF</label>
                       </div>
                       <div className="modal-actions">
-                        <button className="btn btn-primary" onClick={handleExport}>
+                        <button className="btn btn-outline" onClick={handleExport}>
                           Export
                         </button>
                       </div>

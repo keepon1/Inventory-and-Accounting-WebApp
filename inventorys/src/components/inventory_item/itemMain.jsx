@@ -6,7 +6,7 @@ import ViewItem from "./viewItem";
 import EditItem from "./editItem";
 import api from "../api";
 import Select from "react-select";
-import { useNavigate, Routes, Route, useParams, Link } from "react-router-dom";
+import { useNavigate, Routes, Route, useParams, Link, useLocation } from "react-router-dom";
 import "./itemMain.css";
 import AccessDenied from "../access";
 import ItemHistory from "./itemHistory";
@@ -15,6 +15,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { set } from "date-fns";
 
 const ItemMain = ({ business, user, access }) => {
+  const countState = localStorage.getItem('countMode');
   const [items, setItems] = useState([]);
   const [locations, setLocations] = useState([]);
   const [location, setLocation] = useState({ value: '', label: '' });
@@ -27,13 +28,14 @@ const ItemMain = ({ business, user, access }) => {
   const [waitTimeout, setWaitTimeout] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [exportingFormat, setExportingFormat] = useState('');
+  const [countMode, setCountMode] = useState(countState === 'true' ? true : false);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(true);
   const overlayRef = useRef(null);
   const observer = useRef(null);
   const navigate = useNavigate();
 
-  const expt = !(window.location.pathname.includes('/add') || window.location.pathname.includes('/view') || window.location.pathname.includes('/edit'));
+  const expt = !(window.location.pathname.includes('/add') || window.location.pathname.includes('/view') || window.location.pathname.includes('/edit') || window.location.pathname.includes('/history'));
 
   const handleSearch = (e) => {
     setSearchInput(e.target.value);
@@ -48,7 +50,7 @@ const ItemMain = ({ business, user, access }) => {
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const response = await api.post("fetch_items", { business, page, searchQuery, user, location: location.value, category: category.value, brand: brand.value, format: ''});
+        const response = await api.post("fetch_items", { business, page, searchQuery, user, location: location.value, category: category.value, brand: brand.value, format: '', count: countMode });
         if (response?.status === "error") {
           toast.error(response.message || "Something went wrong!");
           return;
@@ -61,6 +63,8 @@ const ItemMain = ({ business, user, access }) => {
         setBrands(response.data.brands);
         if (!location.value.trim()) setLocation(response.data.locations[0]);
 
+        localStorage.setItem('countMode', countMode);
+
       } catch (error) {
         if (error.response?.status === 401) {
           localStorage.removeItem("access");
@@ -71,7 +75,7 @@ const ItemMain = ({ business, user, access }) => {
       }
     };
     fetchItems();
-  }, [navigate, page, searchQuery, location, category, brand]);
+  }, [navigate, page, searchQuery, location, category, brand, countMode]);
 
   const handleCreateOverlayClick = (e) => {
     if (overlayRef.current && !overlayRef.current.contains(e.target)) {
@@ -96,7 +100,7 @@ const ItemMain = ({ business, user, access }) => {
 
   const handleExport = async () => {
     try {
-      const response = await api.post("fetch_items", { location: location.value, searchQuery, format: exportingFormat, category: category.value, brand: brand.value ,business, user, page: 0 });
+      const response = await api.post("fetch_items", { location: location.value, searchQuery, format: exportingFormat, category: category.value, brand: brand.value ,business, user, count:countMode, page: 0 });
 
       if (response?.status === "error") {
         toast.error(response.message || "Export failed!");
@@ -140,7 +144,18 @@ const ItemMain = ({ business, user, access }) => {
                   <Link to="add" className="btn btn-outline">Add Item</Link>
                 )}
               </div>
+              
               <div className="ivi_display_box1">
+                <div >
+                  <div style={{display: 'flex', flexDirection: 'row', gap: '10px'}}>
+                    <span>Count mode</span>
+                    <input
+                      type="checkbox"
+                      checked={countMode}
+                      onChange={e => {setCountMode(e.target.checked); setPage(1);}}
+                    />
+                  </div>
+                </div>
                 <div className="ivi_subboxes1">
                   <div className="ivi_holder_box1">
                     <Select
@@ -219,11 +234,11 @@ const ItemMain = ({ business, user, access }) => {
                       title={item.is_active === false ? 'Inactive item' : undefined}
                     >
                       <td>
-                        <Link to={`view/${item.item_name}`} className="action-button">
+                        <Link to={`view/${typeof item.item_name == 'number' ? item.item_name_1 : item.item_name}`} state={typeof item.item_name == 'number' ? item.item_name_1 : item.item_name} className="action-button">
                           <FontAwesomeIcon icon={faEye} />
                         </Link>
                         {(access.admin || access.edit_access) && (
-                          <Link to={`edit/${item.item_name}`} className="action-button">
+                          <Link to={`edit/${typeof item.item_name == 'number' ? item.item_name_1 : item.item_name}`} state={typeof item.item_name == 'number' ? item.item_name_1 : item.item_name} className="action-button">
                             <FontAwesomeIcon icon={faEdit} />
                           </Link>
                         )}
@@ -232,8 +247,8 @@ const ItemMain = ({ business, user, access }) => {
                       <td>{item.brand__name}</td>
                       <td>{item.code}</td>
                       <td>{item.model}</td>
-                      <td>{item.item_name}</td>
-                      <td><Link to={`history/${item.item_name}`} className="quantity-link">{item.quantity}</Link></td>
+                      <td>{typeof item.item_name == 'number' ? item.item_name_1 : item.item_name}</td>
+                      <td><Link to={`history/${typeof item.item_name == 'number' ? item.item_name_1 : item.item_name}`} state={typeof item.item_name == 'number' ? item.item_name_1 : item.item_name} className="quantity-link">{item.quantity}</Link></td>
                       <td>{item.unit__suffix}</td>
                       {(access.admin || access.purchase_price_access) && (
                         <td>GHS {item.purchase_price}</td>
@@ -317,17 +332,20 @@ const ItemMain = ({ business, user, access }) => {
 
 const ViewItemWrapper = ({ access, user, business }) => {
   const { itemCode } = useParams();
-  return <ViewItem item={itemCode} business={business} access={access} user={user} />;
+  const item = useLocation();
+  return <ViewItem item={item.state} business={business} access={access} user={user} />;
 };
 
 const EditItemWrapper = ({ business, user, access }) => {
   const { itemCode } = useParams();
-  return <EditItem item={itemCode} business={business} user={user} access={access} />;
+  const item = useLocation();
+  return <EditItem item={item.state} business={business} user={user} access={access} />;
 };
 
 const ItemHistoryWrapper = ({ business, user, access, location }) => {
   const { itemCode } = useParams();
-  return <ItemHistory itemCode={itemCode} business={business} user={user} access={access} location={location} />;
+  const item = useLocation();
+  return <ItemHistory itemCode={item.state} business={business} user={user} access={access} location={location} />;
 };
 
 export default ItemMain;

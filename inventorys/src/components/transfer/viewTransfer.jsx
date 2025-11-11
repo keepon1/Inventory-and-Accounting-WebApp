@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faReceipt, faTachometer, faPrint, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { faReceipt, faTachometer, faPrint, faArrowLeft, faShareFromSquare, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { set } from "date-fns";
+import { format, set } from "date-fns";
 
 const ViewTransfer = (props) => {
   const [transfer, setTransfer] = useState({
     number: "",
     from: "",
     to: "",
-    issueDate: "",
+    issueDate: new Date(),
     description: "",
     total: 0,
     createdBy: "",
@@ -23,6 +23,9 @@ const ViewTransfer = (props) => {
   const [items, setItems] = useState([]);
   const [printData, setPrintData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState('pdf');
+  const overlayRef = useRef(null);
 
   const navigate = useNavigate();
   const transferNumber = props.transfer;
@@ -36,6 +39,7 @@ const ViewTransfer = (props) => {
         const response = await api.post("view_transfer", {
           business,
           number: transferNumber,
+          format: '',
         });
 
         if (response.status === "success") {
@@ -67,6 +71,12 @@ const ViewTransfer = (props) => {
     };
     fetchTransfer();
   }, []);
+
+  const handleCreateOverlayClick = (e) => {
+    if (overlayRef.current && !overlayRef.current.contains(e.target)) {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     if (printData) {
@@ -159,6 +169,31 @@ const ViewTransfer = (props) => {
     });
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await api.post("view_transfer", {
+        business,
+        number: transfer.number,
+        format: exportFormat,
+      });
+
+      if (response.status === "success") {
+        const link = document.createElement('a');
+        link.href = `data:application/octet-stream;base64,${response.data.file}`;
+        link.download = response.data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setExporting(false);
+      } else {
+        toast.error(response.message || "Failed to export transfer");
+      }
+    } catch (error) {
+      toast.error("Error exporting transfer");
+      console.error('Error exporting transfer', error);
+    }
+  };
+
   return (
     <>
       {!printData && (
@@ -170,6 +205,13 @@ const ViewTransfer = (props) => {
                   <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
                 </Link>
                 <h2 className="ia_description_word">Transfer Details</h2>
+              </div>
+              <div className="journal-controls">
+                <button className="share-icon" onClick={() => { setExporting(true); 
+                document.addEventListener('mousedown', handleCreateOverlayClick);
+                }}>
+                    <FontAwesomeIcon icon={faShareFromSquare}/>
+                </button>
               </div>
             </div>
 
@@ -192,7 +234,7 @@ const ViewTransfer = (props) => {
               <div className="ivi_subboxes">
                 <div className="ivi_holder_box">
                   <label className="ivi_label">Date</label>
-                  <input className="ivi_input" value={transfer.issueDate} readOnly title={transfer.issueDate} />
+                  <input className="ivi_input" value={format(transfer.issueDate, 'dd/MM/yyyy')} readOnly title={format(transfer.issueDate, 'dd/MM/yyyy')} />
                 </div>
                 <div className="ivi_holder_box">
                   <label className="ivi_label">Total Quantity</label>
@@ -242,6 +284,15 @@ const ViewTransfer = (props) => {
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: "right", fontWeight: "bold" }}>Total Quantity:</td>
+                    <td style={{ fontWeight: "bold" }}>
+                      {items.reduce((sum, item) => sum + Number(item.qty), 0)}
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
 
@@ -264,6 +315,58 @@ const ViewTransfer = (props) => {
               </button>
             </div>
           </div>
+          {exporting && (
+            <div className="modal-overlay">
+              <div className="modal" ref={overlayRef}>
+                <div className="modal-header">
+                  <h3>Select Format</h3>
+                  <button className="modal-close" onClick={() => setExporting(false)}>
+                    <FontAwesomeIcon icon={faTimesCircle} />
+                  </button>
+                </div>
+                <div className="modal-content">
+                  <div className="export-options">
+                    <input
+                      type="radio"
+                      name="exportFormat"
+                      id="csv"
+                      value="csv"
+                      checked={exportFormat === 'csv'}
+                      onChange={() => setExportFormat('csv')}
+                    />
+                    <label htmlFor="csv">CSV</label>
+                  </div>
+                  <div className="export-options">
+                    <input
+                      type="radio"
+                      name="exportFormat"
+                      id="excel"
+                      value="excel"
+                      checked={exportFormat === 'excel'}
+                      onChange={() => setExportFormat('excel')}
+                    />
+                    <label htmlFor="excel">Excel</label>
+                  </div>
+                  <div className="export-options">
+                    <input
+                      type="radio"
+                      name="exportFormat"
+                      id="pdf"
+                      value="pdf"
+                      checked={exportFormat === 'pdf'}
+                      onChange={() => setExportFormat('pdf')}
+                    />
+                    <label htmlFor="pdf">PDF</label>
+                  </div>
+                  <div className="modal-actions">
+                    <button className="btn btn-outline" onClick={handleExport}>
+                      Export
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

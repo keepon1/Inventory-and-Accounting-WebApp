@@ -150,7 +150,7 @@
   /* Responsive Design */
   @media (max-width: 768px) {
     .journal-container {
-      padding: 0.1rem;
+      padding: 0rem;
     }
     
     .journal-filters {

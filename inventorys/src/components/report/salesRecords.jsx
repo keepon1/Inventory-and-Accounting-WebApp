@@ -30,6 +30,11 @@ const SalesRecords = ({ business, user }) => {
   const [selectedLocation, setSelectedLocation] = useState('All Locations');
   const [locations, setLocations] = useState([]);
   const [location, setLocation] = useState({ value: '', label: '' });
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState({value: 'all', label: 'All Categories'});
+  const [selectedBrands, setSelectedBrands] = useState({value: 'all', label: 'All Brands'});
+  
   const [salesData, setSalesData] = useState({
     records: [],
     summary: {},
@@ -46,7 +51,7 @@ const SalesRecords = ({ business, user }) => {
 
   useEffect(() => {
     fetchSalesData();
-  }, [selectedLocation, startDate, endDate]);
+  }, [selectedLocation, startDate, endDate, selectedCategories, selectedBrands]);
 
   const fetchSalesData = async () => {
     try {
@@ -55,7 +60,10 @@ const SalesRecords = ({ business, user }) => {
         user, 
         selectedLocation,
         startDate: startDate.toISOString().split('T')[0], 
-        endDate: endDate.toISOString().split('T')[0] 
+        endDate: endDate.toISOString().split('T')[0],
+        category: selectedCategories.value,
+        brand: selectedBrands.value
+
       });
 
       if (response === 'no access') {
@@ -66,6 +74,8 @@ const SalesRecords = ({ business, user }) => {
       setSalesData(response.sales || { records: [], summary: {}, charts: {} });
       setFilteredRecords(response.sales.records || []);
       setLocations(response.locations || []);
+      setCategories(response.categories || []);
+      setBrands(response.brands || []);
       
       if (response.locations && response.locations.length > 0 && !location.value) {
         setLocation(response.locations[0]);
@@ -341,6 +351,32 @@ const SalesRecords = ({ business, user }) => {
               />
             </div>
           </div>
+
+          <div className="ivi_subboxes1">
+            <div className='ivi_holder_box1'>
+              <Select
+                options={categories}
+                value={selectedCategories}
+                onChange={e => setSelectedCategories(e)}
+                className="ivi_select"
+                classNamePrefix="ivi_select"
+                placeholder="Filter by Categories"
+              />
+            </div>
+          </div>
+
+          <div className="ivi_subboxes1">
+            <div className='ivi_holder_box1'>
+              <Select
+                options={brands}
+                value={selectedBrands}
+                onChange={e => setSelectedBrands(e)}
+                className="ivi_select"
+                classNamePrefix="ivi_select"
+                placeholder="Filter by Brands"
+              />
+            </div>
+          </div>
           
           <div className="ivi_subboxes1">
             <div className="ivi_holder_box1">
@@ -445,7 +481,7 @@ const SalesRecords = ({ business, user }) => {
         <div className="stock-table">
           <h3>Sales Records ({filteredRecords.length} items across {invoiceList.length} invoices)</h3>
           <table className='ia_main_table'>
-            <thead>
+            <thead className="table-header">
               <tr>
                 <th>Date</th>
                 <th>Invoice</th>
@@ -465,7 +501,7 @@ const SalesRecords = ({ business, user }) => {
                   const cost = item.cost_price * item.quantity1;
                   const profit = cost ? item.total_price - cost : 0;
                   return (
-                    <tr key={`${inv.invoice_code}-${item.item_name1}`}>
+                    <tr key={`${inv.invoice_code}-${item.item_name1}`} className="table-row">
                       <td>{format(inv.sale_date, 'dd/MM/yyyy')}</td>
                       <td>{inv.invoice_code}</td>
                       <td>{inv.customer === 'Regular Customer' ? inv.customer_name : inv.customer}</td>

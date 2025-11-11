@@ -374,6 +374,16 @@ const CreateTransfer = ({ business, user, access }) => {
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: "right", fontWeight: "bold" }}>Total Quantity:</td>
+                    <td style={{ fontWeight: "bold" }}>
+                      {transferItems.reduce((sum, item) => sum + Number(item.qty), 0)}
+                    </td>
+                    <td></td>
+                    <td></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
 
