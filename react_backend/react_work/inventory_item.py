@@ -2,7 +2,7 @@ from re import T
 from . import models
 from decimal import Decimal
 from django.core.paginator import Paginator
-from django.db.models import Sum
+from django.db.models import Sum, Q, F
 from collections import defaultdict
 from django.db import transaction
 from django.db.models import Q
@@ -11,7 +11,7 @@ from . import export_format
 
 logger = logging.getLogger(__name__)
 
-def fetch_items_for_main_view(business, page, company, search, user, location, format, category, brand, page_quantity=30):
+def fetch_items_for_main_view(business, page, company, search, user, location, format, count,category, brand, page_quantity=30):
     try:
         business_obj = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_obj, user_name=user)
@@ -32,6 +32,9 @@ def fetch_items_for_main_view(business, page, company, search, user, location, f
         if user_query.admin and (not location or location.lower() == 'all locations'):
 
             items = models.items.objects.filter(bussiness_name=business_obj)
+
+            if count:
+                items = items.filter(quantity__gt=0)
 
             if category and category.lower() != 'all categories':
                 items = items.filter(category__name=category)
@@ -64,13 +67,23 @@ def fetch_items_for_main_view(business, page, company, search, user, location, f
             if not location:
                 items = models.location_items.objects.filter(
                     bussiness_name=business_obj,
-                    location__location_name=locations_access[0]
+                    location__location_name=locations_access[0],
                 )
+
             else:
                 items = models.location_items.objects.filter(
                     bussiness_name=business_obj,
                     location__location_name=location
                 )
+
+            if count:
+                items = items.filter(quantity__gt=0)
+
+            if category and category.lower() != 'all categories':
+                items = items.filter(item_name__category__name=category)
+
+            if brand and brand.lower() != 'all brands':
+                items = items.filter(item_name__brand__name=brand)
 
             if search.strip():
                 search_filter = (
@@ -83,11 +96,19 @@ def fetch_items_for_main_view(business, page, company, search, user, location, f
                 items = items.filter(search_filter)
 
             items = items.order_by(
-                '-item_name__is_active','item_name__category__name', 'item_name__brand', 'item_name__item_name'
+                '-item_name__is_active','item_name__category__name', 'item_name__brand__name', 'item_name__item_name'
+            ).annotate(
+                code=F('item_name__code'),
+                brand__name=F('item_name__brand__name'),
+                item_name_1=F('item_name__item_name'),
+                unit__suffix=F('item_name__unit__suffix'),
+                category__name=F('item_name__category__name'),
+                model=F('item_name__model'),
+                is_active=F('item_name__is_active'),
             ).values(
-                'item_name__code', 'item_name__brand__name', 'item_name__item_name', 'quantity',
-                'item_name__unit__suffix', 'purchase_price', 'sales_price', 'item_name__is_active',
-                'item_name__category__name', 'item_name__model', 'reorder_level'
+                'code', 'brand__name', 'item_name', 'quantity',
+                'unit__suffix', 'purchase_price', 'sales_price',
+                'category__name', 'model', 'reorder_level', 'is_active', 'item_name_1'
             )
             
             locations = [{'value': i, 'label': i} for i in locations_access]
@@ -96,25 +117,8 @@ def fetch_items_for_main_view(business, page, company, search, user, location, f
             paginator = Paginator(items, page_quantity)
             current_page = paginator.get_page(page)
 
-            if not (user_query.admin and (not location or location.lower() == 'all locations')):
-                items = [
-                    {
-                        'code': i['item_name__code'],
-                        'brand__name': i['item_name__brand__name'] if i['item_name__brand__name'] else '',
-                        'item_name': i['item_name__item_name'],
-                        'quantity': i['quantity'],
-                        'unit__suffix': i['item_name__unit__suffix'],
-                        'purchase_price': i['purchase_price'],
-                        'sales_price': i['sales_price'],
-                        'category__name': i['item_name__category__name'],
-                        'model': i['item_name__model'],
-                        'reorder_level': i['reorder_level'],
-                        'is_active': i['item_name__is_active'],
-                    }
-                    for i in list(current_page.object_list)
-                ]
-            else:
-                items = list(current_page.object_list)
+            
+            items = list(current_page.object_list)
 
             cagetories = [{'value': 'All Categories', 'label': 'All Categories'}]
             category_query = models.inventory_category.objects.filter(bussiness_name=business_obj).order_by('name')
@@ -130,23 +134,6 @@ def fetch_items_for_main_view(business, page, company, search, user, location, f
             return {"status": "success", "data": result}
 
         else:
-            if not (user_query.admin and (not location or location.lower() == 'all locations')):
-                items = [
-                    {
-                        'code': i['item_name__code'],
-                        'brand__name': i['item_name__brand__name'] if i['item_name__brand__name'] else '',
-                        'item_name': i['item_name__item_name'],
-                        'quantity': i['quantity'],
-                        'unit__suffix': i['item_name__unit__suffix'],
-                        'purchase_price': i['purchase_price'],
-                        'sales_price': i['sales_price'],
-                        'category__name': i['item_name__category__name'],
-                        'model': i['item_name__model'],
-                        'reorder_level': i['reorder_level'],
-                        'is_active': i['item_name__is_active'],
-                    }
-                    for i in list(items)
-                ]
 
             if format == 'csv':
                 export = export_format.CSV(data=items, location=location, start=None, end=None, user=user_query).generate_item_csv()
@@ -203,7 +190,9 @@ def fetch_items_for_select(business, user, company, search, location):
             items_query = models.location_items.objects.filter(bussiness_name=business_query, location=location_query)
             if search:
                 items_query = items_query.filter(item_name__item_name__icontains=search)
+
             items_query = items_query.order_by('item_name__item_name')[:30]
+            
             items_query = [
                 {
                     'value': i.item_name.item_name, 'label': i.item_name.item_name,
@@ -272,7 +261,7 @@ def add_inventory_item(business, user, price, name, reorder, model, category, su
 
                 models.items.objects.create(
                     brand=brand_query,
-                    item_name=i,
+                    item_name=i.strip(),
                     model=model[j],
                     description=description[j],
                     reorder_level=float(reorder[j]),

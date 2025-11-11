@@ -1,7 +1,7 @@
 from . import models
 from decimal import Decimal
 from django.core.paginator import Paginator
-from django.db.models import Sum
+from django.db.models import Sum, F, Case, When, Value, CharField
 from collections import defaultdict
 from django.db import transaction
 from django.db.models import Q
@@ -45,7 +45,7 @@ def fetch_items_for_report(business, company, user, location):
            
         if user_query.admin and (not location or location.lower() == 'all locations'):
             
-            items = models.items.objects.filter(bussiness_name=business_obj)
+            items = models.items.objects.filter(bussiness_name=business_obj, is_active=True, quantity__gt=0)
         
             items = items.order_by(
                 'category__name', 'brand__name', 'item_name'
@@ -63,34 +63,25 @@ def fetch_items_for_report(business, company, user, location):
                 items = models.location_items.objects.filter(bussiness_name=business_obj, location__location_name=locations_access[0])
 
             else:
-                items = models.location_items.objects.filter(bussiness_name=business_obj, location__location_name=location)
+                items = models.location_items.objects.filter(bussiness_name=business_obj, location__location_name=location, item_name__is_active=True, quantity__gt=0)
 
             items = items.order_by(
                     'item_name__category__name', 'item_name__brand__name', 'item_name__item_name'
+                ).annotate(
+                    code=F('item_name__code'),
+                    item_name=F('item_name__item_name'),
+                    unit__suffix=F('item_name__unit__suffix'),
+                    purchase_price=F('item_name__purchase_price'),
+                    sales_price=F('item_name__sales_price'),
+                    category__name=F('item_name__category__name'),
+                    brand__name=F('item_name__brand__name'),
                 ).values(
-                    'item_name__item_name', 'quantity', 'item_name__code',
-                    'item_name__unit__suffix', 'purchase_price', 'sales_price',
-                    'item_name__category__name', 'reorder_level', 'last_sales', 'item_name__brand__name'
+                    'code', 'item_name', 'quantity', 'unit__suffix',
+                    'purchase_price', 'sales_price', 'category__name',
+                    'reorder_level', 'last_sales', 'brand__name'
                 )
             
             locations = [{'value':i, 'label':i} for i in locations_access]
-
-        if not(user_query.admin and not location or location.lower() == 'all locations'):
-            items = [
-                {
-                    'code': i['item_name__code'],
-                    'item_name': i['item_name__item_name'],
-                    'quantity': i['quantity'],
-                    'unit__suffix': i['item_name__unit__suffix'],
-                    'purchase_price': i['purchase_price'],
-                    'sales_price': i['sales_price'],
-                    'category__name': i['item_name__category__name'],
-                    'reorder_level': i['reorder_level'],
-                    'last_sales': i['last_sales'],
-                    'brand__name': i['item_name__brand__name']
-                }
-                for i in items
-            ]
 
             
         result = {"items":items, 'locations':locations, 'categories':categories, 'brands':brands}
@@ -178,7 +169,7 @@ def fetch_data_for_report_movements(business, company, user, location, start, en
         logger.exception('unhandled error')
         return 'something happened'
     
-def fetch_data_for_sales_performance(business, company, user, location, start, end, reference):
+def fetch_data_for_sales_performance(business, company, user, location, start, end, reference, category=None, brand=None):
     try:
         business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
@@ -267,7 +258,9 @@ def fetch_data_for_sales_performance(business, company, user, location, start, e
                 user=user_query,
                 location_access=locations_access,
                 start=start,
-                end=end
+                end=end,
+                category=category,
+                brand=brand
             ).fetch_sales_records()
 
 
@@ -279,9 +272,19 @@ def fetch_data_for_sales_performance(business, company, user, location, start, e
         else:
             locs.extend([{'value': i, 'label': i} for i in user_query.per_location_access])
 
+        brands = [{'value': 'all', 'label':'All Brands'}]
+        brand_query = models.inventory_brand.objects.filter(bussiness_name=business_query)
+        brands.extend([{'value':i.name, 'label':i.name} for i in brand_query])
+
+        categories = [{'value': 'all', 'label':'All Categories'}]
+        category_query = models.inventory_category.objects.filter(bussiness_name=business_query)
+        categories.extend([{'value':i.name, 'label':i.name} for i in category_query])
+
         result = {
             'sales': sales_data,
-            'locations': locs
+            'locations': locs,
+            'brands': brands,
+            'categories': categories
         }
 
         return result

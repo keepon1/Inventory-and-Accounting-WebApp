@@ -1,15 +1,16 @@
 from . import models
 from decimal import Decimal
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, F
 from django.db import transaction
 import logging
 import json
 from datetime import date as date1, datetime
+from .export_format import XLSX, PDF, CSV
 
 logger = logging.getLogger(__name__)
 
-def fetch_transfer_main_view(search, date_search, business, company, page, user, page_quantity=30):
+def fetch_transfer_main_view(search, date_search, business, company, page, user, format, page_quantity=30):
     try:
         business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
@@ -47,6 +48,35 @@ def fetch_transfer_main_view(search, date_search, business, company, page, user,
             'date', 'description', 'total_quantity',
             'to_loc__location_name', 'status'
         )
+
+        if format.strip():
+
+            if format.lower() == 'excel':
+                exporter = XLSX(data=transfers, user=user_query, location=None, start=None, end=None)
+                export_data = exporter.generate_transfer_main_xlsx()
+                return {
+                    "status": "success",
+                    "message": "Transfer export generated",
+                    "data": export_data
+                }
+            
+            if format.lower() == 'pdf':
+                exporter = PDF(data=transfers, user=user_query, location=None, start=None, end=None)
+                export_data = exporter.generate_transfer_main_pdf()
+                return {
+                    "status": "success",
+                    "message": "Transfer export generated",
+                    "data": export_data
+                }
+            
+            if format.lower() == 'csv':
+                exporter = CSV(data=transfers, user=user_query, location=None, start=None, end=None)
+                export_data = exporter.generate_transfer_main_csv()
+                return {
+                    "status": "success",
+                    "message": "Transfer export generated",
+                    "data": export_data
+                }
         
         paginator = Paginator(transfers, page_quantity)
         current_page = paginator.get_page(page)
@@ -149,11 +179,20 @@ def create_transfer(items, business, user, company, description, date, source, d
         return {"status": "error", "message": "Something went wrong, please try again"}
 
 
-def view_transfer(business, transfer_no, company):
+def view_transfer(business, transfer_no, format, company):
     try:
         business_query = models.bussiness.objects.get(bussiness_name=business)
         transfer_query = models.inventory_transfer.objects.get(code=transfer_no, bussiness_name=business_query)
-        items = models.transfer_history.objects.filter(transfer=transfer_query, bussiness_name=business_query)
+
+        items_data = models.transfer_history.objects.filter(transfer=transfer_query, bussiness_name=business_query).annotate(
+            name=F('item_name__item_name'),
+            brand=F('item_name__brand__name'),
+            code=F('item_name__code'),
+            category=F('item_name__category__name'),
+            model=F('item_name__model'),
+            unit=F('item_name__unit__suffix'),
+            qty=F('quantity')
+        ).values('name', 'brand', 'code', 'qty', 'category', 'model', 'unit')
 
         details = {
             'from': transfer_query.from_loc.location_name,
@@ -165,18 +204,36 @@ def view_transfer(business, transfer_no, company):
             'total': transfer_query.total_quantity,
             'status': transfer_query.status
         }
-        items_data = [
-            {
-                'name': i.item_name.item_name,
-                'brand': i.item_name.brand.name if i.item_name.brand else '',
-                'code': i.item_name.code,
-                'qty': i.quantity,
-                'category': i.item_name.category.name,
-                'model': i.item_name.model,
-                'unit': i.item_name.unit.suffix
-            }
-            for i in items
-        ]
+
+        if format.strip():
+
+            if format.lower() == 'excel':
+                exporter = XLSX(data=items_data, user=None, location=None, start=None, end=None)
+                export_data = exporter.generate_transfer_detail_xlsx(details=details)
+                return {
+                    "status": "success",
+                    "message": "Transfer detail export generated",
+                    "data": export_data
+                }
+            
+            if format.lower() == 'pdf':
+                exporter = PDF(data=items_data, user=None, location=None, start=None, end=None)
+                export_data = exporter.generate_transfer_detail_pdf(details=details)
+                return {
+                    "status": "success",
+                    "message": "Transfer detail export generated",
+                    "data": export_data
+                }
+            
+            if format.lower() == 'csv':
+                exporter = CSV(data=items_data, user=None, location=None, start=None, end=None)
+                export_data = exporter.generate_transfer_detail_csv(details=details)
+                return {
+                    "status": "success",
+                    "message": "Transfer detail export generated",
+                    "data": export_data
+                }
+        
 
         return {"status": "success", "message": "Transfer details fetched", "data": {"detail": details, "items": items_data}}
 

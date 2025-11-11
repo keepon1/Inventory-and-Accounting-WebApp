@@ -2908,15 +2908,16 @@ def fetch_items(request):
         format = request.data.get('format')
         category = request.data.get('category')
         brand = request.data.get('brand')
+        count = request.data.get('count')
 
         verify_data = (isinstance(business, str) and business.strip() and isinstance(page, (float,int)) and 
-                       isinstance(user, str) and user.strip() and isinstance(location, str) and isinstance(format, str)
-                        and category.strip() and isinstance(category, str) and brand.strip() and isinstance(brand, str))
+                        isinstance(user, str) and user.strip() and isinstance(location, str) and isinstance(format, str)
+                        and isinstance(category, str) and isinstance(brand, str) and isinstance(count, bool))
 
         if not verify_data:
             return Response({'status':'error', 'message':'invalid data was submitted'})
         
-        result = inventory_item.fetch_items_for_main_view(business=business, page=page, company=company, search=search, user=user, location=location, format=format, category=category, brand=brand)
+        result = inventory_item.fetch_items_for_main_view(business=business, page=page, company=company, search=search, user=user, location=location, format=format, category=category, brand=brand, count=count)
     
         return Response(result)
     
@@ -3004,7 +3005,7 @@ def view_item(request):
 
             if not business or not user or not item:
                 logger.warning(f"Invalid request: business={business}, user={request.data['user']}, item={request.data['item']}")
-                return Response({'status': 'error', 'message': 'invalid data was submitted'}, status=400)
+                return Response({'status': 'error', 'message': 'Invalid data was submitted'})
 
             if not (user.admin or user.item_access):
                 logger.warning(f"Access denied: user={user.user_name} tried to view {request.data['item']} in {business}")
@@ -3786,16 +3787,17 @@ def fetch_transfer(request):
         search = request.data['searchQuery'].lower()
         date_search = json.loads(request.data['parsed'])
         page = int(request.data['page'])
+        format = request.data.get('format')
         company = request.user.id
 
         verify_data = (isinstance(business, str) and business.strip() and isinstance(user, str) and
                        user.strip() and isinstance(page, (float, int)) and isinstance(search, (str, int, float)) 
-                       and isinstance(date_search, dict))
+                       and isinstance(date_search, dict) and isinstance(format, str))
         
         if not verify_data:
             return Response({'status': 'error', 'message': 'Invalid data was submitted'})
         
-        result = transfer.fetch_transfer_main_view(user=user, date_search=date_search, business=business, search=search, company=company, page=page)
+        result = transfer.fetch_transfer_main_view(user=user, date_search=date_search, business=business, search=search, company=company, page=page, format=format)
     
     return Response(result)
 
@@ -3899,13 +3901,15 @@ def view_transfer(request):
         business = request.data['business']
         transfer_no = request.data['number']
         company = request.user.id
+        format = request.data.get('format')
 
-        verify_data = (isinstance(business, str) and business.strip() and isinstance(transfer_no, str) and transfer_no.strip())
+        verify_data = (isinstance(business, str) and business.strip() and 
+                       isinstance(transfer_no, str) and transfer_no.strip() and isinstance(format, str))
 
         if not verify_data:
             return Response({'status': 'error', 'message': 'Invalid data was submitted'})
         
-        result = transfer.view_transfer(company=company, business=business, transfer_no=transfer_no)
+        result = transfer.view_transfer(company=company, business=business, transfer_no=transfer_no, format=format)
   
         return Response(result)
     return Response('')
@@ -4829,14 +4833,17 @@ def fetch_sales_records(request):
         location = request.data['selectedLocation']
         start = request.data['startDate']
         end = request.data['endDate']
+        category = request.data.get('category', '')
+        brand = request.data.get('brand', '')
 
         verify_data = (isinstance(business, str) and business.strip() and isinstance(start, str) and isinstance(end, str) and
-                       isinstance(user, str) and user.strip() and isinstance(location, str))
+                       isinstance(user, str) and user.strip() and isinstance(location, str) and
+                       isinstance(category, str) and isinstance(brand, str))
 
         if not verify_data:
             return Response({'status': 'error', 'message': 'Invalid data submitted'})
         
-        result = report.fetch_data_for_sales_performance(business=business, company=company, user=user, location=location, start=start, end=end, reference='sales_records')
+        result = report.fetch_data_for_sales_performance(business=business, company=company, user=user, location=location, start=start, end=end,  category=category, brand=brand,reference='sales_records')
 
     
         return Response(result)

@@ -14,6 +14,6 @@ app.autodiscover_tasks(['react_work'])
 app.conf.beat_schedule = {
     "close-periods-monthly": {
         "task": "react_work.account_closure.auto_close_periods",
-        "schedule": crontab(day_of_month="1", hour="0", minute="0"),  
+        "schedule": crontab(hour=0, minute=0, day_of_month=1),
     },
 }

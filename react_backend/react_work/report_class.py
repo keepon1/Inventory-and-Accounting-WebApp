@@ -3,17 +3,20 @@ from django.db.models import When, Case, Q, Sum, F, Aggregate, Value, DecimalFie
 from django.db.models.functions import Coalesce, ExtractWeekDay, TruncDate
 from datetime import date, timedelta,datetime
 from collections import defaultdict
+from decimal import Decimal
 import logging  
 
 logger = logging.getLogger(__name__)
 
 class Report_Data:
-    def __init__(self, business, company, user, location_access=None, start=None, end=None):
+    def __init__(self, business, company, user, location_access=None, start=None, end=None, category=None, brand=None):
         self.business = models.bussiness.objects.get(bussiness_name=business)
         self.user = user
         self.location = location_access
         self.start = start
         self.end = end
+        self.category = category
+        self.brand = brand
 
     def fetch_sales(self):   
         sales = models.sale.objects.filter(
@@ -108,12 +111,14 @@ class Report_Data:
         report_permission, created = models.report_permissions.objects.get_or_create(user=self.user, bussiness_name=self.business)
 
         can_view_cost_profit = report_permission.sales_profit
-
+        
         qs = models.sale_history.objects.filter(
             sales__bussiness_name=self.business,
             sales__date__range=(self.start, self.end),
             sales__location_address__location_name__in=self.location,
-            sales__is_reversed=False
+            sales__is_reversed=False,
+            item_name__category__name__in=[self.category] if self.category and self.category != "all" else models.inventory_category.objects.filter(bussiness_name=self.business).values_list('name', flat=True),
+            item_name__brand__name__in=[self.brand] if self.brand and self.brand != "all" else models.inventory_brand.objects.filter(bussiness_name=self.business).values_list('name', flat=True),
         )
 
         records = qs.values(
@@ -719,7 +724,7 @@ class Inventory_Valuation:
                 item_name=F("item__item_name"),
                 code=F("item__code"),
                 category__name=F("item__category__name"),
-                sales_price=F("item__sales_price"),
+                brand__name=F("item__brand__name"),
                 avg_cost=ExpressionWrapper(
                     (Coalesce(F("opening_value"), 0) + Coalesce(F("closing_value"), 0)) /
                     Case(
@@ -737,7 +742,12 @@ class Inventory_Valuation:
             ).annotate(
                 cogs=ExpressionWrapper(F("avg_cost") * F("quantity_sold"), output_field=DecimalField(max_digits=12, decimal_places=2)),
                 quantity=F("quantity_sold"),
-                purchase_price=F("avg_cost"),
+                purchase_price=F("avg_cost") * F("quantity_sold"),
+                sales_price=Case(
+                    When(quantity=0, then=Value(0, output_field=DecimalField())),
+                    default=F("value_sold") / F("quantity_sold"),
+                    output_field=DecimalField(max_digits=12, decimal_places=2)
+                ),
                 turnover_rate=ExpressionWrapper(
                     Case(
                         When(avg_inv_value=0, then=Value(None, output_field=DecimalField())),
@@ -750,6 +760,29 @@ class Inventory_Valuation:
 
             current_balance = []
             if current_month:
+
+                sales_ss = (
+                    models.sale_history.objects.filter(
+                        item_name=OuterRef("item"), bussiness_name=self.business,
+                        sales__date__range=[self.start, self.end]
+                    )
+                    .exclude(sales__is_reversed=True)
+                    .values("item_name")
+                    .annotate(sales_value=Coalesce(Sum("sales_price"), 0, output_field=DecimalField()))
+                    .values("sales_value")[:1]
+                )
+
+                purchase_ss = (
+                    models.sale_history.objects.filter(
+                        item_name=OuterRef("item"), bussiness_name=self.business,
+                        sales__date__range=[self.start, self.end]
+                    )
+                    .exclude(sales__is_reversed=True)
+                    .values("item_name")
+                    .annotate(purchase_value=Coalesce(Sum("purchase_price"), 0, output_field=DecimalField()))
+                    .values("purchase_value")[:1]
+                )
+
                 sales_qs = (
                     models.sale_history.objects.filter(
                         item_name=OuterRef("item"), bussiness_name=self.business,
@@ -767,10 +800,23 @@ class Inventory_Valuation:
                         item_name=F("item__item_name"),
                         code=F("item__code"),
                         category__name=F("item__category__name"),
-                        sales_price=F("item__sales_price"),
-                        purchase_price=F("item__purchase_price"),
+                        brand__name=F("item__brand__name"),
 
                         quantity_solds=Subquery(sales_qs, output_field=DecimalField()),
+                        sales_value=Subquery(sales_ss, output_field=DecimalField()),
+                        purchase_value=Subquery(purchase_ss, output_field=DecimalField()),
+
+                        sales_price=Case(
+                            When(quantity_solds=0, then=Value(0, output_field=DecimalField())),
+                            default=F("sales_value"),
+                            output_field=DecimalField(max_digits=12, decimal_places=2),
+                        ),
+
+                        purchase_price=Case(
+                            When(quantity_solds=0, then=Value(0, output_field=DecimalField())),
+                            default=F("purchase_value"),
+                            output_field=DecimalField(max_digits=12, decimal_places=2),
+                        ),
 
                         avg_inv_value=ExpressionWrapper(
                             (Coalesce(F("opening_value"), 0) + Coalesce(F("quantity_solds"), 0)) * Coalesce(F("purchase_price"), 0) / Value(2.0),
@@ -798,13 +844,14 @@ class Inventory_Valuation:
             merged = {}
             for row in list(closed_balance) + list(current_balance):
                 key = row["item_name"]
+
                 if key not in merged:
                     merged[key] = row.copy()
                 else:
                     merged[key]["quantity"] = (merged[key].get("quantity") or 0) + (row.get("quantity") or 0)
                     merged[key]["cogs"] = (merged[key].get("cogs") or 0) + (row.get("cogs") or 0)
-                    merged[key]["purchase_price"] = (merged[key].get("purchase_price") or 0) + row["purchase_price"]
-                    merged[key]["sales_price"] = (merged[key].get("sales_price") or 0) + row["sales_price"]
+                    merged[key]["purchase_price"] = ((merged[key].get("purchase_price") or 0) + Decimal(row["purchase_price"] or 0))
+                    merged[key]["sales_price"] = ((merged[key].get("sales_price") or 0) + Decimal(row["sales_price"] or 0))
                     merged[key]["turnover_rate"] = ((merged[key].get("turnover_rate") or 0) + row["turnover_rate"]) / 2 if merged[key].get("turnover_rate") and row.get("turnover_rate") else merged[key].get("turnover_rate") or row.get("turnover_rate")
 
             return list(merged.values())
