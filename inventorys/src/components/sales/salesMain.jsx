@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faShoppingCart } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faShareFromSquare, faShoppingCart, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import { useNavigate, Routes, Route, Link, useParams } from "react-router-dom";
 import CreateSales from "./createSales";
@@ -22,8 +22,13 @@ const SalesMain = ({ business, user, access }) => {
   const [waitTimeout, setWaitTimeout] = useState(null);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState('xlsx');
+  const overlayRef = useRef(null);
   const observer = useRef(null);
   const navigate = useNavigate();
+
+  const excpts = !(window.location.pathname.includes('view') || window.location.pathname.includes('edit') || window.location.pathname.includes('create'));
 
   const handleSearch = (e) => {
     setSearchInput(e.target.value);
@@ -57,7 +62,7 @@ const SalesMain = ({ business, user, access }) => {
       try {
         const response = await api.post(
           'fetch_sales',
-          { business,  page, searchQuery, parsed, user},
+          { business,  page, searchQuery, parsed, user, format: ''},
         );
         if (response.status === 'success'){
           setSales(prev => page === 1 ? response.data.sales : [...prev, ...response.data.sales]);
@@ -75,6 +80,12 @@ const SalesMain = ({ business, user, access }) => {
     };
     fetchSales();
   }, [navigate, page, searchQuery, parsed]);
+
+  const handleCreateOverlayClick = (event) => {
+    if (overlayRef.current && !overlayRef.current.contains(event.target)) {
+      setExporting(false);
+    }
+  };
 
   const observeSecondLast = useCallback(node => {
     if (observer.current) observer.current.disconnect();
@@ -96,12 +107,53 @@ const SalesMain = ({ business, user, access }) => {
     }
   }, [sales, observeSecondLast]);
 
+  const handleExport = async () => {
+    try {
+      const response = await api.post("fetch_sales", {
+        business,
+        user,
+        parsed,
+        searchQuery,
+        page: 0,
+        format: exportFormat,
+      });
+      if (response.status === "success") {
+        const link = document.createElement("a");
+        link.href = `data:application/octet-stream;base64,${response.data.file}`;
+        link.download = response.data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setExporting(false);
+      } else {
+        toast.error(response.message || "Failed to export transfers");
+      }
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem("access");
+        navigate("/sign_in");
+      } else {
+        toast.error("Unexpected error while exporting transfers");
+      }
+    }
+  };
+
   return (
     <div className="dashboard-main">
       <div className="journal-header">
         <h1>
           <FontAwesomeIcon icon={faShoppingCart} className="header-icon"/> Sales
         </h1>
+
+        {excpts && (
+          <div className="journal-controls">
+            <button className="share-icon" onClick={() => {setExporting(true);
+              document.addEventListener('mousedown', handleCreateOverlayClick);
+            }}>
+              <FontAwesomeIcon icon={faShareFromSquare}/>
+            </button>
+          </div>
+        )}
       </div>
 
       <Routes>
@@ -205,6 +257,59 @@ const SalesMain = ({ business, user, access }) => {
                 </tbody>
               </table>
             </div>
+
+            {exporting && (
+              <div className="modal-overlay">
+                <div className="modal" ref={overlayRef}>
+                  <div className="modal-header">
+                    <h3>Select Format</h3>
+                    <button className="modal-close" onClick={() => setExporting(false)}>
+                      <FontAwesomeIcon icon={faTimesCircle} />
+                    </button>
+                  </div>
+                  <div className="modal-content">
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="csv"
+                        value="csv"
+                        checked={exportFormat === 'csv'}
+                        onChange={() => setExportFormat('csv')}
+                      />
+                      <label htmlFor="csv">CSV</label>
+                    </div>
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="xlsx"
+                        value="xlsx"
+                        checked={exportFormat === 'xlsx'}
+                        onChange={() => setExportFormat('xlsx')}
+                      />
+                      <label htmlFor="xlsx">Excel</label>
+                    </div>
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="pdf"
+                        value="pdf"
+                        checked={exportFormat === 'pdf'}
+                        onChange={() => setExportFormat('pdf')}
+                      />
+                      <label htmlFor="pdf">PDF</label>
+                    </div>
+                    <div className="modal-actions">
+                      <button className="btn btn-outline" onClick={handleExport}>
+                        Export
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         } />
 

@@ -169,6 +169,7 @@ const SalesRecords = ({ business, user }) => {
                 />
                 <Legend />
                 <Bar yAxisId="value" dataKey="value" name="Revenue" fill="#82ca9d" />
+                <Bar yAxisId="value" dataKey="profit" name="Profit" fill="#f26b28ff" />
                 <Bar yAxisId="quantity" dataKey="quantity" name="Quantity" fill="#8884d8" />
               </BarChart>
             </ResponsiveContainer>
@@ -202,6 +203,7 @@ const SalesRecords = ({ business, user }) => {
                 />
                 <Legend />
                 <Bar yAxisId="value" dataKey="value" name="Revenue" fill="#ffc658" />
+                <Bar yAxisId="value" dataKey="profit" name="Profit" fill="#f26b28ff" />
                 <Bar yAxisId="quantity" dataKey="quantity" name="Quantity" fill="#0088FE" />
               </BarChart>
             </ResponsiveContainer>
@@ -507,7 +509,7 @@ const SalesRecords = ({ business, user }) => {
                       <td>{inv.customer === 'Regular Customer' ? inv.customer_name : inv.customer}</td>
                       <td>{item.item_name1}</td>
                       <td>{item.category}</td>
-                      <td>{item.quantity1}</td>
+                      <td style={{textAlign: 'center'}}>{item.quantity1}</td>
                       <td>GHS {item.unit_price.toFixed(2)}</td>
                       <td>GHS {item.total_price.toFixed(2)}</td>
                       <td>GHS {cost.toFixed(2)}</td>

@@ -18,6 +18,7 @@ import api from '../api';
 import "./itemSummary.css"
 import { Link } from 'react-router-dom';
 import { format, set } from 'date-fns';
+import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -34,6 +35,7 @@ const StockSummary = ({ business, user }) => {
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [activeChart, setActiveChart] = useState('quantity');
   const [alertsCollapsed, setAlertsCollapsed] = useState(true);
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,6 +43,12 @@ const StockSummary = ({ business, user }) => {
         const [itemsRes] = await Promise.all([
           api.post('fetch_items_for_report', { business, user, location:location.value }),
         ]);
+
+        if (itemsRes === 'no access') {
+          setHasAccess(false);
+          return;
+        }
+
         setItems(itemsRes.items);
         setFilteredItems(itemsRes.items);
         setLocations(itemsRes.locations);
@@ -258,6 +266,10 @@ const StockSummary = ({ business, user }) => {
       return total + item.quantity;
     }, 0);
   };
+
+  if (!hasAccess) {
+    return <AccessDenied />;
+  }
 
   return (
     <div className="dashboard-main">

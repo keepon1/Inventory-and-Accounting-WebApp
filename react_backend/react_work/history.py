@@ -29,8 +29,10 @@ class FetchHistory:
             ).first()
         else:
             item = models.location_items.objects.filter(
-                item_name__item_name=self.reference, bussiness_name=self.business
+                item_name__item_name=self.reference, bussiness_name=self.business,
+                location__location_name=self.location
             ).first()
+
 
         if not item:
             return {"status": "error", "message": "Item not found"}
@@ -38,6 +40,7 @@ class FetchHistory:
         common_fields = [
             "quantity_change",
             "date",
+            "value",
             "user_name",
             "transaction_type",
             "reference",
@@ -53,6 +56,7 @@ class FetchHistory:
             ).exclude(purchase__status='Reversed').annotate(
                 quantity_change=F("quantity"),
                 date=F("purchase__date"),
+                value=F("purchase_price"),
                 user_name=F("purchase__created_by__user_name"),
                 transaction_type=Value("Purchase", output_field=CharField()),
                 reference=F("purchase__code"),
@@ -65,9 +69,10 @@ class FetchHistory:
                 sales__location_address__location_name=self.location
             ).exclude(sales__status='Reversed').annotate(
                 quantity_change=-F("quantity"),
+                value=F("sales_price"),
                 date=F("sales__date"),
                 user_name=F("sales__created_by__user_name"),
-                transaction_type=Value("Sale", output_field=CharField()),
+                transaction_type=Value("Sales", output_field=CharField()),
                 reference=F("sales__code"),
                 real_date=F("sales__creation_date"),
             ).values(*common_fields)
@@ -84,6 +89,7 @@ class FetchHistory:
                     default=Value(0),
                     output_field=IntegerField(),
                 ),
+                value=Value("-", output_field=CharField()),
                 date=F("transfer__date"),
                 user_name=F("transfer__created_by__user_name"),
                 transaction_type=Case(
@@ -96,13 +102,14 @@ class FetchHistory:
                 real_date=F("transfer__creation_date"),
             ).exclude(transaction_type="Ignore")
             transfers = transfers.values(*common_fields)
-            history_qs = transfers.union(sales, purchases, all=True).order_by("-date", "-id")
+            history_qs = transfers.union(sales, purchases, all=True).order_by("-date", "-real_date")
         else:
             purchases = models.purchase_history.objects.filter(
                 item_name=item,
                 bussiness_name=self.business,
             ).exclude(purchase__status='Reversed').annotate(
                 quantity_change=F("quantity"),
+                value=F("purchase_price"),
                 date=F("purchase__date"),
                 user_name=F("purchase__created_by__user_name"),
                 transaction_type=Value("Purchase", output_field=CharField()),
@@ -115,14 +122,15 @@ class FetchHistory:
                 bussiness_name=self.business,
             ).exclude(sales__status='Reversed').annotate(
                 quantity_change=-F("quantity"),
+                value=F("sales_price"),
                 date=F("sales__date"),
                 user_name=F("sales__created_by__user_name"),
-                transaction_type=Value("Sale", output_field=CharField()),
+                transaction_type=Value("Sales", output_field=CharField()),
                 reference=F("sales__code"),
                 real_date=F("sales__creation_date"),
             ).values(*common_fields)
 
-            history_qs = purchases.union(sales, all=True).order_by("-date", "-id", "-real_date")
+            history_qs = purchases.union(sales, all=True).order_by("-date", "-real_date")
 
         current_qty = item.quantity
         final_history = []
@@ -139,13 +147,12 @@ class FetchHistory:
             item_data = {
                 "quantity": item.quantity,
                 "item_name": item.item_name.item_name,
-                "code": item.item_name.code,
             }
+
         else:
             item_data = {
                 "quantity": item.quantity,
                 "item_name": item.item_name,
-                "code": item.code,
             }
 
         return {

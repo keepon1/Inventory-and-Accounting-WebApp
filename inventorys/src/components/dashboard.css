@@ -80,14 +80,15 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  height: calc(100vh - 94px);
 }
 
 .dashboard-sidebar.collapsed {
-  width: 70px;
+  width: 5%;
 }
 
 .dashboard-sidebar.expanded {
-  width: 200px;
+  width: 13%;
 }
 
 .user-profile {
@@ -178,7 +179,7 @@
   background-color: white;
   transition: var(--transition);
   overflow-y: scroll;
-  height: calc(94vh - 48px);
+  height: calc(100vh - 94px);
   max-width: 100%;
 }
 

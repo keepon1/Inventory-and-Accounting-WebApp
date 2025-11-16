@@ -154,13 +154,19 @@ class Report_Data:
                 total_value=ExpressionWrapper(
                     F('quantity') * F('sales_price'),
                     output_field=DecimalField()
+                ),
+
+                total_cost=ExpressionWrapper(
+                    F('quantity') * F('purchase_price'),
+                    output_field=DecimalField()
                 )
             )
             .values('item_name__category__name')
             .annotate(
                 name=F('item_name__category__name'),
                 quantity=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField()),
-                value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField())
+                value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField()),
+                profit=Coalesce(Sum(F('total_value') - F('total_cost')), Value(0), output_field=DecimalField()) if can_view_cost_profit else Value(0, output_field=DecimalField())
             )
         )
 
@@ -169,13 +175,19 @@ class Report_Data:
                 total_value=ExpressionWrapper(
                     F('quantity') * F('sales_price'),
                     output_field=DecimalField()
+                ),
+
+                total_cost=ExpressionWrapper(
+                    F('quantity') * F('purchase_price'),
+                    output_field=DecimalField()
                 )
             )
             .values('item_name__brand__name')
             .annotate(
                 name=F('item_name__brand__name'),
                 quantity=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField()),
-                value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField())
+                value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField()),
+                profit=Coalesce(Sum(F('total_value') - F('total_cost')), Value(0), output_field=DecimalField()) if can_view_cost_profit else Value(0, output_field=DecimalField())
             )
         )
 

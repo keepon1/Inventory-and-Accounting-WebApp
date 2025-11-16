@@ -3138,15 +3138,16 @@ def fetch_sales(request):
         date_search = json.loads(request.data['parsed'])
         page = int(request.data['page'])
         company = request.user.id
+        format = request.data.get('format')
 
         verify_data = (isinstance(business, str) and business.strip() and isinstance(user, str) and
                        user.strip() and isinstance(page, (float, int)) and isinstance(search, (str, int, float)) 
-                       and isinstance(date_search, dict))
+                       and isinstance(date_search, dict) and isinstance(format, str))
         
         if not verify_data:
             return Response({'status': 'error', 'message': 'Invalid data was submitted'})
         
-        result = inventory_sales.fetch_sales_for_main_view(user=user, date_search=date_search, business=business, search=search, company=company, page=page)
+        result = inventory_sales.fetch_sales_for_main_view(user=user, date_search=date_search, business=business, search=search, company=company, page=page, format=format)
     
     return Response(result)
 
@@ -3221,8 +3222,10 @@ def view_sale(request):
         try:
             business = request.data['business']
             number = request.data['number']
+            format = request.data.get('format')
 
-            verify_data = (isinstance(business, str) and isinstance(number, str) and business.strip() and number.strip())
+            verify_data = (isinstance(business, str) and isinstance(number, str) and business.strip() and number.strip()
+                           and isinstance(format, str))
 
             if not verify_data:
                 return Response({'status':'error', 'message':'invalid data was submitted'})
@@ -3239,6 +3242,26 @@ def view_sale(request):
                     'unit':i.item_name.unit.suffix, 'qty':i.quantity, 'price':i.sales_price, 'total':i.quantity * i.purchase_price} for i in items]
             
             company = {'business':business_query.bussiness_name, 'contact':business_query.telephone, 'email':business_query.email, 'address':business_query.address}
+
+            if format.strip():
+                from .export_format import PDF, XLSX, CSV
+                if format.lower() == 'pdf':
+                    exporter = PDF(data=items, location=None, user=None, start=None, end=None)
+                    export_data = exporter.generate_sales_detail_pdf(details=sales)
+
+                    return Response({'status':'success', 'data':export_data})
+                
+                if format.lower() == 'xlsx':
+                    exporter = XLSX(data=items, location=None, user=None, start=None, end=None)
+                    export_data = exporter.generate_sales_detail_xlsx(details=sales)
+
+                    return Response({'status':'success', 'data':export_data})
+                
+                if format.lower() == 'csv':
+                    exporter = CSV(data=items, location=None, user=None, start=None, end=None)
+                    export_data = exporter.generate_sales_detail_csv(details=sales)
+
+                    return Response({'status':'success', 'data':export_data})
 
             data = {'customer':sales, 'items':items, 'company': company }
             

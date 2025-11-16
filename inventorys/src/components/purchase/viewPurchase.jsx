@@ -93,7 +93,7 @@ const ViewPurchase = ({ purchase, business, access, user }) => {
   const total2 = () => {
     const subtotal = purchaseData.items.reduce((sum, item) => sum + (item.qty * item.price), 0);
     const discount = purchaseData.discount;
-    const total = subtotal - discount;
+    const total = (subtotal - (subtotal * discount / 100)).toFixed(2);
     const levies = purchaseData.rate.reduce((sum, levy) => {
       return sum + (total * (levy.rate / 100));
     }, 0);

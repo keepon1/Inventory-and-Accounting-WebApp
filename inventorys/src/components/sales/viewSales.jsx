@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTachometer, faArrowLeft, faPrint } from "@fortawesome/free-solid-svg-icons";
+import { faTachometer, faArrowLeft, faPrint, faShareFromSquare, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -35,6 +35,11 @@ const ViewSales = ({ business, user, access, sales }) => {
   const [loading, setLoading] = useState(false);
   const [printData, setPrintData] = useState(null);
 
+  const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState('pdf');
+
+  const overlayRef = useRef(null);
+
   const [items, setItems] = useState([]);
   const navigate = useNavigate();
 
@@ -43,7 +48,7 @@ const ViewSales = ({ business, user, access, sales }) => {
       try {
         const response = await api.post(
           'view_sale',
-          { business, number: sales },
+          { business, number: sales, format: '' },
         );
 
         if (response.status === 'error') {
@@ -92,6 +97,12 @@ const ViewSales = ({ business, user, access, sales }) => {
     }
   }, [printData]);
 
+  const handleCreateOverlayClick = (e) => {
+    if (overlayRef.current && !overlayRef.current.contains(e.target)) {
+      setExporting(false);
+    }
+  };
+
   const reverse = async () => {
     if (loading) {
       toast.info('Please wait... reversing in progress');
@@ -123,12 +134,13 @@ const ViewSales = ({ business, user, access, sales }) => {
   const total2 = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.qty * item.price), 0);
     const discount = sale.discount;
-    const total = subtotal - discount;
+    const total = (subtotal - (subtotal * discount / 100)).toFixed(2);
     const levies = sale.rate.reduce((sum, levy) => {
       return sum + (total * (levy.rate / 100));
     }, 0);
 
     const grandTotal = sale.total;
+
     return {
       subtotal, discount, total, levies, grandTotal
     };
@@ -158,6 +170,34 @@ const ViewSales = ({ business, user, access, sales }) => {
 
   const total1 = total2();
 
+  const handleExport = async () => {
+    try {
+      const response = await api.post("view_sale", {
+        business,
+        number: sale.number,
+        format: exportFormat,
+      });
+      if (response.status === "success") {
+        const link = document.createElement("a");
+        link.href = `data:application/octet-stream;base64,${response.data.file}`;
+        link.download = response.data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setExporting(false);
+      } else {
+        toast.error(response.message || "Failed to export transfers");
+      }
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem("access");
+        navigate("/sign_in");
+      } else {
+        toast.error("Unexpected error while exporting transfers");
+      }
+    }
+  };
+
   return (
     <>
       {!printData && (
@@ -169,7 +209,15 @@ const ViewSales = ({ business, user, access, sales }) => {
                     <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
                 </Link>
                 <h2 className="ia_description_word">{sale.type === 'regular' ? 'Regular Sales' : 'To Registered Customer'} - {sale.number}</h2>
-              </div>  
+              </div> 
+
+              <div className="journal-controls">
+                <button className="share-icon" onClick={() => { setExporting(true); 
+                document.addEventListener('mousedown', handleCreateOverlayClick);
+                }}>
+                    <FontAwesomeIcon icon={faShareFromSquare}/>
+                </button>
+              </div> 
             </div>
 
             <div className="ivi_display_box">
@@ -295,6 +343,59 @@ const ViewSales = ({ business, user, access, sales }) => {
               </button>
             </div>
           </div>
+
+          {exporting && (
+            <div className="modal-overlay">
+              <div className="modal" ref={overlayRef}>
+                <div className="modal-header">
+                  <h3>Select Format</h3>
+                  <button className="modal-close" onClick={() => setExporting(false)}>
+                    <FontAwesomeIcon icon={faTimesCircle} />
+                  </button>
+                </div>
+                <div className="modal-content">
+                  <div className="export-options">
+                    <input
+                      type="radio"
+                      name="exportFormat"
+                      id="csv"
+                      value="csv"
+                      checked={exportFormat === 'csv'}
+                      onChange={() => setExportFormat('csv')}
+                    />
+                    <label htmlFor="csv">CSV</label>
+                  </div>
+                  <div className="export-options">
+                    <input
+                      type="radio"
+                      name="exportFormat"
+                      id="xlsx"
+                      value="xlsx"
+                      checked={exportFormat === 'xlsx'}
+                      onChange={() => setExportFormat('xlsx')}
+                    />
+                    <label htmlFor="xlsx">Excel</label>
+                  </div>
+                  <div className="export-options">
+                    <input
+                      type="radio"
+                      name="exportFormat"
+                      id="pdf"
+                      value="pdf"
+                      checked={exportFormat === 'pdf'}
+                      onChange={() => setExportFormat('pdf')}
+                    />
+                    <label htmlFor="pdf">PDF</label>
+                  </div>
+                  <div className="modal-actions">
+                    <button className="btn btn-outline" onClick={handleExport}>
+                      Export
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

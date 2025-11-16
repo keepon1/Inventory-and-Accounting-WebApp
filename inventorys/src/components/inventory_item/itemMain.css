@@ -63,7 +63,7 @@
     width: 100%;
     overflow-x: scroll;
     overflow-y: scroll;
-    max-height: 70vh;
+    height: 70.2vh;
   }
   
   .items-table {
@@ -169,6 +169,11 @@
   @media (max-width: 480px) {
     .item-main-container {
       padding: 1rem;
+    }
+
+    .share-icon {
+      padding: 0.5rem;
+      font-size: 1.6rem;
     }
     
     .table-header th,

@@ -8,7 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { set } from "date-fns";
 
-const EditItem = ({item, business, user, access, item_view_control, state}) => {
+const EditItem = ({item, business, user, access}) => {
     const [itemInfo, setItemInfo] = useState({
         code: '', brand: {value: '', label: ''}, name: '', unit: {value:'', label:''}, model: '',
         status: { value: '', label: '' }, category: {value:'', label:''},

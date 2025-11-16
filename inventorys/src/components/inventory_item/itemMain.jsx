@@ -62,7 +62,7 @@ const ItemMain = ({ business, user, access }) => {
         setCategories(response.data.categories);
         setBrands(response.data.brands);
         if (!location.value.trim()) setLocation(response.data.locations[0]);
-
+        localStorage.setItem('historyLocation', location.value);
         localStorage.setItem('countMode', countMode);
 
       } catch (error) {
@@ -345,7 +345,7 @@ const EditItemWrapper = ({ business, user, access }) => {
 const ItemHistoryWrapper = ({ business, user, access, location }) => {
   const { itemCode } = useParams();
   const item = useLocation();
-  return <ItemHistory itemCode={item.state} business={business} user={user} access={access} location={location} />;
+  return <ItemHistory itemCode={item.state} business={business} user={user} access={access} />;
 };
 
 export default ItemMain;

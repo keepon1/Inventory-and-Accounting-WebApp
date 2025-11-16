@@ -111,14 +111,6 @@ const ViewItem = (props) => {
           </div>
         </div>
       </div>
-
-      {(props.access.admin || props.access.edit_access) && (
-        <div className="form-actions">
-          <Link to={`../edit/${props.item}`} className="action-button">
-            <button className="btn btn-outline">Edit Item</button>
-          </Link>
-        </div>
-      )}
     </div>
   );
 };
