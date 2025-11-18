@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, 
+  BarChart, Bar, PieChart, Pie, AreaChart, Area, LineChart, Line, XAxis, YAxis, 
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell 
 } from 'recharts';
 import Select from 'react-select';
@@ -22,10 +22,11 @@ import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
+import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
-const StockMovement = ({ business, user }) => {
+const StockMovement = ({ business, user, access }) => {
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
@@ -40,9 +41,10 @@ const StockMovement = ({ business, user }) => {
   const [startDate, setStartDate] = useState(firstDayOfMonth);
   const [endDate, setEndDate] = useState(today);
   const [activeChart, setActiveChart] = useState('quantity');
-  const [detailsCollapsed, setDetailsCollapsed] = useState(true);
+  const [detailsCollapsed, setDetailsCollapsed] = useState(false);
   const [locationFilter, setLocationFilter] = useState({value: 'All Locations', label: 'All Locations'});
   const [typeFilter, setTypeFilter] = useState({value: 'all', label: 'All Types'});
+  const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,6 +53,11 @@ const StockMovement = ({ business, user }) => {
           api.post('fetch_report_data_movements', { business, user, selectedLocation,
              startDate: format(startDate, 'yyyy-MM-dd'), endDate: format(endDate, 'yyyy-MM-dd') }),
         ]);
+
+        if (data === 'no access') {
+          setHasAccess(false);
+          return;
+        }
         
         const combinedData = [
           ...data.transfers.map(t => ({ ...t, type: 'transfer', date: t.date })),
@@ -148,7 +155,7 @@ const StockMovement = ({ business, user }) => {
     switch (activeChart) {
       case 'quantity':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={getQuantityChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -161,7 +168,7 @@ const StockMovement = ({ business, user }) => {
         );
       case 'value':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={getValueChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -199,15 +206,15 @@ const StockMovement = ({ business, user }) => {
         );
       case 'trend':
         return (
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={getQuantityChartData()}>
+          <ResponsiveContainer width="100%" height={500}>
+            <AreaChart data={getQuantityChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="quantity" stroke="#8884d8" name="Movement Trend" />
-            </LineChart>
+              <Area type="monotone" dataKey="quantity" stroke="#8884d8" fill="#8884d8" name="Movement Trend" />
+            </AreaChart>
           </ResponsiveContainer>
         );
       default:
@@ -227,6 +234,10 @@ const StockMovement = ({ business, user }) => {
         return <FontAwesomeIcon icon={faInfoCircle} className="type-icon" />;
     }
   };
+
+  if (!hasAccess) {
+    return <AccessDenied />;
+  }
 
   return (
     <div className="dashboard-main">
@@ -370,7 +381,12 @@ const StockMovement = ({ business, user }) => {
                 <div key={item.code} className={`detail-item ${item.type}`}>
                   <div className="detail-header">
                     {getTypeIcon(item.type)}
-                    <span className="item-date">{item.code}</span>
+                    <span className="item-date">
+                      <Link to={`/dashboard/${item.code.includes('TRF') ? 'transfer' : item.code.includes('SAL') ? 'sales' : item.code.includes('PUR') ? 'purchase' : ''}/view/${item.code}`} 
+                        state={{ [item.code.includes('TRF') ? 'transfer' : item.code.includes('SAL') ? 'sales' : item.code.includes('PUR') ? 'purchase' : '']: item.code, business, user, access}}>
+                        {item.code}
+                      </Link>
+                    </span>
                     <span className="item-code">{format(item.date, 'dd/MM/yyyy')}</span>
                   </div>
                   <div className="detail-body">

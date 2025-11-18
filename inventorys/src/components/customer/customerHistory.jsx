@@ -6,7 +6,7 @@ import { useParams, Link } from "react-router-dom";
 import "./customerHistory.css";
 import { toast } from "react-toastify";
 
-const CustomerHistory = ({ business, user }) => {
+const CustomerHistory = ({ business, user, access }) => {
   const [transactions, setTransactions] = useState([]);
   const [customer, setCustomer] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
@@ -112,7 +112,13 @@ const CustomerHistory = ({ business, user }) => {
                               </span>
                             </td>
                             <td>{transaction.type}</td>
-                            <td>{transaction.reference}</td>
+                            <td>
+                              <Link to={`/dashboard/${transaction.reference.includes('SAL') ? 'sales' : 'cash'}/view/${transaction.reference}`}
+                                state={{ [transaction.reference.includes('SAL') ? 'sales' : 'payments']: transaction.reference, business, user, access }}
+                              >
+                                {transaction.reference}
+                              </Link>
+                            </td>
                             <td>{transaction.description}</td>
                             <td
                               className={

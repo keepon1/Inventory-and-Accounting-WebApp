@@ -162,11 +162,12 @@ const PurchaseMetric = ({ business, user }) => {
             <BarChart data={getRevenueChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
-              <YAxis />
+              <YAxis yAxisId={'value'} />
+              <YAxis yAxisId={'quantity'} orientation="right" />
               <Tooltip />
               <Legend />
-              <Bar dataKey="expenses" name="Expenses" fill="#8884d8" />
-              <Bar dataKey="quantity" name="Quantity" fill="#82ca9d" />
+              <Bar dataKey="expenses" name="Expenses" fill="#8884d8" yAxisId={'value'} />
+              <Bar dataKey="quantity" name="Quantity" fill="#82ca9d" yAxisId={'quantity'} />
             </BarChart>
           </ResponsiveContainer>
           </div>
@@ -335,23 +336,27 @@ const PurchaseMetric = ({ business, user }) => {
 
       <div className="stock-table">
         <h3>Purchase Summary ({filteredSales.length} transactions)</h3>
-        <table>
-          <thead>
+        <table className='ia_main_table'>
+          <thead className="table-header">
             <tr>
               <th>Date</th>
               <th>Invoice</th>
+              <th>Location</th>
+              <th>Supplier Account</th>
               <th>Suppliers</th>
-              <th>Items</th>
-              <th>Total Invoice</th>
+              <th>Quantity</th>
+              <th>Total</th>
             </tr>
           </thead>
           <tbody>
             {filteredSales.map(sale => (
-              <tr key={sale.code}>
+              <tr key={sale.code} className="table-row">
                 <td>{format(sale.date, 'dd/MM/yyyy')}</td>
                 <td>{sale.code}</td>
+                <td>{sale.location_address__location_name}</td>
+                <td>{sale.supplier__account}</td>
                 <td>{sale.supplier__name}</td>
-                <td>{sale.total_quantity}</td>
+                <td style={{textAlign: 'center'}}>{sale.total_quantity}</td>
                 <td>GHS {sale.gross_total}</td>
               </tr>
             ))}

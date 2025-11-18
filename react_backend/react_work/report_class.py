@@ -780,7 +780,9 @@ class Inventory_Valuation:
                     )
                     .exclude(sales__is_reversed=True)
                     .values("item_name")
-                    .annotate(sales_value=Coalesce(Sum("sales_price"), 0, output_field=DecimalField()))
+                    .annotate(
+                        sales_value=ExpressionWrapper(Sum(F("quantity") * F("sales_price")), output_field=DecimalField())
+                    )
                     .values("sales_value")[:1]
                 )
 
@@ -791,7 +793,9 @@ class Inventory_Valuation:
                     )
                     .exclude(sales__is_reversed=True)
                     .values("item_name")
-                    .annotate(purchase_value=Coalesce(Sum("purchase_price"), 0, output_field=DecimalField()))
+                    .annotate(
+                        purchase_value=ExpressionWrapper(Sum(F("quantity") * F("purchase_price")), output_field=DecimalField())
+                    )
                     .values("purchase_value")[:1]
                 )
 

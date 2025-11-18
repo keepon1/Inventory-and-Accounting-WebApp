@@ -17,13 +17,13 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import api from '../api';
 import './itemSummary.css';
-import { format } from 'date-fns';
+import { add, format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
-const AgedPayables = ({ business, user }) => {
+const AgedPayables = ({ business, user, access }) => {
   const [location, setLocation] = useState({ value: '', label: '' });
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState('All Locations');
@@ -32,7 +32,7 @@ const AgedPayables = ({ business, user }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [asOfDate, setAsOfDate] = useState(new Date());
   const [activeChart, setActiveChart] = useState('aging');
-  const [alertsCollapsed, setAlertsCollapsed] = useState(true);
+  const [alertsCollapsed, setAlertsCollapsed] = useState(false);
   const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
@@ -127,6 +127,7 @@ const AgedPayables = ({ business, user }) => {
         total: (item.gross_total - item.amount_paid),
         overdue: (item.days_30 || 0) + (item.days_60 || 0) + (item.days_90 || 0) + (item.over_90 || 0),
         contact: item.supplier__contact,
+        address: item.supplier__address,
       }));
   };
 
@@ -154,14 +155,14 @@ const AgedPayables = ({ business, user }) => {
     switch (activeChart) {
       case 'aging':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <PieChart>
               <Pie
                 data={getAgingChartData()}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                outerRadius={170}
+                outerRadius={190}
                 innerRadius={60}
                 fill="#8884d8"
                 dataKey="value"
@@ -178,25 +179,33 @@ const AgedPayables = ({ business, user }) => {
           </ResponsiveContainer>
         );
       case 'suppliers':
-        const chartData = getSupplierStackedChartData();
+        const chartData = getSupplierChartData();
         const allCodes = Array.from(new Set(filteredPayables.map(i => i.code)));
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="supplier" />
               <YAxis />
-              <Tooltip />
+              <Tooltip 
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (<div style={{ background: '#fff', border: '1px solid #ccc', padding: 10 }}>
+                      <p><strong>{data.name}</strong></p>
+                      <p>Total Due: GHS {data.total.toFixed(2)}</p>
+                      <p>Overdue Amount: GHS {data.overdue.toFixed(2)}</p>
+                      <p>Contact: {data.contact}</p>
+                      <p>Address: {data.address}</p>
+                    </div>);
+                  }
+                  return null;
+                }
+              }
+              />
               <Legend />
-              {allCodes.map((code, idx) => (
-                <Bar
-                  key={code}
-                  dataKey={code}
-                  stackId="a"
-                  name={code}
-                  fill={COLORS[idx % COLORS.length]}
-                />
-              ))}
+              <Bar dataKey="total" stackId="a" fill="#8884d8" name="Total Due" />
+              <Bar dataKey="overdue" stackId="a" fill="#FF8042" name="Overdue Amount" />
             </BarChart>
           </ResponsiveContainer>
         );
@@ -210,6 +219,7 @@ const AgedPayables = ({ business, user }) => {
     const key = item.supplier__name || item.supplier_name || item.account;
     if (!supplierAggregates[key]) {
       supplierAggregates[key] = {
+        code: item.supplier__account || item.account || 'N/A',
         supplier: key,
         current: 0,
         days_30: 0,
@@ -329,7 +339,12 @@ const AgedPayables = ({ business, user }) => {
                 <div className="alert-item" key={item.code}>
                   <div className="alert-header">
                     <span>{item.supplier__name}<br /></span>
-                    <span>{item.code}</span>
+                    <span>
+                      <Link to={`/dashboard/purchase/view/${item.code}`}
+                        state={{ purchace: item.code, business, user, access }}>
+                        {item.code}
+                      </Link>
+                    </span>
                   </div>
                   <div className="alert-details">
                     <span>Due: {item.due_date}</span>
@@ -352,6 +367,7 @@ const AgedPayables = ({ business, user }) => {
         <table>
           <thead className="table-header">
             <tr>
+              <th>Account</th>
               <th>Supplier</th>
               <th>Current</th>
               <th>1-30 Days</th>
@@ -364,7 +380,18 @@ const AgedPayables = ({ business, user }) => {
           <tbody>
             {supplierRows.map(row => (
               <tr key={row.supplier} className='table-row'>
-                <td>{row.supplier}</td>
+                <td>
+                  <Link to={`/dashboard/supplier/history/${row.code} - ${row.supplier}`}
+                    state={{supplier: `${row.code} - ${row.supplier}`, business, user, access}}>
+                    {row.code}
+                  </Link>
+                </td>
+                <td>
+                  <Link to={`/dashboard/supplier/history/${row.code} - ${row.supplier}`}
+                    state={{supplier: `${row.code} - ${row.supplier}`, business, user, access}}>
+                    {row.supplier}
+                  </Link>
+                </td>
                 <td>GHS {row.current.toFixed(2)}</td>
                 <td>GHS {row.days_30.toFixed(2)}</td>
                 <td>GHS {row.days_60.toFixed(2)}</td>

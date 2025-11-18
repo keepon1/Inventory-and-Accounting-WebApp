@@ -3,7 +3,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faBookOpen, faBox, faShoppingCart,
   faFileExport, faUndo,
-  faEye
+  faEye,
+  faReceipt,
+  faPaperPlane,
+  faDiamond
 } from '@fortawesome/free-solid-svg-icons';
 import ViewJournal from './viewJournal';
 import './journalMain.css';
@@ -208,7 +211,10 @@ const JournalMain = ({ business, user, access }) => {
                         <span className={`entry-type ${entry.entry_type.toLowerCase()}`}>
                           <FontAwesomeIcon icon={
                             entry.entry_type === 'Sale' ? faShoppingCart :
-                            entry.entry_type === 'Reversal' ? faUndo :
+                            entry.entry_type === 'Purchase' ? faBox :
+                            entry.entry_type === 'Payment' ? faPaperPlane :
+                            entry.entry_type === 'Cash Receipt' ? faReceipt :
+                            entry.entry_type === 'Manuel Entry' ? faDiamond :
                             faBox
                           } />
                           {entry.entry_type}

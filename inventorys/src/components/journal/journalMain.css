@@ -116,6 +116,21 @@
     background: rgba(33, 150, 243, 0.1);
     color: #2196F3;
   }
+
+  .entry-type.payment {
+    background: rgba(244, 67, 54, 0.1);
+    color: #F44336;
+  }
+
+  .entry-type.cash {
+    background: rgba(156, 39, 176, 0.1);
+    color: #9C27B0;
+  }
+
+  .entry-type.manual {
+    background: rgba(121, 85, 72, 0.1);
+    color: #795548;
+  }
   
   .positive {
     color: #4CAF50;

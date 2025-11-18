@@ -21,7 +21,7 @@ import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
-const SalesPerformance = ({ business, user }) => {
+const SalesPerformance = ({ business, user, access }) => {
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
@@ -335,24 +335,33 @@ const SalesPerformance = ({ business, user }) => {
 
       <div className="stock-table">
         <h3>Sales Summary ({filteredSales.length} transactions)</h3>
-        <table>
-          <thead>
+        <table className='ia_main_table'>
+          <thead className="table-header">
             <tr>
               <th>Date</th>
               <th>Invoice</th>
+              <th>Location</th>
+              <th>Customer Account</th>
               <th>Customer</th>
-              <th>Items</th>
+              <th>Quantity</th>
               <th>Revenue</th>
               <th>Profit</th>
             </tr>
           </thead>
           <tbody>
             {filteredSales.map(sale => (
-              <tr key={sale.code}>
+              <tr key={sale.code} className="table-row">
                 <td>{format(sale.date, 'dd/MM/yyyy')}</td>
-                <td>{sale.code}</td>
+                <td>
+                  <Link to={`/dashboard/sales/view/${sale.code}`}
+                    state={{sales: sale.code, business, user, access}}>
+                    {sale.code}
+                  </Link>
+                </td>
+                <td>{sale.location_address__location_name}</td>
+                <td>{sale.customer_info__account}</td>
                 <td>{sale.customer_info__name}</td>
-                <td>{sale.total_quantity}</td>
+                <td style={{textAlign: 'center'}}>{sale.total_quantity}</td>
                 <td>GHS {sale.gross_total}</td>
                 <td>GHS {(sale.gross_total - sale.cog).toFixed(2)}</td>
               </tr>

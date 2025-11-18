@@ -7,7 +7,7 @@ import "./accountHistory.css";
 import { toast } from "react-toastify";
 import {format} from 'date-fns';
 
-const AccountHistory = ({ business, user }) => {
+const AccountHistory = ({ business, user, access }) => {
   const [transactions, setTransactions] = useState([]);
   const [account, setAccount] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
@@ -121,7 +121,17 @@ const AccountHistory = ({ business, user }) => {
                       {transaction.type}
                     </span>
                   </td>
-                  <td>{transaction.reference}</td>
+                  <td>
+                    <Link to={`/dashboard/${transaction.reference.includes('PUR') ? 'purchase' : 
+                      transaction.reference.includes('SAL') ? 'sales' : transaction.reference.includes('JNL') ? 'journal' :
+                      transaction.reference.includes('CSHR') ? 'cash' : transaction.reference.includes('PMT') ? 'payment' : ''}/view/${transaction.reference}`}
+                      state={{ [transaction.reference.includes('PUR') ? 'purchase' : 
+                      transaction.reference.includes('SAL') ? 'sales' : transaction.reference.includes('JNL') ? 'journals' :
+                      transaction.reference.includes('CSHR' ? 'payments' : transaction.reference.includes('PMT') ? 'payments' : '')]: transaction.reference, business, user, access }}
+                    >
+                      {transaction.reference}
+                    </Link>
+                  </td>
                   <td>{transaction.description}</td>
                   <td className="debit-amount">
                     GHS {transaction.debit_amount}

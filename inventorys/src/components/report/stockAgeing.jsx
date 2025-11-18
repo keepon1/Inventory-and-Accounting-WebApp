@@ -31,7 +31,7 @@ const StockAging = ({ business, user }) => {
   const [selectedLocation, setSelectedLocation] = useState('All Locations');
   const [selectedAgingBucket, setSelectedAgingBucket] = useState('all');
   const [activeChart, setActiveChart] = useState('quantity');
-  const [alertsCollapsed, setAlertsCollapsed] = useState(true);
+  const [alertsCollapsed, setAlertsCollapsed] = useState(false);
   const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
@@ -45,6 +45,7 @@ const StockAging = ({ business, user }) => {
           setHasAccess(false);
           return;
         }
+
         setItems(itemsRes.items);
         setFilteredItems(itemsRes.items);
         setCategories(itemsRes.categories);
@@ -64,7 +65,7 @@ const StockAging = ({ business, user }) => {
     
     if (searchQuery) {
       result = result.filter(item =>
-        item.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        typeof item.item_name == 'number' ? item.item_name1.toLowerCase().includes(searchQuery.toLowerCase()) : item.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.brand.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -156,7 +157,7 @@ const StockAging = ({ business, user }) => {
     switch (activeChart) {
       case 'quantity':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={getAgingDistributionData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -169,7 +170,7 @@ const StockAging = ({ business, user }) => {
         );
       case 'value':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={getAgingValueData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -331,8 +332,18 @@ const StockAging = ({ business, user }) => {
               {getSlowMovingItems().map(item => (
                 <div key={item.code} className="alert-item">
                   <div className="alert-header">
-                    <span className="item-name">{item.item_name}</span>
-                    <span className="item-code">{item.code}</span>
+                    <span className="item-name">
+                      <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? item.item_name1 : item.item_name}`}
+                        state={{item: typeof item.item_name == 'number' ? item.item_name1 : item.item_name, business, user}} className='item-name'>
+                        {typeof item.item_name == 'number' ? item.item_name1 : item.item_name}
+                      </Link>
+                    </span>
+                    <span className="item-code">
+                      <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? item.item_name1 : item.item_name}`}
+                        state={{item: typeof item.item_name == 'number' ? item.item_name1 : item.item_name, business, user}} className='item-code'>
+                        ({item.code})
+                      </Link>
+                    </span>
                   </div>
                   <div className="alert-details">
                     <span>Days in Stock: {calculateDaysInStock(item)}</span>
@@ -351,12 +362,13 @@ const StockAging = ({ business, user }) => {
 
       <div className="stock-table">
         <h3>Inventory Aging Report ({filteredItems.length} items)</h3>
-        <table>
-          <thead className='table-header'>
+        <table className='ia_main_table'>
+          <thead className="table-header">
             <tr>
               <th>Item</th>
               <th>Code</th>
               <th>Category</th>
+              <th>Brand</th>
               <th>Last Movement</th>
               <th>Days in Stock</th>
               <th>Quantity</th>
@@ -376,14 +388,25 @@ const StockAging = ({ business, user }) => {
               
               return (
                 <tr key={item.code} className={daysInStock > 90 ? 'low-stock' : ''}>
-                  <td>{item.item_name}</td>
-                  <td>{item.code}</td>
+                  <td>
+                    <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? item.item_name1 : item.item_name}`}
+                      state={{item: typeof item.item_name == 'number' ? item.item_name1 : item.item_name, business, user}}>
+                      {typeof item.item_name == 'number' ? item.item_name1 : item.item_name}
+                    </Link>
+                  </td>
+                  <td>
+                    <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? item.item_name1 : item.item_name}`}
+                      state={{item: typeof item.item_name == 'number' ? item.item_name1 : item.item_name, business, user}}>
+                      {item.code}
+                    </Link>
+                  </td>
                   <td>{item.category__name}</td>
+                  <td>{item.brand__name}</td>
                   <td>{item.last_sales ? new Date(item.last_sales).toLocaleDateString() : 'N/A'}</td>
-                  <td>{daysInStock}</td>
-                  <td>{item.quantity}</td>
+                  <td style={{textAlign: 'center'}}>{daysInStock}</td>
+                  <td style={{textAlign: 'center'}}>{item.quantity}</td>
                   <td>GHS {(item.quantity * item.purchase_price).toFixed(2)}</td>
-                  <td>{bucket}</td>
+                  <td style={{textAlign: 'center'}}>{bucket}</td>
                 </tr>
               );
             })}

@@ -34,7 +34,7 @@ const StockSummary = ({ business, user }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [activeChart, setActiveChart] = useState('quantity');
-  const [alertsCollapsed, setAlertsCollapsed] = useState(true);
+  const [alertsCollapsed, setAlertsCollapsed] = useState(false);
   const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ const StockSummary = ({ business, user }) => {
     
     if (searchQuery) {
       result = result.filter(item =>
-        item.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        typeof item.item_name == 'number' ? item.item_name1.toLowerCase().includes(searchQuery.toLowerCase()) : item.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.brand.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -94,7 +94,7 @@ const StockSummary = ({ business, user }) => {
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 10)
       .map(item => ({
-        name: item.item_name,
+        name: typeof item.item_name == 'number' ? item.item_name1 : item.item_name,
         quantity: item.quantity,
         value: item.quantity * item.purchase_price
       }));
@@ -155,7 +155,7 @@ const StockSummary = ({ business, user }) => {
     switch (activeChart) {
       case 'quantity':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={getQuantityChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -168,7 +168,7 @@ const StockSummary = ({ business, user }) => {
         );
       case 'value':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={getValueChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -232,7 +232,7 @@ const StockSummary = ({ business, user }) => {
         );
       case 'trend':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <AreaChart data={getQuantityChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -399,13 +399,24 @@ const StockSummary = ({ business, user }) => {
               {getReorderItems().map(item => (
                 <div key={item.code} className="alert-item">
                   <div className="alert-header">
-                    <span className="item-name">{item.item_name}</span>
-                    <span className="item-code">{item.code}</span>
+                    <span className="item-name">
+                      <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? item.item_name1 : item.item_name}`} 
+                        state={{ item: typeof item.item_name == 'number' ? item.item_name1 : item.item_name, business, user }} className='item-name'>
+                        {typeof item.item_name == 'number' ? item.item_name1 : item.item_name}
+                      </Link>
+                    </span>
+                    <span className="item-code">
+                      <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? item.item_name1 : item.item_name}`} 
+                        state={{ item: typeof item.item_name == 'number' ? item.item_name1 : item.item_name, business, user }} className='item-code'>
+                        ({item.code})
+                      </Link>
+                    </span>
                   </div>
                   <div className="alert-details">
                     <span>Current Quantity: {item.quantity}</span>
                     <span>Reorder Level: {item.reorder_level}</span>
                     <span>Category: {item.category__name}</span>
+                    <span>Brand: {item.brand__name}</span>
                   </div>
                 </div>
               ))}

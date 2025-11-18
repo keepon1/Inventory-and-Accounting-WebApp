@@ -21,7 +21,7 @@ import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
-const SupplierPerformance = ({ business, user }) => {
+const SupplierPerformance = ({ business, user, access }) => {
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
@@ -175,37 +175,39 @@ const SupplierPerformance = ({ business, user }) => {
     switch (activeChart) {
       case 'spend':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={getSpendChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
-              <YAxis />
+              <YAxis yAxisId={'value'} />
+              <YAxis yAxisId={'orders'} orientation="right" />
               <Tooltip />
               <Legend />
-              <Bar dataKey="spend" name="Total Spend" fill="#8884d8" stackId="a" />
-              <Bar dataKey="discount" name="Total Discount" fill="#67e8ffff" stackId="a"/>
-              <Bar dataKey="tax_levy" name="Total Tax Levy" fill="#ffc658" stackId="a"/>
-              <Bar dataKey="orders" name="Orders" fill="#82ca9d" stackId="a"/>
+              <Bar dataKey="spend" name="Total Spend" fill="#8884d8" yAxisId={'value'} />
+              <Bar dataKey="discount" name="Total Discount" fill="#67e8ffff" yAxisId={'value'}/>
+              <Bar dataKey="tax_levy" name="Total Tax Levy" fill="#ffc658" yAxisId={'value'}/>
+              <Bar dataKey="orders" name="Orders" fill="#82ca9d" yAxisId={'orders'}/>
             </BarChart>
           </ResponsiveContainer>
         );
       case 'orders':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={getOrdersChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
-              <YAxis />
+              <YAxis yAxisId={'value'}/>
+              <YAxis yAxisId={'spend'} orientation="right" />
               <Tooltip />
               <Legend />
-              <Bar dataKey="orders" name="Orders" fill="#8884d8" />
-              <Bar dataKey="spend" name="Total Spend" fill="#ffc658" />
+              <Bar dataKey="spend" name="Total Spend" fill="#82ca9d" yAxisId={'spend'}/>
+              <Bar dataKey="orders" name="Orders" fill="#8884d8" yAxisId={'value'}/>
             </BarChart>
           </ResponsiveContainer>
         );
       case 'spendVsPaid':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={getSpendVsPaidChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -219,7 +221,7 @@ const SupplierPerformance = ({ business, user }) => {
         );
       case 'ordersOverTime':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <LineChart data={getOrdersOverTimeChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
@@ -348,7 +350,7 @@ const SupplierPerformance = ({ business, user }) => {
       <div className="stock-table">
         <h3>Supplier Performance ({filteredSuppliers.length} suppliers)</h3>
         <table className='ia_main_table'>
-          <thead>
+          <thead className="table-header">
             <tr>
               <th>Supplier</th>
               <th>Account</th>
@@ -362,13 +364,23 @@ const SupplierPerformance = ({ business, user }) => {
           </thead>
           <tbody>
             {filteredSuppliers.map(supplier => (
-              <tr key={supplier.account}>
-                <td>{supplier.name}</td>
-                <td>{supplier.account}</td>
+              <tr key={supplier.account} className='table-row'>
+                <td>
+                  <Link to={`/dashboard/supplier/history/${supplier.account} - ${supplier.name}`}
+                    state={{supplier: `${supplier.account} - ${supplier.name}`, business, user, access}}>
+                    {supplier.name}
+                  </Link>
+                </td>
+                <td>
+                  <Link to={`/dashboard/supplier/history/${supplier.account} - ${supplier.name}`}
+                    state={{supplier: `${supplier.account} - ${supplier.name}`, business, user, access}}>
+                    {supplier.account}
+                  </Link>
+                </td>
                 <td>GHS {supplier.total_discount.toFixed(2)}</td>
                 <td>GHS {supplier.total_tax_levy.toFixed(2)}</td>
                 <td>GHS {supplier.total_amount_paid.toFixed(2)}</td>
-                <td>{supplier.order_count}</td>
+                <td style={{textAlign: 'center'}}>{supplier.order_count}</td>
                 <td>GHS {supplier.total_spend?.toFixed(2)}</td>
                 <td>{format(supplier.last_order_date, 'dd/MM/yyyy')}</td>
               </tr>

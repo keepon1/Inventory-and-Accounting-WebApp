@@ -144,16 +144,16 @@ def add_gl_journal(company, user, business, data):
                 credit_real_account = result.get('credit')
 
                 ledger_map.get(credit_real_account.account_type.account_type.name).objects.create(bussiness_name=business_query,
-                                account=credit_real_account, transaction_number=head.transaction_number, date=i['date'], type="Manual Entry",
+                                account=credit_real_account, transaction_number=head.code, date=i['date'], type="Manual Entry",
                                 description=head.description, credit=head.amount, head=head, period=result.get('period'))
                     
                 models.journal.objects.create(entry_type="Manual Entry", description=head.description, debit=i['debit_account'], head=head,
-                                            amount=Decimal(str(head.amount)), bussiness_name=business_query, date=i['date'], transaction_number=head.transaction_number)
+                                            amount=Decimal(str(head.amount)), bussiness_name=business_query, date=i['date'], transaction_number=head.code)
                 
                 debit_real_account = result.get('debit')
 
                 ledger_map.get(debit_real_account.account_type.account_type.name).objects.create(bussiness_name=business_query, period=result.get('period'),
-                            account=debit_real_account, transaction_number=head.transaction_number, date=i['date'], type="Manuel Entry",
+                            account=debit_real_account, transaction_number=head.code, date=i['date'], type="Manuel Entry",
                             description=head.description, debit=Decimal(str(head.amount)), head=head)
 
                 models.tracking_history.objects.create(user=user_query, bussiness_name=business_query, area='Posted GL entry', head=head.code)

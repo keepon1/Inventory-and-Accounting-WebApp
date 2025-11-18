@@ -199,10 +199,10 @@ const AccountMain = ({ business, user, access }) => {
                 <thead className="table-header">
                   <tr>
                     <th style={{width: '20%'}}>Code</th>
-                    <th style={{width: '40%'}}>Name</th>
-                    <th style={{width: '15%'}} className="text-right">Debit</th>
-                    <th style={{width: '15%'}} className="text-right">Credit</th>
-                    <th className="text-right" style={{width: '15%'}}>Balance</th>
+                    <th style={{width: '25%'}}>Name</th>
+                    <th style={{width: '20%'}} className="text-right">Debit</th>
+                    <th style={{width: '20%'}} className="text-right">Credit</th>
+                    <th className="text-right" style={{width: '20%'}}>Balance</th>
                     <th style={{width: '5%'}}>Actions</th>
                   </tr>
                 </thead>

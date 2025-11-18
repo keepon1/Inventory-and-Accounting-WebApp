@@ -102,7 +102,7 @@ const InventoryValuation = ({ business, user }) => {
         categoryMap[category] = { purchaseValue: 0, salesValue: 0 };
       }
       categoryMap[category].purchaseValue += item.purchase_price;
-      categoryMap[category].salesValue += quantity * item.sales_price;
+      categoryMap[category].salesValue += item.sales_price;
     });
     
     return Object.entries(categoryMap).map(([name, values]) => ({
@@ -127,7 +127,7 @@ const InventoryValuation = ({ business, user }) => {
     switch (activeChart) {
       case 'value':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={getValueChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -141,14 +141,15 @@ const InventoryValuation = ({ business, user }) => {
         );
       case 'categories':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <PieChart>
               <Pie
                 data={getCategoryValueData()}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                outerRadius={150}
+                outerRadius={180}
+                innerRadius={60}
                 fill="#8884d8"
                 dataKey="purchaseValue"
                 nameKey="name"
@@ -165,7 +166,7 @@ const InventoryValuation = ({ business, user }) => {
         );
       case 'turnover':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={getTurnoverData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -289,12 +290,13 @@ const InventoryValuation = ({ business, user }) => {
 
       <div className="stock-table">
         <h3>Inventory Valuation ({filteredInventory.length} items)</h3>
-        <table>
-          <thead>
+        <table className='ia_main_table'>
+          <thead className="table-header">
             <tr>
               <th>Item</th>
               <th>Code</th>
               <th>Category</th>
+              <th>Brand</th>
               <th>Quantity Sold</th>
               <th>Purchase Value</th>
               <th>Sales Value</th>
@@ -304,13 +306,24 @@ const InventoryValuation = ({ business, user }) => {
           <tbody>
             {filteredInventory.map(item => (
               <tr key={item.code}>
-                <td className='text-right'>{item.item_name}</td>
-                <td className='text-right'>{item.code}</td>
-                <td className='text-right'>{item.category__name}</td>
-                <td className='text-right'>{item.quantity}</td>
-                <td className='text-right'>GHS {parseFloat(item.purchase_price).toFixed(2) || 0}</td>
-                <td className='text-right'>GHS {parseFloat(item.sales_price).toFixed() || 0}</td>
-                <td className='text-right'>{item.turnover_rate ? item.turnover_rate.toFixed(2) : 'N/A'}</td>
+                <td>
+                  <Link to={`/dashboard/inventory/history/${item.item_name}`}
+                    state={{item: item.item_name, business, user}}>
+                    {item.item_name}
+                  </Link>
+                </td>
+                <td>
+                  <Link to={`/dashboard/inventory/history/${item.item_name}`}
+                    state={{item: item.item_name, business, user}}>
+                    {item.code}
+                  </Link>
+                </td>
+                <td>{item.category__name}</td>
+                <td>{item.brand__name}</td>
+                <td style={{textAlign: 'center'}}>{item.quantity}</td>
+                <td>GHS {parseFloat(item.purchase_price).toFixed(2) || 0}</td>
+                <td>GHS {parseFloat(item.sales_price).toFixed() || 0}</td>
+                <td style={{textAlign: 'center'}}>{item.turnover_rate ? item.turnover_rate.toFixed(2) : 'N/A'}</td>
               </tr>
             ))}
           </tbody>

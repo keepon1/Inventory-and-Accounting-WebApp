@@ -404,7 +404,7 @@ const CreateSales = ({ business, user, access }) => {
                       classNamePrefix="ivi_select"
                       loadOptions={sourceLocationsLoadOptions(business, user)}
                       value={sales.location}
-                      onChange={selected => [setSales({...sales, location: selected}), setErrors({})]}
+                      onChange={selected => {setSales({...sales, location: selected}); setSalesItems([])}}
                     />
                     {errors.location && <div className="error-message">{errors.locations}</div>}
                   </div>
@@ -508,7 +508,7 @@ const CreateSales = ({ business, user, access }) => {
                       classNamePrefix="ivi_select"
                       loadOptions={sourceLocationsLoadOptions(business, user)}
                       value={sales.location}
-                      onChange={selected => [setSales({...sales, location: selected}), setErrors({})]}
+                      onChange={selected => {setSales({...sales, location: selected}); setSalesItems([])}}
                     />
                     {errors.location && <div className="error-message">{errors.locations}</div>}
                   </div>

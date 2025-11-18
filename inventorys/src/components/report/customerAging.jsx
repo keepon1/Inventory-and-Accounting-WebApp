@@ -22,7 +22,7 @@ import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
-const CustomerAgingReport = ({ business, user }) => {
+const CustomerAgingReport = ({ business, user, access }) => {
   const [location, setLocation] = useState({ value: '', label: '' });
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState('All Locations');
@@ -105,6 +105,7 @@ const CustomerAgingReport = ({ business, user }) => {
         total: (item.gross_total - item.amount_paid),
         overdue: (item.days_30 || 0) + (item.days_60 || 0) + (item.days_90 || 0) + (item.over_90 || 0),
         contact: item.customer_info__contact,
+        address: item.customer_info__address
       }));
   };
 
@@ -137,7 +138,7 @@ const CustomerAgingReport = ({ business, user }) => {
         );
       case 'customers':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={getCustomerChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -208,6 +209,7 @@ const CustomerAgingReport = ({ business, user }) => {
     if (!customerAggregates[key]) {
       customerAggregates[key] = {
         customer: key,
+        code: item.customer_info__account || item.account || 'N/A',
         current: 0,
         days_30: 0,
         days_60: 0,
@@ -327,7 +329,13 @@ const CustomerAgingReport = ({ business, user }) => {
                 <div className="alert-item" key={item.code}>
                   <div className="alert-header">
                     <span>{item.customer_info__name}</span>
-                    <span>{item.code}</span>
+                    <span>
+                      <Link to={`/dashboard/sales/view/${item.code}`}
+                        state={{sales: item.code, business, user, access}}
+                      >
+                        {item.code}
+                      </Link>
+                    </span>
                   </div>
                   <div className="alert-details">
                     <span>Due: {format(item.due_date, 'dd/MM/yyyy')}</span><br />
@@ -347,9 +355,10 @@ const CustomerAgingReport = ({ business, user }) => {
 
       <div className="stock-table">
         <h3>Aging Details ({customerRows.length} customers)</h3>
-        <table>
-          <thead>
+        <table className='ia_main_table'>
+          <thead className="table-header">
             <tr>
+              <th>Customer Code</th>
               <th>Customer</th>
               <th>Current</th>
               <th>1-30 Days</th>
@@ -361,8 +370,21 @@ const CustomerAgingReport = ({ business, user }) => {
           </thead>
           <tbody>
             {customerRows.map(row => (
-              <tr key={row.customer}>
-                <td>{row.customer}</td>
+              <tr key={row.code} className="table-row">
+                <td>
+                  <Link to={`/dashboard/customer/history/${row.code} - ${row.customer}`}
+                    state={{customer: `${row.code} - ${row.customer}`, business, user, access}}
+                  >
+                    {row.code}
+                  </Link>
+                </td>
+                <td>
+                  <Link to={`/dashboard/customer/history/${row.code} - ${row.customer}`}
+                    state={{customer: `${row.code} - ${row.customer}`, business, user, access}}
+                  >
+                    {row.customer}
+                  </Link>
+                </td>
                 <td>GHS {row.current.toFixed(2)}</td>
                 <td>GHS {row.days_30.toFixed(2)}</td>
                 <td>GHS {row.days_60.toFixed(2)}</td>

@@ -23,7 +23,7 @@ import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
-const SalesRecords = ({ business, user }) => {
+const SalesRecords = ({ business, user, access }) => {
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
@@ -117,7 +117,7 @@ const SalesRecords = ({ business, user }) => {
         return (
           <div>
             <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Top Selling Items</h3>
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={500}>
               <BarChart data={salesData.charts.topItems || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
@@ -145,7 +145,7 @@ const SalesRecords = ({ business, user }) => {
         return (
           <div>
             <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Sales by Brand</h3>
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={500}>
               <BarChart data={salesData.charts.byBrand || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
@@ -179,7 +179,7 @@ const SalesRecords = ({ business, user }) => {
         return (
           <div>
             <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Sales by Category</h3>
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={500}>
               <BarChart data={salesData.charts.byCategory || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
@@ -213,7 +213,7 @@ const SalesRecords = ({ business, user }) => {
         return (
           <div>
             <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Sales Trend</h3>
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={500}>
               <BarChart data={salesData.charts.dailyTrend || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
@@ -242,7 +242,7 @@ const SalesRecords = ({ business, user }) => {
         return (
           <div>
             <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Profit by Item</h3>
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={500}>
               <BarChart data={salesData.charts.profitByItem || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
@@ -505,7 +505,12 @@ const SalesRecords = ({ business, user }) => {
                   return (
                     <tr key={`${inv.invoice_code}-${item.item_name1}`} className="table-row">
                       <td>{format(inv.sale_date, 'dd/MM/yyyy')}</td>
-                      <td>{inv.invoice_code}</td>
+                      <td>
+                        <Link to={`/dashboard/sales/view/${inv.invoice_code}`}
+                          state={{sales: inv.invoice_code, business, user, access}}>
+                          {inv.invoice_code}
+                        </Link>
+                      </td>
                       <td>{inv.customer === 'Regular Customer' ? inv.customer_name : inv.customer}</td>
                       <td>{item.item_name1}</td>
                       <td>{item.category}</td>

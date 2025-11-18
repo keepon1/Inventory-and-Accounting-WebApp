@@ -61,7 +61,7 @@ def fetch_items_for_report(business, company, user, location):
 
             if not location:
                 items = models.location_items.objects.filter(bussiness_name=business_obj, location__location_name=locations_access[0])
-
+            
             else:
                 items = models.location_items.objects.filter(bussiness_name=business_obj, location__location_name=location, item_name__is_active=True, quantity__gt=0)
 
@@ -69,21 +69,18 @@ def fetch_items_for_report(business, company, user, location):
                     'item_name__category__name', 'item_name__brand__name', 'item_name__item_name'
                 ).annotate(
                     code=F('item_name__code'),
-                    item_name=F('item_name__item_name'),
+                    item_name1=F('item_name__item_name'),
                     unit__suffix=F('item_name__unit__suffix'),
-                    purchase_price=F('item_name__purchase_price'),
-                    sales_price=F('item_name__sales_price'),
                     category__name=F('item_name__category__name'),
                     brand__name=F('item_name__brand__name'),
                 ).values(
-                    'code', 'item_name', 'quantity', 'unit__suffix',
+                    'code', 'item_name', 'item_name1', 'quantity', 'unit__suffix',
                     'purchase_price', 'sales_price', 'category__name',
                     'reorder_level', 'last_sales', 'brand__name'
                 )
             
             locations = [{'value':i, 'label':i} for i in locations_access]
 
-            
         result = {"items":items, 'locations':locations, 'categories':categories, 'brands':brands}
 
         return result
@@ -97,11 +94,11 @@ def fetch_items_for_report(business, company, user, location):
         return "User not found"
     
     except ValueError as value:
-        logger.info(value)
+        logger.warning(value)
         return 'error'
     
     except Exception as error:
-        logger.exception('unhandled error')
+        logger.warning(error)
         return 'something happened'
     
 def fetch_data_for_report_movements(business, company, user, location, start, end):

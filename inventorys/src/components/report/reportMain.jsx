@@ -1,11 +1,9 @@
-import React from 'react';
 import { Link, Routes, Route } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faBoxes, faWarehouse, faChartLine,
+  faBoxes, faChartLine,
   faPeopleCarry, faFileInvoiceDollar,
-  faBell, faBalanceScale, faMoneyBillTrendUp,
-  faLayerGroup, faClipboardList
+  faBalanceScale
 } from '@fortawesome/free-solid-svg-icons';
 import './reportMain.css';
 import StockSummary from './itemSummary';
@@ -15,28 +13,19 @@ import LocationSummary from './locationSummary';
 import TransferHistory from './transferHistory';
 import TransferRecommendations from './transferRecommendation';
 import SalesPerformance from './salesPerformance';
-import SalesByLocation from './salesByLocation';
 import CustomerInsights from './customerInsights';
-import OrderHistory from './orderHistory';
 import SupplierPerformance from './supplierPerformance';
 import PurchaseMetric from './purchaseHistory';
 import AgedPayables from './agedPayables';
-import ProfitLoss from './profitLoss';
 import InventoryValuation from './inventoryValuation';
 import ChartOfAccounts from './chartOfAccount';
-import ReorderAnalysis from './reorder';
 import CustomerAgingReport from './customerAging';
 import CashFlow from './cashflow';
 import ProfitAndLoss from './profitLoss';
 import TrialBalance from './trialBalance';
 import SalesRecords from './salesRecords';
 
-// Suggested new report components (to be implemented)
-//import TrialBalance from './trialBalance';
-//import CustomerAging from './customerAging';
-//import CashFlow from './cashFlow';
-
-const ReportMain = ({ business, user }) => {
+const ReportMain = ({ business, user, access }) => {
   return (
     <div className="dashboard-main">
       <div className="journal-header">
@@ -101,29 +90,28 @@ const ReportMain = ({ business, user }) => {
           </div>
         } />
 
-        {/* Individual Report Routes */}
-        <Route path="stock-summary" element={<StockSummary business={business} user={user} />} />
-        <Route path="stock-ageing" element={<StockAgeing business={business} user={user}/>} />
-        <Route path="stock-movement" element={<StockMovement business={business} user={user}/>} />
+        <Route path="stock-summary" element={<StockSummary business={business} user={user} access={access} />} />
+        <Route path="stock-ageing" element={<StockAgeing business={business} user={user} access={access}/>} />
+        <Route path="stock-movement" element={<StockMovement business={business} user={user} access={access}/>} />
 
-        <Route path="location-summary" element={<LocationSummary business={business} user={user}/>} />
-        <Route path="transfer-history" element={<TransferHistory business={business} user={user}/>} />
-        <Route path="transfer-suggestions" element={<TransferRecommendations business={business} user={user}/>} />
+        <Route path="location-summary" element={<LocationSummary business={business} user={user} access={access}/>} />
+        <Route path="transfer-history" element={<TransferHistory business={business} user={user} access={access}/>} />
+        <Route path="transfer-suggestions" element={<TransferRecommendations business={business} user={user} access={access}/>} />
 
-        <Route path="sales-performance" element={<SalesPerformance business={business} user={user}/>} />
-        <Route path="customer-insights" element={<CustomerInsights business={business} user={user}/>} />
-        <Route path="sales-records" element={<SalesRecords business={business} user={user}/>} />
-        <Route path="customer-aging" element={<CustomerAgingReport business={business} user={user}/>} />
+        <Route path="sales-performance" element={<SalesPerformance business={business} user={user} access={access}/>} />
+        <Route path="customer-insights" element={<CustomerInsights business={business} user={user} access={access}/>} />
+        <Route path="sales-records" element={<SalesRecords business={business} user={user} access={access}/>} />
+        <Route path="customer-aging" element={<CustomerAgingReport business={business} user={user} access={access}/>} />
 
-        <Route path="purchase-metric" element={<PurchaseMetric business={business} user={user}/>} />
-        <Route path="supplier-insights" element={<SupplierPerformance business={business} user={user}/>} />
-        <Route path="aged-payables" element={<AgedPayables business={business} user={user}/>} />
+        <Route path="purchase-metric" element={<PurchaseMetric business={business} user={user} access={access}/>} />
+        <Route path="supplier-insights" element={<SupplierPerformance business={business} user={user} access={access}/>} />
+        <Route path="aged-payables" element={<AgedPayables business={business} user={user} access={access}/>} />
 
-        <Route path="profit-loss" element={<ProfitAndLoss business={business} user={user}/>} />
-        <Route path="inventory-valuation" element={<InventoryValuation business={business} user={user}/>} />
-        <Route path="chart-of-account" element={<ChartOfAccounts business={business} user={user}/>} />
-        <Route path="trial-balance" element={<TrialBalance business={business} user={user}/>} />
-        <Route path="cash-flow" element={<CashFlow business={business} user={user}/>} />
+        <Route path="profit-loss" element={<ProfitAndLoss business={business} user={user} access={access}/>} />
+        <Route path="inventory-valuation" element={<InventoryValuation business={business} user={user} access={access}/>} />
+        <Route path="chart-of-account" element={<ChartOfAccounts business={business} user={user} access={access}/>} />
+        <Route path="trial-balance" element={<TrialBalance business={business} user={user} access={access}/>} />
+        <Route path="cash-flow" element={<CashFlow business={business} user={user} access={access}/>} />
       </Routes>
     </div>
   );

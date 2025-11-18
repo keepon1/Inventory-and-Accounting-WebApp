@@ -84,7 +84,7 @@ const ProfitAndLoss = ({ business, user }) => {
       period: item.period,
       revenue: (item.revenue).toFixed(),
       profit: (item.revenue - item.cogs).toFixed(),
-      margin: (((item.revenue - item.cogs) / item.revenue) * 100).toFixed()
+      margin: `${(((item.revenue - item.cogs) / item.revenue) * 100).toFixed()}%`
     }));
   };
 
@@ -142,7 +142,7 @@ const ProfitAndLoss = ({ business, user }) => {
               <Legend />
               <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#8884d8" name="Revenue" />
               <Line yAxisId="left" type="monotone" dataKey="profit" stroke="#82ca9d" name="Profit" />
-              <Line yAxisId="right" type="monotone" dataKey="margin" stroke="#ff7300" name="Margin %" />
+              <Line yAxisId="right" type="monotone" dataKey="margin" stroke="#ff7300" name="Margin" />
             </LineChart>
           </ResponsiveContainer>
         );
@@ -264,12 +264,12 @@ const ProfitAndLoss = ({ business, user }) => {
             {filteredData.map(item => (
               <tr key={item.period} className="table-row">
                 <td>{item.period}</td>
-                <td className='text-right'>GHS {item.revenue.toFixed(2)}</td>
-                <td className='text-right'>GHS {item.cogs.toFixed(2)}</td>
-                <td className='text-right'>GHS {(item.revenue - item.cogs).toFixed(2)}</td>
-                <td className='text-right'>GHS {item.total_expenses.toFixed(2)}</td>
-                <td className='text-right'>GHS {item.net_profit.toFixed(2)}</td>
-                <td className='text-right'>{((item.net_profit / item.revenue) * 100 || 0).toFixed(1)}%</td>
+                <td>GHS {item.revenue.toFixed(2)}</td>
+                <td>GHS {item.cogs.toFixed(2)}</td>
+                <td>GHS {(item.revenue - item.cogs).toFixed(2)}</td>
+                <td>GHS {item.total_expenses.toFixed(2)}</td>
+                <td>GHS {item.net_profit.toFixed(2)}</td>
+                <td>{((item.net_profit / item.revenue) * 100 || 0).toFixed(1)}%</td>
               </tr>
             ))}
           </tbody>

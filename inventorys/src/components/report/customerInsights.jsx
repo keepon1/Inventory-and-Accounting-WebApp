@@ -23,7 +23,7 @@ import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
-const CustomerInsights = ({ business, user }) => {
+const CustomerInsights = ({ business, user, access }) => {
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
@@ -167,17 +167,18 @@ const CustomerInsights = ({ business, user }) => {
     switch (activeChart) {
       case 'value':
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <BarChart data={getValueChartData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
-              <YAxis />
+              <YAxis yAxisId={'value'} />
+              <YAxis yAxisId={'orders'} orientation="right" />
               <Tooltip />
               <Legend />
-              <Bar dataKey="value" name="Total Spent" fill="#8884d8" stackId="a"/>
-              <Bar dataKey="discount" name="Total Discount" fill="#ffc658" stackId="a"/>
-              <Bar dataKey="tax" name="Total Tax/Levy" fill="#5ec5d9ff" stackId="a"/>
-              <Bar dataKey="orders" name="Orders" fill="#82ca9d" stackId="a"/>
+              <Bar dataKey="value" name="Total Spent" fill="#8884d8" yAxisId={'value'} />
+              <Bar dataKey="discount" name="Total Discount" fill="#ffc658" yAxisId={'value'} />
+              <Bar dataKey="tax" name="Total Tax/Levy" fill="#5ec5d9ff" yAxisId={'value'} />
+              <Bar dataKey="orders" name="Orders" fill="#82ca9d" yAxisId={'orders'} />
             </BarChart>
           </ResponsiveContainer>
         );
@@ -382,8 +383,8 @@ const CustomerInsights = ({ business, user }) => {
 
       <div className="stock-table">
         <h3>Customer Summary ({filteredCustomers.length} customers)</h3>
-        <table>
-          <thead>
+        <table className='ia_main_table'>
+          <thead className="table-header">
             <tr>
               <th>Customer</th>
               <th>Account</th>
@@ -398,11 +399,21 @@ const CustomerInsights = ({ business, user }) => {
           </thead>
           <tbody>
             {filteredCustomers.map(customer => (
-              <tr key={customer.account}>
-                <td>{customer.name}</td>
-                <td>{customer.account}</td>
+              <tr key={customer.account} className="table-row">
+                <td>
+                  <Link to={`/dashboard/customer/history/${customer.account} - ${customer.name}`}
+                    state={{customer: `${customer.account} - ${customer.name}`, business, user, access}}>
+                    {customer.name}
+                  </Link>
+                </td>
+                <td>
+                  <Link to={`/dashboard/customer/history/${customer.account} - ${customer.name}`}
+                    state={{customer: `${customer.account} - ${customer.name}`, business, user, access}}>
+                    {customer.account}
+                  </Link>
+                </td>
                 <td>{format(customer.last_purchase_date, 'dd/MM/yyyy')}</td>
-                <td>{customer.order_count}</td>
+                <td style={{textAlign: 'center'}}>{customer.order_count}</td>
                 <td>GHS {(customer.total_spent).toFixed(2)}</td>
                 <td>GHS {customer.total_discount.toFixed(2)}</td>
                 <td>GHS {customer.total_tax_levy.toFixed(2)}</td>
