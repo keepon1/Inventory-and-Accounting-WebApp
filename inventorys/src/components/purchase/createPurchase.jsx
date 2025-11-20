@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimesCircle, faEdit, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import Select from 'react-select';
@@ -7,7 +7,8 @@ import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
 import { itemsLoadOptions, sourceLocationsLoadOptions, supplierLoadOptions, taxLevyLoadOptions } from "../../utils/fetchData";
 import { toast } from "react-toastify";
-  
+import { format } from "date-fns";
+
 const CreatePurchase = ({ business, user, access }) => {
   const [purchase, setPurchase] = useState({
     supplier: '',
@@ -17,7 +18,7 @@ const CreatePurchase = ({ business, user, access }) => {
     description: '',
     account: null,
     location: null,
-    terms: null,
+    terms: { value: 'Full Payment', label: 'Full Payment' },
     discount: 0,
     selectedLevi: []
   });
@@ -29,8 +30,11 @@ const CreatePurchase = ({ business, user, access }) => {
   const [currentItem, setCurrentItem] = useState({ item: null, qty: 1, price: 0 });
   const [purchaseItems, setPurchaseItems] = useState([]);
   const [errors, setErrors] = useState({});
-  const [termOption, setTermOption] = useState({account:false, amount:false, due:false});
+  const [termOption, setTermOption] = useState({account:true, amount:false, due:false});
   const [loading, setLoading] = useState(false);
+  const [printData, setPrintData] = useState(null);
+  
+  const printRef = useRef();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -149,8 +153,7 @@ const CreatePurchase = ({ business, user, access }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (print = false) => {
     if (!purchaseItems.length) {
       toast.info('Add at least one item to create a purchase invoice');
       return;
@@ -172,6 +175,8 @@ const CreatePurchase = ({ business, user, access }) => {
       toast.info('Please wait... submission in progress');
       return;
     }
+
+    const totals = calculateTotals();
 
     const formData = new FormData();
     formData.append('user', user);
@@ -198,8 +203,36 @@ const CreatePurchase = ({ business, user, access }) => {
         'add_purchase',
         formData,
       );
-      if (response.status === 'success') {toast.success(response.message); navigate(-1)}
-      else{
+      
+      if (response.status === 'success') {
+        toast.success(response.message);
+        
+        if (print) {
+          setPrintData({
+            id: response.data.code,
+            business,
+            user,
+            supplier: purchase.supplier?.label || '',
+            date: new Date(purchase.date),
+            dueDate: new Date(purchase.dueDate),
+            location: purchase.location?.label || '',
+            description: purchase.description,
+            discount: purchase.discount,
+            terms: purchase.terms?.label || '',
+            account: purchase.account?.label || '',
+            partPaymentAmount: purchase.partPaymentAmount,
+            items: purchaseItems,
+            totals: calculateTotals(),
+            levy: purchase.selectedLevi
+          });
+          setTimeout(() => {
+            window.print();
+            navigate(-1);
+          }, 500);
+        } else {
+          navigate(-1);
+        }
+      } else {
         toast.error(response.message || 'Failed to create purchase invoice');
         setLoading(false);
         return;
@@ -220,296 +253,395 @@ const CreatePurchase = ({ business, user, access }) => {
 
   const totals = calculateTotals();
 
+  // Safe helpers for print rendering to avoid runtime errors
+  const formattedPrintDate = printData?.date ? format(new Date(printData.date), 'dd/MM/yyyy') : '';
+  const pdTotals = printData?.totals || { subtotal: 0, discountAmount: 0, netTotal: 0, levyAmount: 0, grandTotal: 0 };
+  const pdItems = Array.isArray(printData?.items) ? printData.items : [];
+  const pdLevi = Array.isArray(purchase?.selectedLevi) ? purchase.selectedLevi : (Array.isArray(printData?.levy) ? printData.levy : []);
+
   return (
-    <div className="ivi_display_mainbox">
-      <div className="ia_submain_box">
-        <div className="ia_description_box">
-          <div className="header-back">
-            <Link to="../" className="back-link">
-                <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
-            </Link>
-            <h2 className="ia_description_word">Create Purchase Invoice</h2>
+    <>
+      {!printData && (
+        <div className="ivi_display_mainbox">
+          <div className="ia_submain_box">
+            <div className="ia_description_box">
+              <div className="header-back">
+                <Link to="../" className="back-link">
+                    <FontAwesomeIcon icon={faArrowLeft} className="back-icon" />
+                </Link>
+                <h2 className="ia_description_word">Create Purchase Invoice</h2>
+              </div>
+            </div>
+
+            <div className="ivi_display_box">
+              <div className="ivi_subboxes">
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Supplier</label>
+                    <AsyncSelect
+                      cacheOptions
+                      defaultOptions={supplier}
+                      className="ivi_select"
+                      classNamePrefix="ivi_select"
+                      loadOptions={supplierLoadOptions(business, user)}
+                      value={purchase.supplier}
+                      onChange={selected => [setPurchase({...purchase, supplier: selected}), setErrors('')]}
+                    />
+                    {errors.supplier && <div className="error-message">{errors.supplier}</div>}
+                </div>
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Description</label>
+                  <input
+                    type="text"
+                    className="ivi_input"
+                    value={purchase.description}
+                    onChange={e => setPurchase({...purchase, description: e.target.value})}
+                  />
+                </div>
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Payment Terms</label>
+                  <Select
+                    options={[
+                      { value: 'Full Payment', label: 'Full Payment' },
+                      { value: 'Part Payment', label: 'Part Payment' },
+                      { value: 'Credit', label: 'Credit' },
+                    ]}
+                    className="ivi_select"
+                    classNamePrefix="ivi_select"
+                    value={purchase.terms}
+                    onChange={(selected) => {
+                      if (selected.value === 'Full Payment') {
+                        setTermOption({ ...termOption, account: true, amount: false, due: false });
+                      } else if (selected.value === 'Part Payment') {
+                        setTermOption({ ...termOption, account: true, amount: true, due: true });
+                      } else if (selected.value === 'Credit') {
+                        setTermOption({ ...termOption, account: false, amount: false, due: true });
+                      }
+
+                      setPurchase({ ...purchase, terms: selected });
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="ivi_subboxes">
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Date</label>
+                  <input
+                    type="date"
+                    className="ivi_input"
+                    value={purchase.date}
+                    onChange={e => setPurchase({...purchase, date: e.target.value})}
+                  />
+                </div>
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Location*</label>
+                  <AsyncSelect
+                    cacheOptions
+                    defaultOptions={locations}
+                    className="ivi_select"
+                    classNamePrefix="ivi_select"
+                    loadOptions={sourceLocationsLoadOptions(business, user)}
+                    value={purchase.location}
+                    onChange={selected => [setPurchase({...purchase, location: selected}), setErrors('')]}
+                  />
+                  {errors.location && <div className="error-message">{errors.location}</div>}
+                </div>
+                {termOption.account &&
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Payment Method</label>
+                  <Select
+                    options={accounts}
+                    className="ivi_select"
+                    classNamePrefix="ivi_select"
+                    value={purchase.account}
+                    onChange={selected => [setPurchase({...purchase, account: selected}), setErrors('')]}
+                    required
+                  />
+                  {errors.account && <div className="error-message">{errors.account}</div>}
+                </div>}
+
+                {termOption.due &&
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Due Date</label>
+                  <input
+                    type="date"
+                    className="ivi_input"
+                    min="0"
+                    step="0.01"
+                    value={purchase.dueDate}
+                    onChange={e => setPurchase({...purchase, dueDate: e.target.value})}
+                  />
+                </div>}
+              </div>
+
+              <div className="ivi_subboxes">
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Discount (%)</label>
+                  <input
+                    type="number"
+                    className="ivi_input"
+                    min="0"
+                    max="100"
+                    value={purchase.discount}
+                    onChange={e => setPurchase({...purchase, discount: e.target.value})}
+                  />
+                </div>
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Taxes / Levies</label>
+                  <AsyncSelect
+                    isMulti
+                    cacheOptions
+                    defaultOptions={taxLevy}
+                    className="ivi_select"
+                    classNamePrefix="ivi_select"
+                    loadOptions={taxLevyLoadOptions(business)}
+                    value={purchase.selectedLevi}
+                    onChange={selected => setPurchase({...purchase, selectedLevi: selected})}
+                    />
+                </div>
+                {termOption.amount &&
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Part Payment Amount</label>
+                  <input
+                    type="number"
+                    className="ivi_input"
+                    min="0"
+                    step="0.01"
+                    value={purchase.partPaymentAmount}
+                    onChange={e => setPurchase({...purchase, partPaymentAmount: e.target.value})}
+                  />
+                </div>}
+              </div>
+            </div>
+
+            <div className="ivi_display_box" style={{ marginTop: '2rem' }}>
+              <div className="ivi_subboxes">
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Select Item*</label>
+                  <AsyncSelect
+                    cacheOptions
+                    defaultOptions={items}
+                    className="ivi_select"
+                    classNamePrefix="ivi_select"
+                    loadOptions={itemsLoadOptions(business, user, '')}
+                    value={currentItem.item}
+                    onChange={selected => setCurrentItem({...currentItem, item: selected, price:selected.cost})}
+                  />
+                  {errors.items && <div className="error-message">{errors.items}</div>}
+                </div>
+              </div>
+                
+              <div className="ivi_subboxes">
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Quantity*</label>
+                  <input
+                    type="number"
+                    className="ivi_input"
+                    min="1"
+                    value={currentItem.qty}
+                    onChange={e => setCurrentItem({...currentItem, qty: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="ivi_subboxes">
+                <div className="ivi_holder_box">
+                  <label className="ivi_label">Unit Cost*</label>
+                  <input
+                    type="number"
+                    className="ivi_input"
+                    min="0"
+                    step="0.01"
+                    value={currentItem.price}
+                    onChange={e => setCurrentItem({...currentItem, price: e.target.value})}
+                    disabled={!access.purchase_price_access && !access.admin}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="form-actions">
+              <button 
+                type="button" 
+                className="btn btn-outline"
+                onClick={handleAddItem}
+              >
+                Add Item
+              </button>
+            </div>
+
+            <div className="ia_table_box">
+              <table className="ia_main_table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Code</th>
+                    <th>Brand</th>
+                    <th>Model</th>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Unit</th>
+                    <th>Unit Cost</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchaseItems.map((item, index) => (
+                    <tr key={index}>
+                      <td>{item.category__name}</td>
+                      <td>{item.code}</td>
+                      <td>{item.brand}</td>
+                      <td>{item.model}</td>
+                      <td>{item.name}</td>
+                      <td>{item.qty}</td>
+                      <td>{item.unit__suffix}</td>
+                      <td>GHS {item.price}</td>
+                      <td>GHS {(item.qty * item.price).toFixed(2)}</td>
+                      <td>
+                        <FontAwesomeIcon
+                          icon={faEdit}
+                          className="item_action"
+                          onClick={() => {
+                            setCurrentItem({
+                              item: purchaseItems.find(i => i.code === item.code),
+                              qty: item.qty,
+                              price: item.price
+                            });
+                            setPurchaseItems(prev => prev.filter((_, i) => i !== index));
+                          }}
+                        />
+                        <FontAwesomeIcon
+                          icon={faTimesCircle}
+                          className="item_action"
+                          onClick={() => setPurchaseItems(prev => prev.filter((_, i) => i !== index))}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="ivi_display_box totals-section">
+                <div className="total-row">
+                    <span>Subtotal:</span>
+                    <span>GHS {totals.subtotal.toFixed(2)}</span>
+                </div>
+                <div className="total-row">
+                    <span>Discount ({purchase.discount}%):</span>
+                    <span>- GHS {totals.discountAmount.toFixed(2)}</span>
+                </div>
+                {purchase.selectedLevi.map(levy => (
+                <div className="total-row" key={levy.value}>
+                    <span>{levy.label}:</span>
+                    <span>+ GHS {(totals.netTotal * (levy.rate/100)).toFixed(2)}</span>
+                </div>
+                ))}
+              <div className="total-row grand-total">
+                <span>Grand Total:</span>
+                <span>GHS {totals.grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="ia_add_item_mbox">
+              <button className="btn btn-outline" onClick={() => handleSubmit(false)}>
+                Create Purchase Invoice
+              </button>
+              <button 
+                className="btn btn-outline" 
+                style={{ marginLeft: "1rem" }}
+                onClick={() => handleSubmit(true)}
+              >
+                Create & Print
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="ivi_display_box">
-          <div className="ivi_subboxes">
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Supplier</label>
-                <AsyncSelect
-                  cacheOptions
-                  defaultOptions={supplier}
-                  className="ivi_select"
-                  classNamePrefix="ivi_select"
-                  loadOptions={supplierLoadOptions(business, user)}
-                  value={purchase.supplier}
-                  onChange={selected => [setPurchase({...purchase, supplier: selected}), setErrors('')]}
-                />
-                {errors.supplier && <div className="error-message">{errors.supplier}</div>}
-            </div>
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Description</label>
-              <input
-                type="text"
-                className="ivi_input"
-                value={purchase.description}
-                onChange={e => setPurchase({...purchase, description: e.target.value})}
-              />
-            </div>
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Payment Terms</label>
-              <Select
-                options={[
-                  { value: 'Full Payment', label: 'Full Payment' },
-                  { value: 'Part Payment', label: 'Part Payment' },
-                  { value: 'Credit', label: 'Credit' },
-                ]}
-                className="ivi_select"
-                classNamePrefix="ivi_select"
-                value={purchase.terms}
-                onChange={(selected) => {
-                  if (selected.value === 'Full Payment') {
-                    setTermOption({ ...termOption, account: true, amount: false, due: false });
-                  } else if (selected.value === 'Part Payment') {
-                    setTermOption({ ...termOption, account: true, amount: true, due: true });
-                  } else if (selected.value === 'Credit') {
-                    setTermOption({ ...termOption, account: false, amount: false, due: true });
-                  }
+      {printData && (
+        <div ref={printRef} className="print-container pos80">
+          <div style={{ textAlign: "center", marginBottom: "4px" }}>
+            <h2 style={{ margin: 0 }}>{printData.business}</h2>
+            <h3 style={{ margin: "2px 0", fontSize: "12px" }}>PURCHASE</h3>
+          </div>
 
-                  setPurchase({ ...purchase, terms: selected });
-                }}
-              />
+          <div className="info-row" style={{ marginBottom: "4px" }}>
+            <div style={{ textAlign: "left", width: "60%" }}>
+              <div><strong>Supplier: {printData.supplier}</strong></div>
+              {printData.description && <div><strong>Desc: {printData.description}</strong></div>}
+            </div>
+            <div style={{ textAlign: "right", width: "38%" }}>
+              <div><strong>Inv#: {printData.id}</strong></div>
+              <div><strong>Date: {formattedPrintDate}</strong></div>
+              {printData.dueDate && <div><strong>Due: {format(new Date(printData.dueDate), 'dd/MM/yyyy')}</strong></div>}
             </div>
           </div>
 
-          <div className="ivi_subboxes">
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Date</label>
-              <input
-                type="date"
-                className="ivi_input"
-                value={purchase.date}
-                onChange={e => setPurchase({...purchase, date: e.target.value})}
-              />
-            </div>
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Location*</label>
-              <AsyncSelect
-                cacheOptions
-                defaultOptions={locations}
-                className="ivi_select"
-                classNamePrefix="ivi_select"
-                loadOptions={sourceLocationsLoadOptions(business, user)}
-                value={purchase.location}
-                onChange={selected => [setPurchase({...purchase, location: selected}), setErrors('')]}
-              />
-              {errors.location && <div className="error-message">{errors.location}</div>}
-            </div>
-            {termOption.account &&
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Payment Method</label>
-              <Select
-                options={accounts}
-                className="ivi_select"
-                classNamePrefix="ivi_select"
-                value={purchase.account}
-                onChange={selected => [setPurchase({...purchase, account: selected}), setErrors('')]}
-                required
-              />
-              {errors.account && <div className="error-message">{errors.account}</div>}
-            </div>}
+          <div style={{ borderTop: "1px dashed #000", marginTop: "4px" }} />
 
-            {termOption.due &&
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Due Date</label>
-              <input
-                type="date"
-                className="ivi_input"
-                min="0"
-                step="0.01"
-                value={purchase.dueDate}
-                onChange={e => setPurchase({...purchase, dueDate: e.target.value})}
-              />
-            </div>}
-          </div>
-
-          <div className="ivi_subboxes">
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Discount (%)</label>
-              <input
-                type="number"
-                className="ivi_input"
-                min="0"
-                max="100"
-                value={purchase.discount}
-                onChange={e => setPurchase({...purchase, discount: e.target.value})}
-              />
-            </div>
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Taxes / Levies</label>
-              <AsyncSelect
-                isMulti
-                cacheOptions
-                defaultOptions={taxLevy}
-                className="ivi_select"
-                classNamePrefix="ivi_select"
-                loadOptions={taxLevyLoadOptions(business)}
-                value={purchase.selectedLevi}
-                onChange={selected => setPurchase({...purchase, selectedLevi: selected})}
-                />
-            </div>
-            {termOption.amount &&
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Part Payment Amount</label>
-              <input
-                type="number"
-                className="ivi_input"
-                min="0"
-                step="0.01"
-                value={purchase.partPaymentAmount}
-                onChange={e => setPurchase({...purchase, partPaymentAmount: e.target.value})}
-              />
-            </div>}
-          </div>
-        </div>
-
-        <div className="ivi_display_box" style={{ marginTop: '2rem' }}>
-          <div className="ivi_subboxes">
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Select Item*</label>
-              <AsyncSelect
-                cacheOptions
-                defaultOptions={items}
-                className="ivi_select"
-                classNamePrefix="ivi_select"
-                loadOptions={itemsLoadOptions(business, user, '')}
-                value={currentItem.item}
-                onChange={selected => setCurrentItem({...currentItem, item: selected, price:selected.cost})}
-              />
-              {errors.items && <div className="error-message">{errors.items}</div>}
-            </div>
-          </div>
-            
-          <div className="ivi_subboxes">
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Quantity*</label>
-              <input
-                type="number"
-                className="ivi_input"
-                min="1"
-                value={currentItem.qty}
-                onChange={e => setCurrentItem({...currentItem, qty: e.target.value})}
-              />
-            </div>
-          </div>
-
-          <div className="ivi_subboxes">
-            <div className="ivi_holder_box">
-              <label className="ivi_label">Unit Cost*</label>
-              <input
-                type="number"
-                className="ivi_input"
-                min="0"
-                step="0.01"
-                value={currentItem.price}
-                onChange={e => setCurrentItem({...currentItem, price: e.target.value})}
-                disabled={!access.purchase_price_access && !access.admin}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="form-actions">
-          <button 
-            type="button" 
-            className="btn btn-outline"
-            onClick={handleAddItem}
-          >
-            Add Item
-          </button>
-        </div>
-
-        <div className="ia_table_box">
-          <table className="ia_main_table">
+          <table className="ia_main_table" style={{ marginTop: "4px", width: "100%", fontSize: "11px" }}>
             <thead>
               <tr>
-                <th>Category</th>
-                <th>Code</th>
-                <th>Brand</th>
-                <th>Model</th>
-                <th>Item</th>
-                <th>Qty</th>
-                <th>Unit</th>
-                <th>Unit Cost</th>
-                <th>Total</th>
-                <th>Actions</th>
+                <th style={{ textAlign: "left", width: "48%" }}>Item</th>
+                <th style={{ textAlign: "center", width: "12%" }}>Qty</th>
+                <th style={{ textAlign: "right", width: "20%" }}>Price</th>
+                <th style={{ textAlign: "right", width: "20%" }}>Total</th>
               </tr>
             </thead>
             <tbody>
-              {purchaseItems.map((item, index) => (
-                <tr key={index}>
-                  <td>{item.category__name}</td>
-                  <td>{item.code}</td>
-                  <td>{item.brand}</td>
-                  <td>{item.model}</td>
-                  <td>{item.name}</td>
-                  <td>{item.qty}</td>
-                  <td>{item.unit__suffix}</td>
-                  <td>GHS {item.price}</td>
-                  <td>GHS {(item.qty * item.price).toFixed(2)}</td>
-                  <td>
-                    <FontAwesomeIcon
-                      icon={faEdit}
-                      className="item_action"
-                      onClick={() => {
-                        setCurrentItem({
-                          item: purchaseItems.find(i => i.code === item.code),
-                          qty: item.qty,
-                          price: item.price
-                        });
-                        setPurchaseItems(prev => prev.filter((_, i) => i !== index));
-                      }}
-                    />
-                    <FontAwesomeIcon
-                      icon={faTimesCircle}
-                      className="item_action"
-                      onClick={() => setPurchaseItems(prev => prev.filter((_, i) => i !== index))}
-                    />
-                  </td>
+              {pdItems.map((item, idx) => (
+                <tr key={idx}>
+                  <td style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><strong>{item.name}</strong></td>
+                  <td style={{ textAlign: "center" }}><strong>{item.qty}{item.unit__suffix ? ` ${item.unit__suffix}` : ''}</strong></td>
+                  <td style={{ textAlign: "right" }}><strong>GHS {parseFloat(item.price).toFixed(2)}</strong></td>
+                  <td style={{ textAlign: "right" }}><strong>GHS {(Number(item.qty) * Number(item.price)).toFixed(2)}</strong></td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
 
-        <div className="ivi_display_box totals-section">
-            <div className="total-row">
-                <span>Subtotal:</span>
-                <span>GHS {totals.subtotal.toFixed(2)}</span>
-            </div>
-            <div className="total-row">
-                <span>Discount ({purchase.discount}%):</span>
-                <span>- GHS {totals.discountAmount.toFixed(2)}</span>
-            </div>
-            {purchase.selectedLevi.map(levy => (
-            <div className="total-row" key={levy.value}>
-                <span>{levy.label}:</span>
-                <span>+ GHS {(totals.netTotal * (levy.rate/100)).toFixed(2)}</span>
-            </div>
+          <div style={{ marginTop: "6px", textAlign: "right", fontSize: "11px" }}>
+            <div><strong>Subtotal:</strong> GHS {Number(pdTotals.subtotal).toFixed(2)}</div>
+            <div><strong>Discount ({printData.discount}%):</strong> - GHS {Number(pdTotals.discountAmount).toFixed(2)}</div>
+            {pdLevi.map(levy => (
+              <div key={levy.value || levy.label}><strong>{levy.label || levy.value}:</strong> + GHS {(Number(pdTotals.netTotal) * (Number(levy.rate)/100)).toFixed(2)}</div>
             ))}
-          <div className="total-row grand-total">
-            <span>Grand Total:</span>
-            <span>GHS {totals.grandTotal.toFixed(2)}</span>
+            <div style={{ marginTop: "4px", fontWeight: "700" }}><strong>Grand Total:</strong> GHS {Number(pdTotals.grandTotal).toFixed(2)}</div>
+          </div>
+
+          <div style={{ marginTop: "8px", textAlign: "center", fontSize: "11px" }}>
+            <div><strong>Purchase Invoice</strong></div>
           </div>
         </div>
+      )}
 
-        <div className="ia_add_item_mbox">
-          <button className="btn btn-outline" onClick={handleSubmit}>
-            Create Purchase Invoice
-          </button>
-        </div>
-      </div>
-    </div>
+      <style>{`
+        @page { size: 80mm auto; margin: 0; }
+        @media print {
+          body * { visibility: hidden; }
+          .pos80, .pos80 * { visibility: visible; }
+          .pos80 {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 80mm;
+            max-width: 80mm;
+            padding: 4mm;
+            font-family: "Courier New", monospace;
+            font-size: 12px;
+            color: #000;
+            background: #fff;
+          }
+          .pos80 h2, .pos80 h3 { margin: 0; padding: 0; }
+          .pos80 .info-row { display: flex; justify-content: space-between; font-size: 11px; }
+          .pos80 table { width: 100%; border-collapse: collapse; font-size: 11px; }
+          .pos80 thead th { border-bottom: 1px dashed #000; padding-bottom: 2px; }
+          .pos80 th, .pos80 td { padding: 2px 0; }
+        }
+      `}</style>
+    </>
   );
 };
 

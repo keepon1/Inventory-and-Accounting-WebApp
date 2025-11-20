@@ -488,6 +488,7 @@ const SalesRecords = ({ business, user, access }) => {
                 <th>Date</th>
                 <th>Invoice</th>
                 <th>Customer</th>
+                <th>Location</th>
                 <th>Item</th>
                 <th>Category</th>
                 <th>Quantity</th>
@@ -512,6 +513,7 @@ const SalesRecords = ({ business, user, access }) => {
                         </Link>
                       </td>
                       <td>{inv.customer === 'Regular Customer' ? inv.customer_name : inv.customer}</td>
+                      <td>{item.location}</td>
                       <td>{item.item_name1}</td>
                       <td>{item.category}</td>
                       <td style={{textAlign: 'center'}}>{item.quantity1}</td>
@@ -529,7 +531,7 @@ const SalesRecords = ({ business, user, access }) => {
             <tfoot>
               <tr>
                 <td colSpan="5" style={{ textAlign: 'right', fontWeight: 'bold' }}>Totals:</td>
-                <td>{totals.quantity}</td>
+                <td style={{textAlign: 'center'}}>{totals.quantity}</td>
                 <td></td>
                 <td>GHS {totals.totalPrice.toFixed(2)}</td>
                 <td>GHS {totals.cost.toFixed(2)}</td>

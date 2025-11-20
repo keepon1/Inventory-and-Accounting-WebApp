@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faEye, faEdit, faTimesCircle, faMapMarkerAlt, faUsers,  } from "@fortawesome/free-solid-svg-icons";
+import { faSearch, faEye, faEdit, faTimesCircle, faMapMarkerAlt, faUsers, faShareFromSquare } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import { useNavigate, Routes, Route, useParams, Link } from "react-router-dom";
 import enableKeyboardScrollFix from "../../utils/scroll";
@@ -21,6 +21,8 @@ const CustomerMain = ({ business, user, access }) => {
   const [waitTimeout, setWaitTimeout] = useState(null);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState('xlsx');
   const overlayRef = useRef(null);
   const editOverlayRef = useRef(null);
   const [loading, setLoading] = useState(false);
@@ -99,6 +101,12 @@ const CustomerMain = ({ business, user, access }) => {
   const handleEditOverlay = (e) => {
     if (editOverlayRef.current && !editOverlayRef.current.contains(e.target)) {
       setShowEdit(false);
+    }
+  };
+
+  const handleExportOverlayClick = (event) => {
+    if (overlayRef.current && !overlayRef.current.contains(event.target)) {
+      setExporting(false);
     }
   };
 
@@ -281,12 +289,55 @@ const CustomerMain = ({ business, user, access }) => {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await api.post("fetch_customers", {
+        business,
+        user,
+        searchQuery,
+        page: 0,
+        format: exportFormat,
+      });
+      if (response.status === "success") {
+        const link = document.createElement("a");
+        link.href = `data:application/octet-stream;base64,${response.data.file}`;
+        link.download = response.data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setExporting(false);
+      } else {
+        toast.error(response.message || "Failed to export customers");
+      }
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem("access");
+        navigate("/sign_in");
+      } else {
+        toast.error("Unexpected error while exporting customers");
+      }
+    }
+  };
+
+  const excpts = !(window.location.pathname.includes('history'));
+
   return (
     <div className="dashboard-main">
       <div className="journal-header">
         <h1>
           <FontAwesomeIcon icon={faUsers} className="header-icon"/> Customers
         </h1>
+
+        {excpts && (
+          <div className="journal-controls">
+            <button className="share-icon" onClick={() => {
+              setExporting(true);
+              document.addEventListener('mousedown', handleExportOverlayClick);
+            }}>
+              <FontAwesomeIcon icon={faShareFromSquare}/>
+            </button>
+          </div>
+        )}
       </div>
 
       <Routes>
@@ -362,7 +413,6 @@ const CustomerMain = ({ business, user, access }) => {
               </table>
             </div>
 
-
             {showCreate && (
               <div className="modal-overlay">
                 <div className="modal" ref={overlayRef}>
@@ -428,7 +478,6 @@ const CustomerMain = ({ business, user, access }) => {
               </div>
             )}
 
-
             {showEdit && (
               <div className="modal-overlay">
                 <div className="modal" ref={editOverlayRef}>
@@ -486,6 +535,59 @@ const CustomerMain = ({ business, user, access }) => {
                     <button className='btn btn-outline-red' onClick={deleteCustomer}>
                       Delete Customer
                     </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {exporting && (
+              <div className="modal-overlay">
+                <div className="modal" ref={overlayRef}>
+                  <div className="modal-header">
+                    <h3>Select Format</h3>
+                    <button className="modal-close" onClick={() => setExporting(false)}>
+                      <FontAwesomeIcon icon={faTimesCircle} />
+                    </button>
+                  </div>
+                  <div className="modal-content">
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="csv"
+                        value="csv"
+                        checked={exportFormat === 'csv'}
+                        onChange={() => setExportFormat('csv')}
+                      />
+                      <label htmlFor="csv">CSV</label>
+                    </div>
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="xlsx"
+                        value="xlsx"
+                        checked={exportFormat === 'xlsx'}
+                        onChange={() => setExportFormat('xlsx')}
+                      />
+                      <label htmlFor="xlsx">Excel</label>
+                    </div>
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="pdf"
+                        value="pdf"
+                        checked={exportFormat === 'pdf'}
+                        onChange={() => setExportFormat('pdf')}
+                      />
+                      <label htmlFor="pdf">PDF</label>
+                    </div>
+                    <div className="modal-actions">
+                      <button className="btn btn-outline" onClick={handleExport}>
+                        Export
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

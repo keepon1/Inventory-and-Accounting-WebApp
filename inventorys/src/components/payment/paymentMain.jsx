@@ -3,7 +3,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faFileExport,
   faEye,
-  faPaperPlane
+  faPaperPlane,
+  faShareFromSquare,
+  faTimesCircle
 } from '@fortawesome/free-solid-svg-icons';
 import ViewPayment from './viewPayment';
 import { Link, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -24,6 +26,9 @@ const PaymentMain = ({ business, user, access }) => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [parsed, setParsed] = useState('{}');
+  const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState('xlsx');
+  const overlayRef = useRef(null);
   const observer = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -104,6 +109,43 @@ const PaymentMain = ({ business, user, access }) => {
     }
   }, [payment, observeSecondLast]);
 
+  const handleExportOverlayClick = (event) => {
+    if (overlayRef.current && !overlayRef.current.contains(event.target)) {
+      setExporting(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const response = await api.post("fetch_payments", {
+        business,
+        user,
+        parsed,
+        searchQuery,
+        page: 0,
+        format: exportFormat,
+      });
+      if (response.status === "success") {
+        const link = document.createElement("a");
+        link.href = `data:application/octet-stream;base64,${response.data.file}`;
+        link.download = response.data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setExporting(false);
+      } else {
+        toast.error(response.message || "Failed to export payments");
+      }
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem("access");
+        navigate("/sign_in");
+      } else {
+        toast.error("Unexpected error while exporting payments");
+      }
+    }
+  };
+
   return (
     <div className="journal-container">
       <div className="journal-header">
@@ -112,11 +154,14 @@ const PaymentMain = ({ business, user, access }) => {
           Payments
         </h1>
         {expt && (
-        <div className="journal-controls">
-          <button className="btn btn-outline">
-            <FontAwesomeIcon icon={faFileExport} /> Export
-          </button>
-        </div>
+          <div className="journal-controls">
+            <button className="share-icon" onClick={() => {
+              setExporting(true);
+              document.addEventListener('mousedown', handleExportOverlayClick);
+            }}>
+              <FontAwesomeIcon icon={faShareFromSquare}/>
+            </button>
+          </div>
         )}
       </div>
 
@@ -218,6 +263,59 @@ const PaymentMain = ({ business, user, access }) => {
                 </tbody>
               </table>
             </div>
+
+            {exporting && (
+              <div className="modal-overlay">
+                <div className="modal" ref={overlayRef}>
+                  <div className="modal-header">
+                    <h3>Select Format</h3>
+                    <button className="modal-close" onClick={() => setExporting(false)}>
+                      <FontAwesomeIcon icon={faTimesCircle} />
+                    </button>
+                  </div>
+                  <div className="modal-content">
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="csv"
+                        value="csv"
+                        checked={exportFormat === 'csv'}
+                        onChange={() => setExportFormat('csv')}
+                      />
+                      <label htmlFor="csv">CSV</label>
+                    </div>
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="xlsx"
+                        value="xlsx"
+                        checked={exportFormat === 'xlsx'}
+                        onChange={() => setExportFormat('xlsx')}
+                      />
+                      <label htmlFor="xlsx">Excel</label>
+                    </div>
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="pdf"
+                        value="pdf"
+                        checked={exportFormat === 'pdf'}
+                        onChange={() => setExportFormat('pdf')}
+                      />
+                      <label htmlFor="pdf">PDF</label>
+                    </div>
+                    <div className="modal-actions">
+                      <button className="btn btn-outline" onClick={handleExport}>
+                        Export
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         }/>
         <Route path="add" element={<PaymentJournal business={business} user={user} access={access} />} />

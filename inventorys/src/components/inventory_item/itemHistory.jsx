@@ -10,8 +10,10 @@ import { format } from 'date-fns';
 const ItemHistory = ({ business, user, access }) => {
   const [history, setHistory] = useState([]);
   const [item, setItem] = useState(null);
-  const location = localStorage.getItem('historyLocation');
-  const { itemCode } = useParams();
+  const itemName = useParams().itemCode;
+  const itemCode = itemName.split(' ! ')[0];
+  const location = itemName.split(' ! ')[1] || '';
+  
 
   useEffect(() => {
     const fetchItemHistory = async () => {
@@ -65,6 +67,7 @@ const ItemHistory = ({ business, user, access }) => {
               <th>Date</th>
               <th>User</th>
               <th>Transaction Type</th>
+              <th>Location</th>
               <th>Reference</th>
               <th>Change</th>
               <th>Value</th>
@@ -79,6 +82,7 @@ const ItemHistory = ({ business, user, access }) => {
                   <td>{format(record.date, 'dd/MM/yyyy')}</td>
                   <td>{record.user_name}</td>
                   <td>{record.transaction_type}</td>
+                  <td>{record.location}</td>
                   <td>
                     <Link
                       to={`/dashboard/${record.transaction_type.toLowerCase().split(' ')[0]}/view/${record.reference}`}

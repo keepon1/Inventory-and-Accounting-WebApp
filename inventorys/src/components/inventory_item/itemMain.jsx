@@ -12,7 +12,6 @@ import AccessDenied from "../access";
 import ItemHistory from "./itemHistory";
 import { toast} from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { set } from "date-fns";
 
 const ItemMain = ({ business, user, access }) => {
   const countState = localStorage.getItem('countMode');
@@ -62,7 +61,6 @@ const ItemMain = ({ business, user, access }) => {
         setCategories(response.data.categories);
         setBrands(response.data.brands);
         if (!location.value.trim()) setLocation(response.data.locations[0]);
-        localStorage.setItem('historyLocation', location.value);
         localStorage.setItem('countMode', countMode);
 
       } catch (error) {
@@ -248,7 +246,7 @@ const ItemMain = ({ business, user, access }) => {
                       <td>{item.code}</td>
                       <td>{item.model}</td>
                       <td>{typeof item.item_name == 'number' ? item.item_name_1 : item.item_name}</td>
-                      <td><Link to={`history/${typeof item.item_name == 'number' ? item.item_name_1 : item.item_name}`} state={typeof item.item_name == 'number' ? item.item_name_1 : item.item_name} className="quantity-link">{item.quantity}</Link></td>
+                      <td><Link to={`history/${typeof item.item_name == 'number' ? item.item_name_1 : item.item_name} ! ${location.value}`} state={`${typeof item.item_name == 'number' ? item.item_name_1 : item.item_name} - ${location.value}`} className="quantity-link">{item.quantity}</Link></td>
                       <td>{item.unit__suffix}</td>
                       {(access.admin || access.purchase_price_access) && (
                         <td>GHS {item.purchase_price}</td>
@@ -342,8 +340,7 @@ const EditItemWrapper = ({ business, user, access }) => {
   return <EditItem item={item.state} business={business} user={user} access={access} />;
 };
 
-const ItemHistoryWrapper = ({ business, user, access, location }) => {
-  const { itemCode } = useParams();
+const ItemHistoryWrapper = ({ business, user, access }) => {
   const item = useLocation();
   return <ItemHistory itemCode={item.state} business={business} user={user} access={access} />;
 };

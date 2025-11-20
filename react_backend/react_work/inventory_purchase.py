@@ -12,7 +12,7 @@ from .coa import retrive_real_account
 
 logger = logging.getLogger(__name__)
 
-def fetch_purchase_for_main_view(search, date_search, business, company, page, user, page_quantity=30):
+def fetch_purchase_for_main_view(search, date_search, business, company, page, user, format, page_quantity=30):
     try:
         business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
@@ -48,6 +48,40 @@ def fetch_purchase_for_main_view(search, date_search, business, company, page, u
             'code', 'date', 'supplier__name', 'created_by__user_name', 'description', 'sub_total', 'discount', 'tax_levy', 'gross_total', 'status',
             'location_address__location_name'
         )
+
+        if format.strip():
+            from .export_format import XLSX, PDF, CSV
+
+            if format.lower() == 'xlsx':
+                exporter = XLSX(data=purchase, user=user_query, location=None, start=None, end=None)
+                export_data = exporter.generate_purchase_main_xlsx()
+
+                return {
+                    "status": "success",
+                    "message": "Purchase PDF generated",
+                    "data": export_data
+                }
+            
+            if format.lower() == 'pdf':
+                exporter = PDF(data=purchase, user=user_query, location=None, start=None, end=None)
+                export_data = exporter.generate_purchase_main_pdf()
+
+                return {
+                    "status": "success",
+                    "message": "Purchase PDF generated",
+                    "data": export_data
+                }
+            
+            if format.lower() == 'csv':
+                exporter = CSV(data=purchase, user=user_query, location=None, start=None, end=None)
+                export_data = exporter.generate_purchase_main_csv()
+
+                return {
+                    "status": "success",
+                    "message": "Purchase CSV generated",
+                    "data": export_data
+                }
+                
         
         paginator = Paginator(purchase, page_quantity)
         current_page = paginator.get_page(page)
@@ -287,7 +321,7 @@ def post_and_save_purchase(business, user, company, location, data, totals, item
             supplier_query.save()
 
         models.tracking_history.objects.create(user=user_query, head=new_code, area='Create Purchase', bussiness_name=business_query)          
-        return {'status': 'success', 'message': 'Purchase invoice created successfully'}
+        return {'status': 'success', 'message': 'Purchase invoice created successfully', 'data': {'code': new_code, 'address': business_query.address, 'phone': business_query.telephone, 'email': business_query.email}}
 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")

@@ -403,7 +403,7 @@ const ViewSales = ({ business, user, access, sales }) => {
         <div className="print-container pos80">
           <div style={{ textAlign: "center", marginBottom: "4px" }}>
             <h2 style={{ margin: 0 }}>{printData.business}</h2>
-            <h3 style={{ margin: "2px 0", fontSize: "12px" }}>SALES INVOICE</h3>
+            <h3 style={{ margin: "2px 0", fontSize: "12px" }}>SALES</h3>
           </div>
 
           <div className="info-row" style={{ marginBottom: "4px" }}>

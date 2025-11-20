@@ -4,6 +4,7 @@ import {
   faBook,
   faChevronDown, faChevronRight,
   faTimesCircle,
+  faShareFromSquare
 } from '@fortawesome/free-solid-svg-icons';
 import './coaMain.css';
 import Select from 'react-select';
@@ -23,7 +24,10 @@ const AccountMain = ({ business, user, access }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedAccounts, setExpandedAccounts] = useState({});
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState('xlsx');
   const overlayRef = useRef(null);
+  const exportOverlayRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,6 +50,12 @@ const AccountMain = ({ business, user, access }) => {
   const handleCreateOverlay = (e) => {
     if (overlayRef.current && !overlayRef.current.contains(e.target)) {
       setShowCreate(false);
+    }
+  };
+
+  const handleExportOverlayClick = (event) => {
+    if (exportOverlayRef.current && !exportOverlayRef.current.contains(event.target)) {
+      setExporting(false);
     }
   };
 
@@ -157,10 +167,52 @@ const AccountMain = ({ business, user, access }) => {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await api.post("fetch_coa", {
+        business,
+        user,
+        searchQuery,
+        format: exportFormat,
+      });
+      if (response.status === "success") {
+        const link = document.createElement("a");
+        link.href = `data:application/octet-stream;base64,${response.data.file}`;
+        link.download = response.data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setExporting(false);
+      } else {
+        toast.error(response.message || "Failed to export chart of accounts");
+      }
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem("access");
+        navigate("/sign_in");
+      } else {
+        toast.error("Unexpected error while exporting chart of accounts");
+      }
+    }
+  };
+
+  const excpts = !(window.location.pathname.includes('history'));
+
   return (
     <div className="journal-container">
       <div className="journal-header">
         <h1><FontAwesomeIcon icon={faBook} className="header-icon" /> Chart of Accounts</h1>
+        
+        {excpts && (
+          <div className="journal-controls">
+            <button className="share-icon" onClick={() => {
+              setExporting(true);
+              document.addEventListener('mousedown', handleExportOverlayClick);
+            }}>
+              <FontAwesomeIcon icon={faShareFromSquare}/>
+            </button>
+          </div>
+        )}
       </div>
 
       <Routes>
@@ -269,6 +321,59 @@ const AccountMain = ({ business, user, access }) => {
                 </tbody>
               </table>
             </div>
+
+            {exporting && (
+              <div className="modal-overlay">
+                <div className="modal" ref={exportOverlayRef}>
+                  <div className="modal-header">
+                    <h3>Select Format</h3>
+                    <button className="modal-close" onClick={() => setExporting(false)}>
+                      <FontAwesomeIcon icon={faTimesCircle} />
+                    </button>
+                  </div>
+                  <div className="modal-content">
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="csv"
+                        value="csv"
+                        checked={exportFormat === 'csv'}
+                        onChange={() => setExportFormat('csv')}
+                      />
+                      <label htmlFor="csv">CSV</label>
+                    </div>
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="xlsx"
+                        value="xlsx"
+                        checked={exportFormat === 'xlsx'}
+                        onChange={() => setExportFormat('xlsx')}
+                      />
+                      <label htmlFor="xlsx">Excel</label>
+                    </div>
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="pdf"
+                        value="pdf"
+                        checked={exportFormat === 'pdf'}
+                        onChange={() => setExportFormat('pdf')}
+                      />
+                      <label htmlFor="pdf">PDF</label>
+                    </div>
+                    <div className="modal-actions">
+                      <button className="btn btn-outline" onClick={handleExport}>
+                        Export
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         } />
         <Route path="history/:accountCode" element={<AccountHistoryWrapper business={business} user={user} access={access} />} />

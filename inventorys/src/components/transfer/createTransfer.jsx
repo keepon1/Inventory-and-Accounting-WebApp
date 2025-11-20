@@ -10,7 +10,7 @@ import {
   sourceLocationsLoadOptions,
 } from "../../utils/fetchData";
 import { toast } from "react-toastify";
-import { set } from "date-fns";
+import { format } from "date-fns";
 
 const CreateTransfer = ({ business, user, access }) => {
   const [transfer, setTransfer] = useState({
@@ -182,6 +182,7 @@ const CreateTransfer = ({ business, user, access }) => {
             date: transfer.issueDate,
             description: transfer.description,
             items: transferItems,
+            total: transferItems.reduce((sum, item) => sum + Number(item.qty), 0)
           });
           setTimeout(() => {
             window.print();
@@ -407,58 +408,95 @@ const CreateTransfer = ({ business, user, access }) => {
       )}
 
       {printData && (
-        <div ref={printRef} className="print-container">
-          <div style={{ textAlign: "center", marginBottom: "1rem" }}>
+        <div ref={printRef} className="print-container pos80">
+          <div style={{ textAlign: "center", marginBottom: "4px" }}>
             <h2 style={{ margin: 0 }}>{printData.business}</h2>
+            <h3 style={{ margin: "2px 0", fontSize: "12px" }}>TRANSFER RECEIPT</h3>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
-            <div style={{ textAlign: "left" }}>
-              <p><b>Transfer ID:</b> {printData.id}</p>
-              <p><b>Description:</b> {printData.description}</p>
-              <p><b>User:</b> {printData.user}</p>
+          <div className="info-row" style={{ marginBottom: "4px" }}>
+            <div style={{ textAlign: "left", width: "60%" }}>
+              <div><strong>Transfer#: {printData.id}</strong></div>
+              <div><strong>From: {printData.from}</strong></div>
+              <div><strong>To: {printData.to}</strong></div>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <p><b>Date:</b> {printData.date}</p>
-              <p><b>From:</b> {printData.from}</p>
-              <p><b>To:</b> {printData.to}</p>
-              <p><b>Status:</b> {printData.status}</p>
+            <div style={{ textAlign: "right", width: "38%" }}>
+              <div><strong>Date: {format(new Date(printData.date), 'dd/MM/yyyy')}</strong></div>
+              <div><strong>Status: {printData.status}</strong></div>
+              <div><strong>By: {printData.user}</strong></div>
             </div>
           </div>
 
-          <table className="ia_main_table" style={{ marginTop: "1rem" }}>
+          {printData.description && (
+            <div style={{ marginBottom: "4px", fontSize: "11px" }}>
+              <strong>Desc: {printData.description}</strong>
+            </div>
+          )}
+
+          <div style={{ borderTop: "1px dashed #000", marginTop: "4px" }} />
+
+          <table className="ia_main_table" style={{ marginTop: "4px", width: "100%", fontSize: "11px" }}>
             <thead>
               <tr>
-                <th>Item</th>
-                <th>Qty</th>
+                <th style={{ textAlign: "left", width: "70%" }}>Item</th>
+                <th style={{ textAlign: "center", width: "15%" }}>Qty</th>
+                <th style={{ textAlign: "right", width: "15%" }}>Unit</th>
               </tr>
             </thead>
             <tbody>
               {printData.items.map((item, idx) => (
                 <tr key={idx}>
-                  <td>{item.name}</td>
-                  <td>{item.qty}</td>
+                  <td style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <strong>{item.name}</strong>
+                  </td>
+                  <td style={{ textAlign: "center" }}><strong>{item.qty}</strong></td>
+                  <td style={{ textAlign: "right" }}><strong>{item.unit__suffix}</strong></td>
                 </tr>
               ))}
             </tbody>
           </table>
+
+          <div style={{ borderTop: "1px dashed #000", marginTop: "4px", marginBottom: "4px" }} />
+
+          <div style={{ textAlign: "right", fontSize: "11px", fontWeight: "700" }}>
+            <div><strong>Total Items: {printData.items.length}</strong></div>
+            <div><strong>Total Qty: {printData.total}</strong></div>
+          </div>
+
+          <div style={{ marginTop: "8px", textAlign: "center", fontSize: "11px" }}>
+            <div><strong>--- TRANSFER RECEIPT ---</strong></div>
+          </div>
+
+          <div style={{ marginTop: "6px", textAlign: "center", fontSize: "10px", fontStyle: "italic" }}>
+            <div>Please verify items upon receipt</div>
+            <div>Report discrepancies immediately</div>
+          </div>
         </div>
       )}
 
       <style>{`
+        @page { size: 80mm auto; margin: 0; }
         @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print-container, .print-container * {
-            visibility: visible;
-          }
-          .print-container {
+          body * { visibility: hidden; }
+          .pos80, .pos80 * { visibility: visible; }
+          .pos80 {
             position: absolute;
             left: 0;
             top: 0;
-            width: 100%;
+            width: 80mm;
+            max-width: 80mm;
+            padding: 4mm;
+            font-family: "Courier New", monospace;
+            font-size: 12px;
+            color: #000;
+            background: #fff;
           }
+          .pos80 h2, .pos80 h3 { margin: 0; padding: 0; }
+          .pos80 .info-row { display: flex; justify-content: space-between; font-size: 11px; }
+          .pos80 table { width: 100%; border-collapse: collapse; font-size: 11px; }
+          .pos80 thead th { border-bottom: 1px dashed #000; padding-bottom: 2px; }
+          .pos80 th, .pos80 td { padding: 2px 0; }
+          .pos80 .right { text-align: right; }
         }
       `}</style>
     </>

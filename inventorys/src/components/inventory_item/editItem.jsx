@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import Select from "react-select";
 import './editItem.css';
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { set } from "date-fns";
 
@@ -26,13 +26,15 @@ const EditItem = ({item, business, user, access}) => {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
+    const itemName = useParams().itemCode;
+
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const [categoryRes, unitRes, itemRes, brandRes] = await Promise.all([
                     api.post('fetch_category', {business, user }),
                     api.post('fetch_unit', { business, user }),
-                    api.post('view_item', { business, item, user }),
+                    api.post('view_item', { business, item: itemName, user }),
                     api.post('fetch_brand', { business, user })
                 ]);
 
@@ -225,15 +227,16 @@ const EditItem = ({item, business, user, access}) => {
                             </div>
 
                             <div className="ivi_holder_box">
-                                <label className="ivi_label">Brand</label>
-                                <Select 
-                                    options={brand} 
-                                    value={itemInfo.brand} 
-                                    onChange={selected => setItemInfo({...itemInfo, brand:selected})}
-                                    className="ivi_select"
-                                    classNamePrefix="ivi_select"
+                                <label className="ivi_label">Item Code</label>
+                                <input
+                                    type="text"
+                                    name="code"
+                                    value={itemInfo.code}
+                                    className="ivi_input"
+                                    readOnly
                                 />
                             </div>
+
                             <div className="ivi_holder_box">
                                 <label className="ivi_label">Model Number</label>
                                 <input
@@ -242,6 +245,17 @@ const EditItem = ({item, business, user, access}) => {
                                     value={itemInfo.model}
                                     onChange={handleChange}
                                     className="ivi_input"
+                                />
+                            </div>
+
+                            <div className="ivi_holder_box">
+                                <label className="ivi_label">Quantity</label>
+                                <input
+                                    type="number"
+                                    name="quantity"
+                                    value={itemInfo.quantity}
+                                    className="ivi_input"
+                                    readOnly
                                 />
                             </div>
                         </div>
@@ -272,6 +286,16 @@ const EditItem = ({item, business, user, access}) => {
                             </div>
 
                             <div className="ivi_holder_box">
+                                <label className="ivi_label">Cost Price</label>
+                                <input
+                                    type="number"
+                                    value={itemInfo.Cost}
+                                    className="ivi_input"
+                                    readOnly
+                                />
+                            </div>
+
+                            <div className="ivi_holder_box">
                                 <label className="ivi_label">Sales Price</label>
                                 <input
                                     type="number"
@@ -284,6 +308,17 @@ const EditItem = ({item, business, user, access}) => {
                         </div>
 
                         <div className="ivi_subboxes">
+                            <div className="ivi_holder_box">
+                                <label className="ivi_label">Brand</label>
+                                <Select 
+                                    options={brand} 
+                                    value={itemInfo.brand} 
+                                    onChange={selected => setItemInfo({...itemInfo, brand:selected})}
+                                    className="ivi_select"
+                                    classNamePrefix="ivi_select"
+                                />
+                            </div>
+
                             <div className="ivi_holder_box">
                                 <label className="ivi_label">Category</label>
                                 <Select 

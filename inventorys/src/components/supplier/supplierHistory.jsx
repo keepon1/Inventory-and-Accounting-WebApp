@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faFileInvoice, faMoneyBillWave } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faFileInvoice, faMoneyBillWave, faShareFromSquare, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import "./supplierHistory.css";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
@@ -11,7 +11,12 @@ const SupplierHistory = ({ business, user, access }) => {
   const [transactions, setTransactions] = useState([]);
   const [supplier, setSupplier] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState('pdf');
   const { supplierName } = useParams();
+  const navigate = useNavigate();
+
+  const overlayRef = useRef(null);
 
   useEffect(() => {
     const fetchSupplierHistory = async () => {
@@ -38,6 +43,42 @@ const SupplierHistory = ({ business, user, access }) => {
     fetchSupplierHistory();
   }, [business, supplierName, user]);
 
+  const handleCreateOverlayClick = (e) => {
+    if (overlayRef.current && !overlayRef.current.contains(e.target)) {
+      setExporting(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const response = await api.post("export_supplier_history", {
+        business,
+        reference: supplierName,
+        format: exportFormat,
+        user
+      });
+      
+      if (response.status === "success") {
+        const link = document.createElement("a");
+        link.href = `data:application/octet-stream;base64,${response.data.file}`;
+        link.download = response.data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setExporting(false);
+      } else {
+        toast.error(response.message || "Failed to export supplier history");
+      }
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem("access");
+        navigate("/sign_in");
+      } else {
+        toast.error("Unexpected error while exporting supplier history");
+      }
+    }
+  };
+
   const filteredTransactions = transactions.filter(transaction => {
     if (activeTab === 'all') return true;
     if (activeTab === 'invoices') return transaction.t_type === 'invoice';
@@ -55,6 +96,15 @@ const SupplierHistory = ({ business, user, access }) => {
         <h2>
           {supplier?.name || supplierName}
         </h2>
+        </div>
+
+        <div className="journal-controls">
+          <button className="share-icon" onClick={() => { 
+            setExporting(true); 
+            document.addEventListener('mousedown', handleCreateOverlayClick);
+          }}>
+            <FontAwesomeIcon icon={faShareFromSquare}/>
+          </button>
         </div>
       </div>
 
@@ -136,6 +186,59 @@ const SupplierHistory = ({ business, user, access }) => {
           </tbody>
         </table>
       </div>
+
+      {exporting && (
+        <div className="modal-overlay">
+          <div className="modal" ref={overlayRef}>
+            <div className="modal-header">
+              <h3>Select Export Format</h3>
+              <button className="modal-close" onClick={() => setExporting(false)}>
+                <FontAwesomeIcon icon={faTimesCircle} />
+              </button>
+            </div>
+            <div className="modal-content">
+              <div className="export-options">
+                <input
+                  type="radio"
+                  name="exportFormat"
+                  id="csv"
+                  value="csv"
+                  checked={exportFormat === 'csv'}
+                  onChange={() => setExportFormat('csv')}
+                />
+                <label htmlFor="csv">CSV</label>
+              </div>
+              <div className="export-options">
+                <input
+                  type="radio"
+                  name="exportFormat"
+                  id="xlsx"
+                  value="xlsx"
+                  checked={exportFormat === 'xlsx'}
+                  onChange={() => setExportFormat('xlsx')}
+                />
+                <label htmlFor="xlsx">Excel</label>
+              </div>
+              <div className="export-options">
+                <input
+                  type="radio"
+                  name="exportFormat"
+                  id="pdf"
+                  value="pdf"
+                  checked={exportFormat === 'pdf'}
+                  onChange={() => setExportFormat('pdf')}
+                />
+                <label htmlFor="pdf">PDF</label>
+              </div>
+              <div className="modal-actions">
+                <button className="btn btn-outline" onClick={handleExport}>
+                  Export
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

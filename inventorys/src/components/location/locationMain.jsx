@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEdit, faTimesCircle, faMapMarkerAlt,  } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEdit, faTimesCircle, faMapMarkerAlt, faShareFromSquare } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import './locationMain.css';
 import LocationItem from "./locationItems";
 import { useNavigate, Routes, Route, useParams, Link } from "react-router-dom";
-import enableKeyboardScrollFix from "../../utils/scroll";
 import { toast } from "react-toastify";
 import { format, set } from "date-fns"
 
@@ -19,10 +18,15 @@ const LocationMain = ({ business, user, access }) => {
   const [errors, setErrors] = useState({});
   const [currentLocation, setCurrentLocation] = useState({ name: '', description: '', date: '' });
   const [editData, setEditData] = useState({ originalName: '', name: '', description: '' });
+  const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState('xlsx');
   const overlayRef = useRef(null);
+  const exportOverlayRef = useRef(null);
   const editOverlayRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const excpts = !(window.location.pathname.includes('view') || window.location.pathname.includes('edit') || window.location.pathname.includes('create'));
 
   const handleSearch = (e) => {
     setSearchInput(e.target.value);
@@ -71,6 +75,12 @@ const LocationMain = ({ business, user, access }) => {
   const handleEditOverlay = (e) => {
     if (editOverlayRef.current && !editOverlayRef.current.contains(e.target)) {
       setShowEdit(false);
+    }
+  };
+
+  const handleExportOverlayClick = (event) => {
+    if (exportOverlayRef.current && !exportOverlayRef.current.contains(event.target)) {
+      setExporting(false);
     }
   };
 
@@ -261,12 +271,51 @@ const LocationMain = ({ business, user, access }) => {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await api.post("fetch_location", {
+        business,
+        user,
+        searchQuery,
+        format: exportFormat,
+      });
+      if (response.status === "success") {
+        const link = document.createElement("a");
+        link.href = `data:application/octet-stream;base64,${response.data.file}`;
+        link.download = response.data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setExporting(false);
+      } else {
+        toast.error(response.message || "Failed to export locations");
+      }
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem("access");
+        navigate("/sign_in");
+      } else {
+        toast.error("Unexpected error while exporting locations");
+      }
+    }
+  };
+
   return (
     <div className="dashboard-main">
       <div className="journal-header">
         <h1>
           <FontAwesomeIcon icon={faMapMarkerAlt} className="header-icon"/> Locations
         </h1>
+
+        {excpts && (
+          <div className="journal-controls">
+            <button className="share-icon" onClick={() => {setExporting(true);
+              document.addEventListener('mousedown', handleExportOverlayClick);
+            }}>
+              <FontAwesomeIcon icon={faShareFromSquare}/>
+            </button>
+          </div>
+        )}
       </div>
 
       <Routes>
@@ -424,6 +473,59 @@ const LocationMain = ({ business, user, access }) => {
                     <button className='btn btn-outline-red' onClick={deleteLocation}>
                       Delete Location
                     </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {exporting && (
+              <div className="modal-overlay">
+                <div className="modal" ref={exportOverlayRef}>
+                  <div className="modal-header">
+                    <h3>Select Format</h3>
+                    <button className="modal-close" onClick={() => setExporting(false)}>
+                      <FontAwesomeIcon icon={faTimesCircle} />
+                    </button>
+                  </div>
+                  <div className="modal-content">
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="csv"
+                        value="csv"
+                        checked={exportFormat === 'csv'}
+                        onChange={() => setExportFormat('csv')}
+                      />
+                      <label htmlFor="csv">CSV</label>
+                    </div>
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="xlsx"
+                        value="xlsx"
+                        checked={exportFormat === 'xlsx'}
+                        onChange={() => setExportFormat('xlsx')}
+                      />
+                      <label htmlFor="xlsx">Excel</label>
+                    </div>
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="pdf"
+                        value="pdf"
+                        checked={exportFormat === 'pdf'}
+                        onChange={() => setExportFormat('pdf')}
+                      />
+                      <label htmlFor="pdf">PDF</label>
+                    </div>
+                    <div className="modal-actions">
+                      <button className="btn btn-outline" onClick={handleExport}>
+                        Export
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

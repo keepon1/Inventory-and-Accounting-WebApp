@@ -22,7 +22,7 @@ import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
-const PurchaseMetric = ({ business, user }) => {
+const PurchaseMetric = ({ business, user, access }) => {
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
@@ -352,7 +352,12 @@ const PurchaseMetric = ({ business, user }) => {
             {filteredSales.map(sale => (
               <tr key={sale.code} className="table-row">
                 <td>{format(sale.date, 'dd/MM/yyyy')}</td>
-                <td>{sale.code}</td>
+                <td>
+                  <Link to={`/dashboard/purchase/view/${sale.code}`}
+                    state={{purchase: sale.code, business, user, access}}>
+                    {sale.code}
+                  </Link>
+                </td>
                 <td>{sale.location_address__location_name}</td>
                 <td>{sale.supplier__account}</td>
                 <td>{sale.supplier__name}</td>

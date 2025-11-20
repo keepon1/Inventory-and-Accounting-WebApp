@@ -3,7 +3,7 @@ import api from "../api";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBarcode, faWeightHanging, faDollarSign, faWarehouse, faCalendarAlt, faUser, faTimesCircle, faMoneyBill, faTimeline, faNewspaper, faCartPlus, faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import './viewItem.css';
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useParams } from "react-router-dom";
 import { faBraveReverse } from "@fortawesome/free-brands-svg-icons";
 import { toast } from "react-toastify";
 
@@ -11,7 +11,7 @@ const ViewItem = (props) => {
   const [itemInfo, setItemInfo] = useState({'code':'', 'brand':'', 'name':'', 'unit':{value:''}, 'model':'', 'category':{value:''}, 'reorder':'', 'description':'', 'status': {value:'', label:''}, Cost:0, Sales:0, quantity:0, date:null, by:''});
   const navigate = useNavigate();
   const business = props.business;
-  const item = props.item;
+  const item = useParams().itemCode;
   const user = props.user;
 
   useEffect(() => {

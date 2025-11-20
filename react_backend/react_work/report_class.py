@@ -132,6 +132,7 @@ class Report_Data:
             quantity1=F("quantity"),
             unit_price=F("sales_price"),
             cost_price=F("purchase_price") if can_view_cost_profit else Value(0, output_field=DecimalField()),
+            location=F("sales__location_address__location_name"),
         ).annotate(
             total_price=F("quantity") * F("sales_price"),
         )

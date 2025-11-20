@@ -3338,16 +3338,17 @@ def fetch_purchase(request):
         search = request.data['searchQuery'].lower()
         date_search = json.loads(request.data['parsed'])
         page = int(request.data['page'])
+        format = request.data.get('format')
         company = request.user.id
 
         verify_data = (isinstance(business, str) and business.strip() and isinstance(user, str) and
                        user.strip() and isinstance(page, (float, int)) and isinstance(search, (str, int, float)) 
-                       and isinstance(date_search, dict))
+                       and isinstance(date_search, dict) and isinstance(format, str))
         
         if not verify_data:
             return Response({'status': 'error', 'message': 'invalid dats was submitted'})
         
-        result = inventory_purchase.fetch_purchase_for_main_view(user=user, date_search=date_search, business=business, search=search, company=company, page=page)
+        result = inventory_purchase.fetch_purchase_for_main_view(user=user, date_search=date_search, business=business, search=search, company=company, page=page, format=format)
     
     return Response(result)
 
@@ -3390,8 +3391,9 @@ def view_purchase(request):
         try:
             business = request.data['business']
             number = request.data['number']
+            format = request.data.get('format')
 
-            verify_data = (isinstance(business, str) and isinstance(number, str) and business.strip() and number.strip())
+            verify_data = (isinstance(business, str) and isinstance(number, str) and business.strip() and number.strip() and isinstance(format, str))
 
             if not verify_data:
                 return Response({'status': 'error', 'message': 'invalid dats was submitted'})
@@ -3400,6 +3402,8 @@ def view_purchase(request):
             purchase = models.purchase.objects.get(code=number, bussiness_name=business_query)
             items = models.purchase_history.objects.filter(purchase=purchase, bussiness_name=business_query)
 
+            company = {'business':business_query.bussiness_name, 'contact':business_query.telephone, 'email':business_query.email, 'address':business_query.address}
+
             purchase = {'supplier':purchase.supplier.name, 'number':purchase.code, 'issueDate':purchase.date, 'dueDate':purchase.due_date, 'contact':purchase.supplier.contact, 
                     'address':purchase.supplier.address, 'description':purchase.description, 'by':purchase.created_by.user_name, 'total':purchase.gross_total,
                     'loc':purchase.location_address.location_name, 'discount':purchase.discount_percentage, 'tax_levy':purchase.tax_levy_types, 'status':purchase.status}
@@ -3407,7 +3411,27 @@ def view_purchase(request):
             items = [{'category':i.item_name.category.name, 'model':i.item_name.model, 'item':i.item_name.item_name, 'brand':i.item_name.brand.name if i.item_name.brand else '', 'code':i.item_name.code,
                     'unit':i.item_name.unit.suffix, 'qty':i.quantity, 'price':i.purchase_price, 'total':i.quantity * i.purchase_price} for i in items]
             
-            data = {'customer':purchase, 'items':items}
+            if format.strip():
+                from .export_format import PDF, XLSX, CSV
+                if format.lower() == 'pdf':
+                    exporter = PDF(data=items, location=None, user=None, start=None, end=None)
+                    export_data = exporter.generate_purchase_detail_pdf(details=purchase)
+
+                    return Response({'status': 'success', 'data': export_data})
+                
+                if format.lower() == 'xlsx':
+                    exporter = XLSX(data=items, location=None, user=None, start=None, end=None)
+                    export_data = exporter.generate_purchase_detail_xlsx(details=purchase)
+
+                    return Response({'status': 'success', 'data': export_data})
+                
+                if format.lower() == 'csv':
+                    exporter = CSV(data=items, location=None, user=None, start=None, end=None)
+                    export_data = exporter.generate_purchase_detail_csv(details=purchase)
+
+                    return Response({'status': 'success', 'data': export_data})
+            
+            data = {'customer':purchase, 'items':items, 'company': company }
             
             return Response({'status': 'success', 'data': data})
         

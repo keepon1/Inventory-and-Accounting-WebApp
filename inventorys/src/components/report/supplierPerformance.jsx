@@ -357,7 +357,7 @@ const SupplierPerformance = ({ business, user, access }) => {
               <th>Discount</th>
               <th>Tax Levy</th>
               <th>Total Paid</th>
-              <th>Orders</th>
+              <th>No. of Purchases</th>
               <th>Total Spent</th>
               <th>Last Purchase</th>
             </tr>

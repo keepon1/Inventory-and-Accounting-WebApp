@@ -46,6 +46,7 @@ class FetchHistory:
             "reference",
             "real_date",
             "id",
+            "location"
         ]
 
         if self.location != "All Locations":
@@ -61,6 +62,7 @@ class FetchHistory:
                 transaction_type=Value("Purchase", output_field=CharField()),
                 reference=F("purchase__code"),
                 real_date=F("purchase__creation_date"),
+                location=F("purchase__location_address__location_name"),
             ).values(*common_fields)
 
             sales = models.sale_history.objects.filter(
@@ -75,6 +77,7 @@ class FetchHistory:
                 transaction_type=Value("Sales", output_field=CharField()),
                 reference=F("sales__code"),
                 real_date=F("sales__creation_date"),
+                location=F("sales__location_address__location_name"),
             ).values(*common_fields)
 
             transfers = models.transfer_history.objects.filter(
@@ -100,6 +103,7 @@ class FetchHistory:
                 ),              
                 reference=F("transfer__code"),
                 real_date=F("transfer__creation_date"),
+                location=Value(self.location, output_field=CharField()),
             ).exclude(transaction_type="Ignore")
             transfers = transfers.values(*common_fields)
             history_qs = transfers.union(sales, purchases, all=True).order_by("-date", "-real_date")
@@ -115,6 +119,7 @@ class FetchHistory:
                 transaction_type=Value("Purchase", output_field=CharField()),
                 reference=F("purchase__code"),
                 real_date=F("purchase__creation_date"),
+                location=F("purchase__location_address__location_name"),
             ).values(*common_fields)
 
             sales = models.sale_history.objects.filter(
@@ -128,6 +133,7 @@ class FetchHistory:
                 transaction_type=Value("Sales", output_field=CharField()),
                 reference=F("sales__code"),
                 real_date=F("sales__creation_date"),
+                location=F("sales__location_address__location_name"),
             ).values(*common_fields)
 
             history_qs = purchases.union(sales, all=True).order_by("-date", "-real_date")

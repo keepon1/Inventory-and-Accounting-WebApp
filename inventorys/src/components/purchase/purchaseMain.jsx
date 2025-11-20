@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faEye, faEdit, faTruck } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faTruck, faShareFromSquare, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import { useNavigate, Routes, Route, Link, useParams } from "react-router-dom";
 import CreatePurchase from "./createPurchase";
@@ -10,7 +10,6 @@ import { format } from "date-fns";
 import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { handleDateSearch, isCompleteInput } from "../../utils/dateformat";
 
 const PurchaseMain = ({ business, user, access }) => {
   const [purchases, setPurchases] = useState([]);
@@ -22,8 +21,13 @@ const PurchaseMain = ({ business, user, access }) => {
   const [waitTimeout, setWaitTimeout] = useState(null);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState('xlsx');
+  const overlayRef = useRef(null);
   const observer = useRef(null);
   const navigate = useNavigate();
+
+  const excpts = !(window.location.pathname.includes('view') || window.location.pathname.includes('edit') || window.location.pathname.includes('create'));
 
   const handleSearch = (e) => {
     setSearchInput(e.target.value);
@@ -40,7 +44,6 @@ const PurchaseMain = ({ business, user, access }) => {
     setWaitTimeout(timeout);
   };
 
-  // when both start and end selected, set parsed JSON for backend
   useEffect(() => {
     if (!startDate || !endDate) {
       setParsed('{}');
@@ -57,7 +60,7 @@ const PurchaseMain = ({ business, user, access }) => {
       try {
         const response = await api.post(
           'fetch_purchase',
-          { business, page, user, searchQuery, parsed},
+          { business, page, user, searchQuery, parsed, format: ''},
         );
         if (response.status === 'success'){
           setPurchases(prev => page === 1 ? response.data.purchases : [...prev, ...response.data.purchases]);
@@ -76,25 +79,62 @@ const PurchaseMain = ({ business, user, access }) => {
     fetchPurchases();
   }, [navigate, page, searchQuery, parsed]);
 
-    const observeSecondLast = useCallback(node => {
-      if (observer.current) observer.current.disconnect();
-  
-      observer.current = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting && hasNext) {
-          setPage(prev => prev + 1);
-        }
-      });
-  
-      if (node) observer.current.observe(node);
-    }, [hasNext]);
-  
-    useEffect(() => {
-      if (purchases.length >= 2) {
-        const index = purchases.length - 2;
-        const row = document.getElementById(`row-${index}`);
-        if (row) observeSecondLast(row);
+  const handleCreateOverlayClick = (event) => {
+    if (overlayRef.current && !overlayRef.current.contains(event.target)) {
+      setExporting(false);
+    }
+  };
+
+  const observeSecondLast = useCallback(node => {
+    if (observer.current) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasNext) {
+        setPage(prev => prev + 1);
       }
-    }, [purchases, observeSecondLast]);
+    });
+
+    if (node) observer.current.observe(node);
+  }, [hasNext]);
+
+  useEffect(() => {
+    if (purchases.length >= 2) {
+      const index = purchases.length - 2;
+      const row = document.getElementById(`row-${index}`);
+      if (row) observeSecondLast(row);
+    }
+  }, [purchases, observeSecondLast]);
+
+  const handleExport = async () => {
+    try {
+      const response = await api.post("fetch_purchase", {
+        business,
+        user,
+        parsed,
+        searchQuery,
+        page: 0,
+        format: exportFormat,
+      });
+      if (response.status === "success") {
+        const link = document.createElement("a");
+        link.href = `data:application/octet-stream;base64,${response.data.file}`;
+        link.download = response.data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setExporting(false);
+      } else {
+        toast.error(response.message || "Failed to export purchases");
+      }
+    } catch (error) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem("access");
+        navigate("/sign_in");
+      } else {
+        toast.error("Unexpected error while exporting purchases");
+      }
+    }
+  };
 
   return (
     <div className="dashboard-main">
@@ -102,6 +142,16 @@ const PurchaseMain = ({ business, user, access }) => {
         <h1>
           <FontAwesomeIcon icon={faTruck} className="header-icon"/> Purchases
         </h1>
+
+        {excpts && (
+          <div className="journal-controls">
+            <button className="share-icon" onClick={() => {setExporting(true);
+              document.addEventListener('mousedown', handleCreateOverlayClick);
+            }}>
+              <FontAwesomeIcon icon={faShareFromSquare}/>
+            </button>
+          </div>
+        )}
       </div>
 
       <Routes>
@@ -203,6 +253,59 @@ const PurchaseMain = ({ business, user, access }) => {
                 </tbody>
               </table>
             </div>
+
+            {exporting && (
+              <div className="modal-overlay">
+                <div className="modal" ref={overlayRef}>
+                  <div className="modal-header">
+                    <h3>Select Format</h3>
+                    <button className="modal-close" onClick={() => setExporting(false)}>
+                      <FontAwesomeIcon icon={faTimesCircle} />
+                    </button>
+                  </div>
+                  <div className="modal-content">
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="csv"
+                        value="csv"
+                        checked={exportFormat === 'csv'}
+                        onChange={() => setExportFormat('csv')}
+                      />
+                      <label htmlFor="csv">CSV</label>
+                    </div>
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="xlsx"
+                        value="xlsx"
+                        checked={exportFormat === 'xlsx'}
+                        onChange={() => setExportFormat('xlsx')}
+                      />
+                      <label htmlFor="xlsx">Excel</label>
+                    </div>
+                    <div className="export-options">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        id="pdf"
+                        value="pdf"
+                        checked={exportFormat === 'pdf'}
+                        onChange={() => setExportFormat('pdf')}
+                      />
+                      <label htmlFor="pdf">PDF</label>
+                    </div>
+                    <div className="modal-actions">
+                      <button className="btn btn-outline" onClick={handleExport}>
+                        Export
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         } />
 
