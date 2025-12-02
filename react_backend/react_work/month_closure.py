@@ -1,6 +1,7 @@
 from datetime import date
 from django.db.models import Sum, F, DecimalField, ExpressionWrapper, Value as V
 from django.db.models.functions import Coalesce
+from decimal import Decimal
 from .models import (
     item_balance, account_balance, customer_balance, supplier_balance,
     month_period, items,
@@ -105,7 +106,7 @@ def close_month_period(month: month_period):
     ]
 
     for ab in account_balance.objects.filter(period=month):
-        debit_total, credit_total = ab.debit_total, ab.credit_total
+        debit_total, credit_total = Decimal(0), Decimal(0)
 
         for ledger in ledger_models:
             agg = ledger.objects.filter(
@@ -122,7 +123,13 @@ def close_month_period(month: month_period):
 
         ab.debit_total = debit_total
         ab.credit_total = credit_total
-        ab.closing_balance = (ab.opening_balance or 0) + debit_total - credit_total
+
+        if ab.account.account_type.account_type.name in ["Assets", "Expenses"]:
+            ab.closing_balance = (ab.opening_balance or 0) + debit_total - credit_total
+
+        else:
+            ab.closing_balance = (ab.opening_balance or 0) + credit_total - debit_total
+
         ab.save()
 
         if next_month:
@@ -133,8 +140,8 @@ def close_month_period(month: month_period):
                 defaults={
                     "opening_balance": ab.closing_balance,
                     "closing_balance": 0,
-                    "debit_total": ab.debit_total,
-                    "credit_total": ab.credit_total,
+                    "debit_total": Decimal(0),
+                    "credit_total": Decimal(0),
                 }
             )
 
@@ -148,8 +155,8 @@ def close_month_period(month: month_period):
             credits=Coalesce(Sum('credit'), V(0), output_field=DecimalField())
         )
 
-        cb.debit_total = cb.debit_total + agg["debits"]
-        cb.credit_total = cb.credit_total + agg['credits']
+        cb.debit_total = agg["debits"]
+        cb.credit_total = agg['credits']
         cb.closing_balance = (cb.opening_balance or 0) + agg["debits"] - agg["credits"]
         cb.save()
 
@@ -161,8 +168,8 @@ def close_month_period(month: month_period):
                 defaults={
                     "opening_balance": cb.closing_balance,
                     "closing_balance": 0,
-                    "debit_total": cb.debit_total,
-                    "credit_total": cb.credit_total,
+                    "debit_total": Decimal(0),
+                    "credit_total": Decimal(0),
                 }
             )
 
@@ -176,8 +183,8 @@ def close_month_period(month: month_period):
             credits=Coalesce(Sum('credit'), V(0), output_field=DecimalField())
         )
 
-        sb.debit_total = sb.debit_total + agg['debits']
-        sb.credit_total = sb.credit_total + agg['credits']
+        sb.debit_total = agg['debits']
+        sb.credit_total = agg['credits']
         sb.closing_balance = (sb.opening_balance or 0) + sb.debit_total - sb.credit_total
         sb.save()
 
@@ -189,8 +196,8 @@ def close_month_period(month: month_period):
                 defaults={
                     "opening_balance": sb.closing_balance,
                     "closing_balance": 0,
-                    "debit_total": sb.debit_total,
-                    "credit_total": sb.credit_total,
+                    "debit_total": Decimal(0),
+                    "credit_total": Decimal(0),
                 }
             )
 

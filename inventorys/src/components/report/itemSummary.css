@@ -120,7 +120,6 @@
   background: white;
   padding: 0.1rem; /* 20px */
   border-radius: 0.5rem; /* 8px */
-  margin-bottom: 1.5625rem; /* 25px */
   box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.05); /* 0 2px 4px */
 }
 
@@ -287,6 +286,7 @@
   border-radius: 0.5rem; /* 8px */
   box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.05); /* 0 2px 4px */
   overflow-x: auto;
+  height: calc(100vh - 95px);
 }
 
 .stock-table h3 {
@@ -309,8 +309,9 @@
 
 .stock-table th {
   background-color: #f8f9fa;
-  font-weight: 600;
+  font-weight: bolder;
   color: #34495e;
+  font-size: large;
 }
 
 .stock-table tr:hover {

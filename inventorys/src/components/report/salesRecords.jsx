@@ -296,16 +296,19 @@ const SalesRecords = ({ business, user, access }) => {
   const totals = filteredRecords.reduce(
     (acc, record) => {
       const cost = record.cost_price * record.quantity1;
-      const profit = cost ? record.total_price - cost : 0;
+      const profit = cost ? record.total_price - record.discount + record.tax - cost : 0;
 
       acc.quantity += record.quantity1;
-      acc.totalPrice += record.total_price;
+      acc.grossTotal += record.total_price;
+      acc.totalPrice += record.total_price - record.discount + record.tax;
       acc.cost += cost;
       acc.profit += profit;
+      acc.discount += record.discount;
+      acc.tax += record.tax;
 
       return acc;
     },
-    { quantity: 0, totalPrice: 0, cost: 0, profit: 0 }
+    { quantity: 0, totalPrice: 0, cost: 0, profit: 0, discount: 0, tax: 0, grossTotal: 0 }
   );
 
   if (!hasAccess) {
@@ -493,6 +496,7 @@ const SalesRecords = ({ business, user, access }) => {
                 <th>Category</th>
                 <th>Quantity</th>
                 <th>Unit Price</th>
+                <th>Discount</th>
                 <th>Total Price</th>
                 <th>Cost</th>
                 <th>Profit</th>
@@ -502,7 +506,7 @@ const SalesRecords = ({ business, user, access }) => {
               {invoiceList.flatMap(inv =>
                 inv.items.map(item => {
                   const cost = item.cost_price * item.quantity1;
-                  const profit = cost ? item.total_price - cost : 0;
+                  const profit = cost ? item.total_price - item.discount + item.tax - cost : 0;
                   return (
                     <tr key={`${inv.invoice_code}-${item.item_name1}`} className="table-row">
                       <td>{format(inv.sale_date, 'dd/MM/yyyy')}</td>
@@ -517,8 +521,9 @@ const SalesRecords = ({ business, user, access }) => {
                       <td>{item.item_name1}</td>
                       <td>{item.category}</td>
                       <td style={{textAlign: 'center'}}>{item.quantity1}</td>
-                      <td>GHS {item.unit_price.toFixed(2)}</td>
-                      <td>GHS {item.total_price.toFixed(2)}</td>
+                      <td style={{backgroundColor: '#f5f3f3ff'}}>GHS {item.unit_price.toFixed(2)}</td>
+                      <td>GHS {item.discount.toFixed(2)}</td>
+                      <td style={{backgroundColor: '#E5E1E1'}}>GHS {(item.total_price - item.discount + item.tax).toFixed(2)}</td>
                       <td>GHS {cost.toFixed(2)}</td>
                       <td className={profit >= 0 ? 'profit-positive' : 'profit-negative'}>
                         GHS {profit.toFixed(2)}
@@ -530,12 +535,13 @@ const SalesRecords = ({ business, user, access }) => {
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan="5" style={{ textAlign: 'right', fontWeight: 'bold' }}>Totals:</td>
-                <td style={{textAlign: 'center'}}>{totals.quantity}</td>
-                <td></td>
-                <td>GHS {totals.totalPrice.toFixed(2)}</td>
-                <td>GHS {totals.cost.toFixed(2)}</td>
-                <td className={totals.profit >= 0 ? 'profit-positive' : 'profit-negative'}>
+                <td colSpan="6" style={{ textAlign: 'right', fontWeight: 'bold', fontSize: 'large', backgroundColor: '#f5f3f3ff' }}>Totals:</td>
+                <td style={{textAlign: 'center' , backgroundColor: '#dfd8d8ff'}}>{totals.quantity}</td>
+                <td style={{fontWeight: 'bold', backgroundColor: '#dfd8d8ff'}}>GHS {totals.grossTotal}</td>
+                <td style={{fontWeight: 'bold', backgroundColor: '#dfd8d8ff'}}>GHS {totals.discount.toFixed(2)}</td>
+                <td style={{fontWeight: 'bold', backgroundColor: '#decbcbff'}}>GHS {totals.totalPrice.toFixed(2)}</td>
+                <td style={{fontWeight: 'bold', backgroundColor: '#dfd8d8ff'}}>GHS {totals.cost.toFixed(2)}</td>
+                <td className={totals.profit >= 0 ? 'profit-positive' : 'profit-negative'} style={{fontWeight: 'bold', backgroundColor: '#dfd8d8ff'}}>
                   GHS {totals.profit.toFixed(2)}
                 </td>
               </tr>

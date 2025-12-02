@@ -135,12 +135,20 @@ class Report_Data:
             location=F("sales__location_address__location_name"),
         ).annotate(
             total_price=F("quantity") * F("sales_price"),
+            discount=ExpressionWrapper(
+                F("sales__discount") * F("quantity") / F("sales__total_quantity"),
+                output_field=DecimalField()
+            ),
+            tax=ExpressionWrapper(
+                F("sales__tax_levy") * F("quantity") / F("sales__total_quantity"),
+                output_field=DecimalField()
+            ),
         )
 
         summary = qs.aggregate(
             total_sales=Sum(F("quantity") * F("sales_price")),
             total_quantity=Sum("quantity"),
-            unique_customers=Count("sales__customer_name", distinct=True),
+            unique_item=Count("item_name__item_name", distinct=True),
         )
 
         top_items = qs.values(
@@ -153,7 +161,7 @@ class Report_Data:
         by_category = (
             qs.annotate(
                 total_value=ExpressionWrapper(
-                    F('quantity') * F('sales_price'),
+                    F('quantity') * F('sales_price') - F('sales__discount') * F('quantity') / F('sales__total_quantity') + F('sales__tax_levy') * F('quantity') / F('sales__total_quantity'),
                     output_field=DecimalField()
                 ),
 
@@ -174,7 +182,7 @@ class Report_Data:
         by_brand = (
             qs.annotate(
                 total_value=ExpressionWrapper(
-                    F('quantity') * F('sales_price'),
+                    F('quantity') * F('sales_price') - F('sales__discount') * F('quantity') / F('sales__total_quantity') + F('sales__tax_levy') * F('quantity') / F('sales__total_quantity'),
                     output_field=DecimalField()
                 ),
 
@@ -470,13 +478,13 @@ class Financial_Report:
                 cogs = models.account_balance.objects.filter(
                     period=m,
                     account__name__icontains="Cost of Goods Sold"
-                ).aggregate(total=Sum("closing_balance"))["total"] or 0
+                ).aggregate(total=Sum(F('debit_total') - F('credit_total')))["total"] or 0
 
                 other_expenses_qs = models.account_balance.objects.filter(
                     period=m,
                     account__account_type__account_type__name="Expenses"
                 ).exclude(account__name__icontains="Cost of Goods Sold") \
-                .values("account__name").annotate(total=Sum("closing_balance"))
+                .values("account__name").annotate(total=Sum(F('debit_total') - F('credit_total')))
 
                 total_expenses = sum(e["total"] for e in other_expenses_qs)
                 net_profit = revenue - cogs - total_expenses
@@ -509,13 +517,13 @@ class Financial_Report:
                 cogs = models.account_balance.objects.filter(
                     period__in=months,
                     account__name__icontains="Cost of Goods Sold"
-                ).aggregate(total=Sum("closing_balance"))["total"] or 0
+                ).aggregate(total=Sum(F('debit_total') - F('credit_total')))["total"] or 0
 
                 other_expenses_qs = models.account_balance.objects.filter(
                     period__in=months,
                     account__account_type__account_type__name="Expenses"
                 ).exclude(account__name__icontains="Cost of Goods Sold") \
-                .values("account__name").annotate(total=Sum("closing_balance"))
+                .values("account__name").annotate(total=Sum(F('debit_total') - F('credit_total')))
 
                 total_expenses = sum(e["total"] for e in other_expenses_qs)
                 net_profit = revenue - cogs - total_expenses
@@ -548,13 +556,13 @@ class Financial_Report:
                 cogs = models.account_balance.objects.filter(
                     period__in=months,
                     account__name__icontains="Cost of Goods Sold"
-                ).aggregate(total=Sum("closing_balance"))["total"] or 0
+                ).aggregate(total=Sum(F('debit_total') - F('credit_total')))["total"] or 0
 
                 other_expenses_qs = models.account_balance.objects.filter(
                     period__in=months,
                     account__account_type__account_type__name="Expenses"
                 ).exclude(account__name__icontains="Cost of Goods Sold") \
-                .values("account__name").annotate(total=Sum("closing_balance"))
+                .values("account__name").annotate(total=Sum(F('debit_total') - F('credit_total')))
 
                 total_expenses = sum(e["total"] for e in other_expenses_qs)
                 net_profit = revenue - cogs - total_expenses

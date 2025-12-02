@@ -25,6 +25,7 @@ const CreateSales = ({ business, user, access }) => {
     account: null,
     terms: {value: 'Full Payment', label: 'Full Payment'},
     partPaymentAmount: 0,
+    fixedDiscount: 0,
   });
   const [items, setItems] = useState([]);
   const [customer, setCustomer] = useState([]);
@@ -96,8 +97,13 @@ const CreateSales = ({ business, user, access }) => {
   }, []);
 
   const calculateTotals = () => {
-    const subtotal = salesItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
-    const discountAmount = subtotal * (sales.discount / 100);
+    const subtotal = salesItems.reduce((sum, item) => sum + (Number(item.qty) * Number(item.price)), 0);
+
+    // if fixedDiscount > 0 use it, otherwise use percentage
+    const discountAmount = sales.fixedDiscount && Number(sales.fixedDiscount) > 0
+      ? Math.min(Number(sales.fixedDiscount), subtotal) // don't exceed subtotal
+      : subtotal * (Number(sales.discount) / 100);
+
     const netTotal = subtotal - discountAmount;
     
     const levyAmount = sales.selectedLevi.reduce((sum, levy) => {
@@ -112,7 +118,22 @@ const CreateSales = ({ business, user, access }) => {
       grandTotal: netTotal + levyAmount
     };
   };
-
+  
+  const handleFixedDiscountChange = (value) => {
+    const valueFixed = parseFloat(value);
+    const fixed = isNaN(valueFixed) ? 0 : valueFixed;
+    setSales(prev => ({ ...prev, fixedDiscount: valueFixed }));
+  };
+  
+  useEffect(() => {
+    if (sales.fixedDiscount && Number(sales.fixedDiscount) > 0) {
+      const subtotal = salesItems.reduce((sum, item) => sum + (Number(item.qty) * Number(item.price)), 0);
+      const discountPercent = subtotal > 0 ? Number(((Number(sales.fixedDiscount) / subtotal) * 100).toFixed(4)) : 0;
+      setSales(prev => ({ ...prev, discount: discountPercent }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sales.fixedDiscount, salesItems]);
+  
   const handleAddItem = async () => {
     if (!sales.location) {
       toast.info('Please select a location');
@@ -304,7 +325,6 @@ const CreateSales = ({ business, user, access }) => {
 
   const totals = calculateTotals();
 
-  // Safe helpers for print rendering to avoid runtime errors
   const formattedPrintDate = printData?.date ? format(new Date(printData.date), 'dd/MM/yyyy') : '';
   const pdTotals = printData?.totals || { subtotal: 0, discountAmount: 0, netTotal: 0, levyAmount: 0, grandTotal: 0 };
   const pdItems = Array.isArray(printData?.items) ? printData.items : [];
@@ -411,7 +431,18 @@ const CreateSales = ({ business, user, access }) => {
                 </div>
 
                 <div className="ivi_subboxes">
-                    <div className="ivi_holder_box">
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Discount (Fixed Amount)</label>
+                    <input
+                      type="number"
+                      className="ivi_input"
+                      min="0"
+                      value={sales.fixedDiscount}
+                      onChange={e => handleFixedDiscountChange(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="ivi_holder_box">
                     <label className="ivi_label">Discount (%)</label>
                     <input
                         type="number"
@@ -419,23 +450,28 @@ const CreateSales = ({ business, user, access }) => {
                         min="0"
                         max="100"
                         value={sales.discount}
-                        onChange={e => setSales({...sales, discount: e.target.value})}
+                        onChange={e => {
+                          // user changing percentage should clear fixedDiscount (unlock)
+                          const val = parseFloat(e.target.value);
+                          setSales(prev => ({ ...prev, discount: isNaN(val) ? 0 : val, fixedDiscount: 0 }));
+                        }}
+                        disabled={Number(sales.fixedDiscount) > 0} // lock when fixed amount provided
                     />
-                    </div>
+                  </div>
                 
-                    <div className="ivi_holder_box">
-                      <label className="ivi_label">Taxes / Levies</label>
-                      <AsyncSelect
-                        isMulti
-                        cacheOptions
-                        defaultOptions={taxLevy}
-                        className="ivi_select"
-                        classNamePrefix="ivi_select"
-                        loadOptions={taxLevyLoadOptions(business)}
-                        value={sales.selectedLevi}
-                        onChange={selected => setSales({...sales, selectedLevi: selected})}
-                      />
-                    </div>                
+                  <div className="ivi_holder_box">
+                    <label className="ivi_label">Taxes / Levies</label>
+                    <AsyncSelect
+                      isMulti
+                      cacheOptions
+                      defaultOptions={taxLevy}
+                      className="ivi_select"
+                      classNamePrefix="ivi_select"
+                      loadOptions={taxLevyLoadOptions(business)}
+                      value={sales.selectedLevi}
+                      onChange={selected => setSales({...sales, selectedLevi: selected})}
+                    />
+                  </div>                
                 </div>
                 </>
               ):(
@@ -543,6 +579,17 @@ const CreateSales = ({ business, user, access }) => {
 
                 <div className="ivi_subboxes">
                   <div className="ivi_holder_box">
+                    <label className="ivi_label">Fixed Discount Amount</label>
+                    <input
+                      type="number"
+                      className="ivi_input"
+                      min="0"
+                      value={sales.fixedDiscount}
+                      onChange={e => handleFixedDiscountChange(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="ivi_holder_box">
                     <label className="ivi_label">Discount (%)</label>
                     <input
                       type="number"
@@ -550,7 +597,11 @@ const CreateSales = ({ business, user, access }) => {
                       min="0"
                       max="100"
                       value={sales.discount}
-                      onChange={e => setSales({...sales, discount: e.target.value})}
+                      onChange={e => {
+                        const val = parseFloat(e.target.value);
+                        setSales(prev => ({ ...prev, discount: isNaN(val) ? 0 : val, fixedDiscount: 0 }));
+                      }}
+                      disabled={Number(sales.fixedDiscount) > 0}
                     />
                   </div>
                   <div className="ivi_holder_box">

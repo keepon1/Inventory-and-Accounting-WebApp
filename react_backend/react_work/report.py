@@ -15,7 +15,7 @@ def fetch_items_for_report(business, company, user, location):
         business_obj = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_obj, user_name=user)
 
-        if not user_query.report_access and not user_query.admin:
+        if not (user_query.report_access or user_query.admin):
             return 'no access'
         
         categories = [{'value': 'All Categories', 'label':'All Categories'}]
@@ -40,7 +40,7 @@ def fetch_items_for_report(business, company, user, location):
 
         report_permission, created = models.report_permissions.objects.get_or_create(user=user_query, bussiness_name=business_obj)
 
-        if report_permission is None or not report_permission.item_summary or not report_permission.user.admin:
+        if report_permission is None or not (report_permission.item_summary or report_permission.user.admin):
             return 'no access'
            
         if user_query.admin and (not location or location.lower() == 'all locations'):
@@ -106,12 +106,15 @@ def fetch_data_for_report_movements(business, company, user, location, start, en
         business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
-        if not user_query.report_access and not user_query.admin:
+        if not (user_query.report_access or user_query.admin):
             return 'no access'
         
         report_permission, created = models.report_permissions.objects.get_or_create(user=user_query, bussiness_name=business_query)
 
-        if report_permission is None or not report_permission.stock_movement or not report_permission.user.admin:
+        if report_permission is None:
+            return 'no access'
+
+        if not (report_permission.stock_movement or report_permission.user.admin):
             return 'no access'
         
         if user_query.admin and location.lower() == 'all locations':
@@ -171,7 +174,7 @@ def fetch_data_for_sales_performance(business, company, user, location, start, e
         business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
-        if not user_query.report_access and not user_query.admin:
+        if not (user_query.report_access or user_query.admin):
             return 'no access'
         
         report_permission, created = models.report_permissions.objects.get_or_create(user=user_query, bussiness_name=business_query)
@@ -205,7 +208,7 @@ def fetch_data_for_sales_performance(business, company, user, location, start, e
 
         elif reference == 'customer_aging':
 
-            if report_permission.aged_payables is False:
+            if report_permission.aged_payables is False and report_permission.user.admin is False:
                 return 'no access'
             
             sales_data = report_class.Report_Data(
@@ -218,7 +221,7 @@ def fetch_data_for_sales_performance(business, company, user, location, start, e
 
         elif reference == 'supplier_performance':
 
-            if report_permission.supplier_insights is False:
+            if report_permission.supplier_insights is False and report_permission.user.admin is False:
                 return 'no access'
             
             sales_data = report_class.Report_Data(
@@ -232,7 +235,7 @@ def fetch_data_for_sales_performance(business, company, user, location, start, e
 
         elif reference == 'purchase_metric':
 
-            if report_permission.purchase_metrics is False:
+            if report_permission.purchase_metrics is False and report_permission.user.admin is False:
                 return 'no access'
             
             sales_data = report_class.Report_Data(
@@ -246,7 +249,7 @@ def fetch_data_for_sales_performance(business, company, user, location, start, e
 
         elif reference == 'sales_records':
 
-            if report_permission.sales_records is False:
+            if report_permission.sales_records is False and report_permission.user.admin is False:
                 return 'no access'
 
             sales_data = report_class.Report_Data(
@@ -308,7 +311,7 @@ def fetch_data_for_dashboard(business, company, user, location):
         business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
-        if not user_query.report_access and not user_query.admin:
+        if not (user_query.report_access or user_query.admin):
             return 'no access'
         
         if user_query.admin and location.lower() == 'all locations':
@@ -377,12 +380,15 @@ def fetch_pl_report(business, user, start, end, period_type, company):
         business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
-        if not user_query.report_access and not user_query.admin:
+        if not (user_query.report_access or user_query.admin):
             return 'no access'
         
         report_permission, created = models.report_permissions.objects.get_or_create(user=user_query, bussiness_name=business_query)
 
-        if report_permission is None or report_permission.profit_and_loss is False or not report_permission.user.admin:
+        if report_permission is None:
+            return 'no access'
+
+        if report_permission.profit_and_loss is False and report_permission.user.admin is False:
             return 'no access'
 
         data = report_class.Financial_Report(business=business_query, start=start, end=end, period_type=period_type).pl_data()
@@ -411,7 +417,10 @@ def fetch_iv_report(business, user, start, end, category, company):
         
         report_permission, created = models.report_permissions.objects.get_or_create(user=user_query, bussiness_name=business_query)
 
-        if report_permission is None or report_permission.inventory_valuation is False or not report_permission.user.admin:
+        if report_permission is None:
+            return 'no access'
+
+        if report_permission.inventory_valuation is False and report_permission.user.admin is False:
             return 'no access'
 
         data = report_class.Inventory_Valuation(business=business_query, start=start, end=end, category=category).close_inventory()
@@ -435,12 +444,15 @@ def fetch_tb_report(business, user, start, end, company):
         business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
-        if not user_query.report_access and not user_query.admin:
+        if not (user_query.report_access or user_query.admin):
             return 'no access'
         
         report_permission, created = models.report_permissions.objects.get_or_create(user=user_query, bussiness_name=business_query)
 
-        if report_permission is None or report_permission.trial_balance is False or not report_permission.user.admin:
+        if report_permission is None:
+            return 'no access'
+
+        if report_permission.trial_balance is False and report_permission.user.admin is False:
             return 'no access'
 
         data = report_class.Trial_Balance(business=business_query, start=start, end=end).tb_data()

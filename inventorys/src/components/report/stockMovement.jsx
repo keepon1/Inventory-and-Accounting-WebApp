@@ -44,7 +44,7 @@ const StockMovement = ({ business, user, access }) => {
   const [detailsCollapsed, setDetailsCollapsed] = useState(false);
   const [locationFilter, setLocationFilter] = useState({value: 'All Locations', label: 'All Locations'});
   const [typeFilter, setTypeFilter] = useState({value: 'all', label: 'All Types'});
-  const [hasAccess, setHasAccess] = useState(false);
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {

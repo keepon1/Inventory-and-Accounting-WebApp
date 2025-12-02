@@ -63,7 +63,7 @@
     width: 100%;
     overflow-x: scroll;
     overflow-y: scroll;
-    height: 70.2vh;
+    height: calc(100vh - 225px);
   }
   
   .items-table {

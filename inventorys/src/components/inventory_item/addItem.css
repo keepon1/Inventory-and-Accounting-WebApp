@@ -249,12 +249,13 @@ table, input {
   }
 
 .ia_main_table th {
-    background: #f8f9fa;
+    background: #eff2f5;
     padding: 1rem;
     text-align: left;
     border-bottom: 2px solid #dee2e6;
     font-weight: bolder;
 }
+
 
 .ia_main_table td {
     padding: 1rem;
