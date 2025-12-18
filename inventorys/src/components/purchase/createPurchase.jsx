@@ -223,7 +223,11 @@ const CreatePurchase = ({ business, user, access }) => {
             partPaymentAmount: purchase.partPaymentAmount,
             items: purchaseItems,
             totals: calculateTotals(),
-            levy: purchase.selectedLevi
+            levy: purchase.selectedLevi,
+            time: response.data.time,
+            address: response.data.address,
+            phone: response.data.phone,
+            email: response.data.email,
           });
           setTimeout(() => {
             window.print();
@@ -568,16 +572,25 @@ const CreatePurchase = ({ business, user, access }) => {
           </div>
 
           <div className="info-row" style={{ marginBottom: "4px" }}>
-            <div style={{ textAlign: "left", width: "60%" }}>
-              <div><strong>Supplier: {printData.supplier}</strong></div>
-              {printData.description && <div><strong>Desc: {printData.description}</strong></div>}
+            <div style={{ textAlign: "left", width: "55%" }}>
+              <div><strong>Addr: {printData.address}</strong></div>
+              <div><strong>Tel: {printData.phone}</strong></div>
+              <div><strong>Email: {printData.email}</strong></div>
             </div>
-            <div style={{ textAlign: "right", width: "38%" }}>
-              <div><strong>Inv#: {printData.id}</strong></div>
+            <div style={{ textAlign: "right", width: "43%" }}>
+              <div><strong>Supplier: {printData.supplier}</strong></div>
+              <div><strong>#: {printData.id}</strong></div>
               <div><strong>Date: {formattedPrintDate}</strong></div>
+              <div><strong>Time: {printData.time}</strong></div>
               {printData.dueDate && <div><strong>Due: {format(new Date(printData.dueDate), 'dd/MM/yyyy')}</strong></div>}
             </div>
           </div>
+
+          {printData.description && (
+            <div style={{ marginBottom: "4px", fontSize: "11px" }}>
+              <strong>Description:</strong> {printData.description}
+            </div>
+          )}
 
           <div style={{ borderTop: "1px dashed #000", marginTop: "4px" }} />
 

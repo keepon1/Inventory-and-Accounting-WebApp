@@ -182,7 +182,8 @@ const CreateTransfer = ({ business, user, access }) => {
             date: transfer.issueDate,
             description: transfer.description,
             items: transferItems,
-            total: transferItems.reduce((sum, item) => sum + Number(item.qty), 0)
+            total: transferItems.reduce((sum, item) => sum + Number(item.qty), 0),
+            time: response.data.time,
           });
           setTimeout(() => {
             window.print();
@@ -415,15 +416,16 @@ const CreateTransfer = ({ business, user, access }) => {
           </div>
 
           <div className="info-row" style={{ marginBottom: "4px" }}>
-            <div style={{ textAlign: "left", width: "60%" }}>
-              <div><strong>Transfer#: {printData.id}</strong></div>
+            <div style={{ textAlign: "left", width: "55%" }}>
+              <div><strong>No.: {printData.id}</strong></div>
               <div><strong>From: {printData.from}</strong></div>
               <div><strong>To: {printData.to}</strong></div>
             </div>
-            <div style={{ textAlign: "right", width: "38%" }}>
+            <div style={{ textAlign: "right", width: "44%" }}>
               <div><strong>Date: {format(new Date(printData.date), 'dd/MM/yyyy')}</strong></div>
               <div><strong>Status: {printData.status}</strong></div>
               <div><strong>By: {printData.user}</strong></div>
+              <div><strong>Time: {printData.time}</strong></div>
             </div>
           </div>
 

@@ -502,7 +502,7 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
 
         models.tracking_history.objects.create(user=user_query, head=new_code, area='Create Sales', bussiness_name=business_query)
 
-        return {"status": "success", "message": "Sales created successfully", "data": {"code": new_code, "address": business_query.address, "phone": business_query.telephone, "email": business_query.email}}
+        return {"status": "success", "message": "Sales created successfully", "data": {"code": new_code, "address": business_query.address, "phone": business_query.telephone, "email": business_query.email, 'time': sale_info.creation_date.strftime('%H:%M:%S')}}
 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")

@@ -19,6 +19,7 @@ const ViewTransfer = (props) => {
     model: "",
     unit: "",
     status: "",
+    time: null,
   });
   const [items, setItems] = useState([]);
   const [printData, setPrintData] = useState(null);
@@ -56,6 +57,7 @@ const ViewTransfer = (props) => {
             model: detail.model,
             unit: detail.unit,
             status: detail.status,
+            time: detail.time,
           });
           setItems(items);
         } else {
@@ -166,7 +168,8 @@ const ViewTransfer = (props) => {
       date: new Date(transfer.issueDate),
       status: transfer.status,
       items,
-      total: items.reduce((sum, item) => sum + Number(item.qty), 0)
+      total: items.reduce((sum, item) => sum + Number(item.qty), 0),
+      time: transfer.time,
     });
   };
 
@@ -235,7 +238,7 @@ const ViewTransfer = (props) => {
               <div className="ivi_subboxes">
                 <div className="ivi_holder_box">
                   <label className="ivi_label">Date</label>
-                  <input className="ivi_input" value={format(transfer.issueDate, 'dd/MM/yyyy')} readOnly title={format(transfer.issueDate, 'dd/MM/yyyy')} />
+                  <input className="ivi_input" value={`${format(transfer.issueDate, 'dd/MM/yyyy')} - ${transfer.time}`} readOnly title={format(transfer.issueDate, 'dd/MM/yyyy')} />
                 </div>
                 <div className="ivi_holder_box">
                   <label className="ivi_label">Total Quantity</label>
@@ -379,13 +382,14 @@ const ViewTransfer = (props) => {
           </div>
 
           <div className="info-row" style={{ marginBottom: "4px" }}>
-            <div style={{ textAlign: "left", width: "60%" }}>
-              <div><strong>Transfer#: {printData.id}</strong></div>
+            <div style={{ textAlign: "left", width: "55%" }}>
+              <div><strong>No.: {printData.id}</strong></div>
               <div><strong>From: {printData.from}</strong></div>
               <div><strong>To: {printData.to}</strong></div>
             </div>
-            <div style={{ textAlign: "right", width: "38%" }}>
+            <div style={{ textAlign: "right", width: "44%" }}>
               <div><strong>Date: {format(printData.date, 'dd/MM/yyyy')}</strong></div>
+              <div><strong>Time: {printData.time}</strong></div>
               <div><strong>Status: {printData.status}</strong></div>
               <div><strong>By: {printData.user}</strong></div>
             </div>

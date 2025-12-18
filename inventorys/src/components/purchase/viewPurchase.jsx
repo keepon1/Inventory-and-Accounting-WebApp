@@ -22,6 +22,7 @@ const ViewPurchase = ({ purchase, business, access, user }) => {
     total: 0,
     items: [],
     status: '',
+    time: null,
   });
 
   const [company, setCompany] = useState({
@@ -149,7 +150,8 @@ const ViewPurchase = ({ purchase, business, access, user }) => {
       items: purchaseData.items,
       totals: total2(),
       tax_levy: purchaseData.tax_levy,
-      rate: purchaseData.rate
+      rate: purchaseData.rate,
+      time: purchaseData.time,
     });
   };
 
@@ -224,8 +226,8 @@ const ViewPurchase = ({ purchase, business, access, user }) => {
 
               <div className="ivi_subboxes">
                 <div className="ivi_holder_box">
-                  <label>Issue Date</label>
-                  <input className="ivi_input" value={format(purchaseData.issueDate, 'dd/MM/yyyy')} readOnly title={purchaseData.issueDate} />
+                  <label>Date (Time)</label>
+                  <input className="ivi_input" value={`${format(purchaseData.issueDate, 'dd/MM/yyyy')} - ${purchaseData.time}`} readOnly title={`${format(purchaseData.issueDate, 'dd/MM/yyyy')} - ${purchaseData.time}`} />
                 </div>
                 <div className="ivi_holder_box">
                   <label>Due Date</label>
@@ -389,16 +391,25 @@ const ViewPurchase = ({ purchase, business, access, user }) => {
           </div>
 
           <div className="info-row" style={{ marginBottom: "4px" }}>
-            <div style={{ textAlign: "left", width: "60%" }}>
+            <div style={{ textAlign: "left", width: "55%" }}>
               {printData.company.address && <div><strong>Addr: {printData.company.address}</strong></div>}
               {printData.company.contact && <div><strong>Tel: {printData.company.contact}</strong></div>}
+              {printData.company.email && <div><strong>Email: {printData.company.email}</strong></div>}
             </div>
-            <div style={{ textAlign: "right", width: "38%" }}>
+            <div style={{ textAlign: "right", width: "43%" }}>
               <div><strong>Supplier: {printData.supplier}</strong></div>
-              <div><strong>Inv#: {printData.id}</strong></div>
+              <div><strong>#: {printData.id}</strong></div>
               <div><strong>Date: {format(printData.date, 'dd/MM/yyyy')}</strong></div>
+              <div><strong>Time: {printData.time}</strong></div>
+              {printData.dueDate && <div><strong>Due: {format(new Date(printData.dueDate), 'dd/MM/yyyy')}</strong></div>}
             </div>
           </div>
+
+          {printData.description && (
+            <div style={{ marginBottom: "4px", fontSize: "11px" }}>
+              <strong>Description:</strong> {printData.description}
+            </div>
+          )}
 
           <div style={{ borderTop: "1px dashed #000", marginTop: "4px" }} />
 

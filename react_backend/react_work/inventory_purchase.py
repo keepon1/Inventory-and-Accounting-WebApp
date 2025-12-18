@@ -321,7 +321,7 @@ def post_and_save_purchase(business, user, company, location, data, totals, item
             supplier_query.save()
 
         models.tracking_history.objects.create(user=user_query, head=new_code, area='Create Purchase', bussiness_name=business_query)          
-        return {'status': 'success', 'message': 'Purchase invoice created successfully', 'data': {'code': new_code, 'address': business_query.address, 'phone': business_query.telephone, 'email': business_query.email}}
+        return {'status': 'success', 'message': 'Purchase invoice created successfully', 'data': {'code': new_code, 'address': business_query.address, 'phone': business_query.telephone, 'email': business_query.email, 'time': purchase_info.creation_date.strftime('%H:%M:%S')}}
 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")

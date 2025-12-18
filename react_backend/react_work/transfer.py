@@ -160,7 +160,7 @@ def create_transfer(items, business, user, company, description, date, source, d
                 area='Create transfer', bussiness_name=business_query
             )
 
-            return {"status": "success", "message": "Transfer created successfully", "data": {'id':new_code, 'status': transfer.status}}
+            return {"status": "success", "message": "Transfer created successfully", "data": {'id':new_code, 'status': transfer.status, 'time': transfer.creation_date.strftime("%H:%M:%S")}}
 
     except models.bussiness.DoesNotExist:
         logger.warning(f"Business '{business}' not found.")
@@ -202,7 +202,8 @@ def view_transfer(business, transfer_no, format, company):
             'description': transfer_query.description,
             'by': transfer_query.created_by.user_name,
             'total': transfer_query.total_quantity,
-            'status': transfer_query.status
+            'status': transfer_query.status,
+            'time': transfer_query.creation_date.strftime('%H:%M:%S')
         }
 
         if format.strip():

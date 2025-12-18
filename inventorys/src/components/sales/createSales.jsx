@@ -298,7 +298,8 @@ const CreateSales = ({ business, user, access }) => {
             phone: response.data.phone,
             email: response.data.email,
             items: salesItems,
-            totals: calculateTotals()
+            totals: calculateTotals(),
+            time: response.data.time,
           });
           setTimeout(() => {
             window.print();
@@ -793,14 +794,15 @@ const CreateSales = ({ business, user, access }) => {
            </div>
  
            <div className="info-row" style={{ marginBottom: "4px" }}>
-             <div style={{ textAlign: "left", width: "60%" }}>
+             <div style={{ textAlign: "left", width: "55%" }}>
                {printData.address && <div><strong>Addr: {printData.address}</strong></div>}
                {printData.phone && <div><strong>Tel: {printData.phone}</strong></div>}
              </div>
-             <div style={{ textAlign: "right", width: "38%" }}>
-               <div><strong>Customer: {printData.customer}</strong></div>
-               <div><strong>Inv#:{printData.id}</strong></div>
-               <div><strong>Date: {formattedPrintDate}</strong></div>
+             <div style={{ textAlign: "right", width: "44%" }}>
+                <div><strong>Customer: {printData.customer}</strong></div>
+                <div><strong>No:{printData.id}</strong></div>
+                <div><strong>Date: {formattedPrintDate}</strong></div>
+                <div><strong>Time: {printData.time}</strong></div>
              </div>
            </div>
  

@@ -136,18 +136,16 @@ class Report_Data:
         ).annotate(
             total_price=F("quantity") * F("sales_price"),
             discount=ExpressionWrapper(
-                F("sales__discount") * F("quantity") / F("sales__total_quantity"),
+                F("sales__discount") * (F("quantity") * F("sales_price")) / F("sales__sub_total"),
                 output_field=DecimalField()
             ),
             tax=ExpressionWrapper(
-                F("sales__tax_levy") * F("quantity") / F("sales__total_quantity"),
+                F("sales__tax_levy") * (F("quantity") * F("sales_price")) / F("sales__sub_total"),
                 output_field=DecimalField()
             ),
         )
 
         summary = qs.aggregate(
-            total_sales=Sum(F("quantity") * F("sales_price")),
-            total_quantity=Sum("quantity"),
             unique_item=Count("item_name__item_name", distinct=True),
         )
 
@@ -161,7 +159,7 @@ class Report_Data:
         by_category = (
             qs.annotate(
                 total_value=ExpressionWrapper(
-                    F('quantity') * F('sales_price') - F('sales__discount') * F('quantity') / F('sales__total_quantity') + F('sales__tax_levy') * F('quantity') / F('sales__total_quantity'),
+                    F('quantity') * F('sales_price') - F('sales__discount') * (F('quantity') * F('sales_price')) / F('sales__sub_total') + F('sales__tax_levy') * (F('quantity') * F('sales_price')) / F('sales__sub_total'),
                     output_field=DecimalField()
                 ),
 
@@ -182,7 +180,7 @@ class Report_Data:
         by_brand = (
             qs.annotate(
                 total_value=ExpressionWrapper(
-                    F('quantity') * F('sales_price') - F('sales__discount') * F('quantity') / F('sales__total_quantity') + F('sales__tax_levy') * F('quantity') / F('sales__total_quantity'),
+                    F('quantity') * F('sales_price') - F('sales__discount') * (F('quantity') * F('sales_price')) / F('sales__sub_total') + F('sales__tax_levy') * (F('quantity') * F('sales_price')) / F('sales__sub_total'),
                     output_field=DecimalField()
                 ),
 

@@ -3236,7 +3236,8 @@ def view_sale(request):
 
             sales = {'customer':sales.customer_name, 'number':sales.code, 'issueDate':sales.date, 'dueDate':sales.due_date, 'contact': sales.customer_contact if sales.customer_info.name == 'Regular Customer' else sales.customer_info.contact, 
                     'address':sales.customer_info.address, 'description':sales.description, 'by':sales.created_by.user_name, 'total':sales.gross_total, 'customer_info':sales.customer_info.name,
-                    'loc':sales.location_address.location_name, 'discount':sales.discount_percentage, 'tax_levy':sales.tax_levy_types, 'type':sales.type, 'status':sales.status}
+                    'loc':sales.location_address.location_name, 'discount':sales.discount_percentage, 'tax_levy':sales.tax_levy_types, 'type':sales.type, 'status':sales.status,
+                    'time': sales.creation_date.strftime('%H:%M:%S')}
             
             items = [{'category':i.item_name.category.name, 'model':i.item_name.model, 'item':i.item_name.item_name, 'brand':i.item_name.brand.name if i.item_name.brand else '', 'code':i.item_name.code,
                     'unit':i.item_name.unit.suffix, 'qty':i.quantity, 'price':i.sales_price, 'total':i.quantity * i.purchase_price} for i in items]
@@ -3406,7 +3407,8 @@ def view_purchase(request):
 
             purchase = {'supplier':purchase.supplier.name, 'number':purchase.code, 'issueDate':purchase.date, 'dueDate':purchase.due_date, 'contact':purchase.supplier.contact, 
                     'address':purchase.supplier.address, 'description':purchase.description, 'by':purchase.created_by.user_name, 'total':purchase.gross_total,
-                    'loc':purchase.location_address.location_name, 'discount':purchase.discount_percentage, 'tax_levy':purchase.tax_levy_types, 'status':purchase.status}
+                    'loc':purchase.location_address.location_name, 'discount':purchase.discount_percentage, 'tax_levy':purchase.tax_levy_types, 'status':purchase.status,
+                    'time': purchase.creation_date.strftime('%H:%M:%S')}
             
             items = [{'category':i.item_name.category.name, 'model':i.item_name.model, 'item':i.item_name.item_name, 'brand':i.item_name.brand.name if i.item_name.brand else '', 'code':i.item_name.code,
                     'unit':i.item_name.unit.suffix, 'qty':i.quantity, 'price':i.purchase_price, 'total':i.quantity * i.purchase_price} for i in items]

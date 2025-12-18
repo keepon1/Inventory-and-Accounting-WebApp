@@ -25,7 +25,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'
 
 const SalesRecords = ({ business, user, access }) => {
   const today = new Date();
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const firstDayOfMonth = today;
 
   const [selectedLocation, setSelectedLocation] = useState('All Locations');
   const [locations, setLocations] = useState([]);
@@ -45,7 +45,6 @@ const SalesRecords = ({ business, user, access }) => {
   const [startDate, setStartDate] = useState(firstDayOfMonth);
   const [endDate, setEndDate] = useState(today);
   const [activeChart, setActiveChart] = useState('items');
-  const [expandedItems, setExpandedItems] = useState({});
   const [alertsCollapsed, setAlertsCollapsed] = useState(true);
   const [hasAccess, setHasAccess] = useState(true);
 
@@ -102,12 +101,6 @@ const SalesRecords = ({ business, user, access }) => {
     setFilteredRecords(result);
   }, [salesData.records, searchQuery]);
 
-  const toggleExpand = (invoiceCode) => {
-    setExpandedItems(prev => ({
-      ...prev,
-      [invoiceCode]: !prev[invoiceCode]
-    }));
-  };
 
   const renderChart = () => {
     if (!salesData.charts) return null;
@@ -474,8 +467,8 @@ const SalesRecords = ({ business, user, access }) => {
                 </div>
                 <div className="alert-details">
                   <span>Date: {format(inv.sale_date, 'dd/MM/yyyy')}</span><br />
-                  <span>Total: GHS {inv.total_amount.toFixed(2)}</span><br />
-                  <span>Profit: GHS {inv.total_profit.toFixed(2)}</span><br />
+                  <span>Total: GHS {(inv.total_amount ?? 0).toFixed(2)}</span><br />
+                  <span>Profit: GHS {(inv.total_profit ?? 0).toFixed(2)}</span><br />
                   <span>Items: {inv.items.length}</span>
                 </div>
               </div>
@@ -520,13 +513,13 @@ const SalesRecords = ({ business, user, access }) => {
                       <td>{item.location}</td>
                       <td>{item.item_name1}</td>
                       <td>{item.category}</td>
-                      <td style={{textAlign: 'center'}}>{item.quantity1}</td>
-                      <td style={{backgroundColor: '#f5f3f3ff'}}>GHS {item.unit_price.toFixed(2)}</td>
-                      <td>GHS {item.discount.toFixed(2)}</td>
-                      <td style={{backgroundColor: '#E5E1E1'}}>GHS {(item.total_price - item.discount + item.tax).toFixed(2)}</td>
-                      <td>GHS {cost.toFixed(2)}</td>
-                      <td className={profit >= 0 ? 'profit-positive' : 'profit-negative'}>
-                        GHS {profit.toFixed(2)}
+                      <td style={{textAlign: 'center'}}>{item.quantity1 ?? 0}</td>
+                      <td style={{backgroundColor: '#f5f3f3ff'}}>GHS {(item.unit_price ?? 0).toFixed(2)}</td>
+                      <td>GHS {(item.discount ?? 0).toFixed(2)}</td>
+                      <td style={{backgroundColor: '#E5E1E1'}}>GHS {(((item.total_price || 0) - (item.discount || 0) + (item.tax || 0)) || 0).toFixed(2)}</td>
+                      <td>GHS {(cost ?? 0).toFixed(2)}</td>
+                      <td className={((profit ?? 0) >= 0) ? 'profit-positive' : 'profit-negative'}>
+                        GHS {(profit ?? 0).toFixed(2)}
                       </td>
                     </tr>
                   );
@@ -537,12 +530,12 @@ const SalesRecords = ({ business, user, access }) => {
               <tr>
                 <td colSpan="6" style={{ textAlign: 'right', fontWeight: 'bold', fontSize: 'large', backgroundColor: '#f5f3f3ff' }}>Totals:</td>
                 <td style={{textAlign: 'center' , backgroundColor: '#dfd8d8ff'}}>{totals.quantity}</td>
-                <td style={{fontWeight: 'bold', backgroundColor: '#dfd8d8ff'}}>GHS {totals.grossTotal}</td>
-                <td style={{fontWeight: 'bold', backgroundColor: '#dfd8d8ff'}}>GHS {totals.discount.toFixed(2)}</td>
-                <td style={{fontWeight: 'bold', backgroundColor: '#decbcbff'}}>GHS {totals.totalPrice.toFixed(2)}</td>
-                <td style={{fontWeight: 'bold', backgroundColor: '#dfd8d8ff'}}>GHS {totals.cost.toFixed(2)}</td>
-                <td className={totals.profit >= 0 ? 'profit-positive' : 'profit-negative'} style={{fontWeight: 'bold', backgroundColor: '#dfd8d8ff'}}>
-                  GHS {totals.profit.toFixed(2)}
+                <td style={{fontWeight: 'bold', backgroundColor: '#dfd8d8ff'}}>GHS {(totals.grossTotal ?? 0).toFixed(2)}</td>
+                <td style={{fontWeight: 'bold', backgroundColor: '#dfd8d8ff'}}>GHS {(totals.discount ?? 0).toFixed(2)}</td>
+                <td style={{fontWeight: 'bold', backgroundColor: '#decbcbff'}}>GHS {(totals.totalPrice ?? 0).toFixed(2)}</td>
+                <td style={{fontWeight: 'bold', backgroundColor: '#dfd8d8ff'}}>GHS {(totals.cost ?? 0).toFixed(2)}</td>
+                <td className={((totals.profit ?? 0) >= 0) ? 'profit-positive' : 'profit-negative'} style={{fontWeight: 'bold', backgroundColor: '#dfd8d8ff'}}>
+                  GHS {(totals.profit ?? 0).toFixed(2)}
                 </td>
               </tr>
             </tfoot>

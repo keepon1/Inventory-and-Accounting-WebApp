@@ -52,7 +52,7 @@ const LocationItem = ({location, business, user, access }) => {
         );
         if (response.status === 'success'){
           setItems(prev => page === 1 ? response.data.items : [...prev, ...response.data.items]);
-          setHasNext(response.has_more);
+          setHasNext(response.data.has_more);
           setBrands(response.data.brands);
           setCategories(response.data.categories);
         }else{
@@ -68,7 +68,7 @@ const LocationItem = ({location, business, user, access }) => {
     };
 
     fetchItems();
-  }, [navigate, page, searchQuery, countMode, exportingFormat, category, brand]);
+  }, [page, searchQuery, countMode, exportingFormat, category, brand]);
 
   const handleEditOverlay = (e) => {
     if (editOverlayRef.current && !editOverlayRef.current.contains(e.target)) {

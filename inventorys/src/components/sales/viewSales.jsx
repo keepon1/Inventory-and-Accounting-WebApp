@@ -23,6 +23,7 @@ const ViewSales = ({ business, user, access, sales }) => {
     total: 0,
     type: '',
     status: '',
+    time: null,
   });
 
   const [company, setCompany] = useState({
@@ -73,7 +74,8 @@ const ViewSales = ({ business, user, access, sales }) => {
           rate: JSON.parse(customer.tax_levy[0]).map(item => ({ value: `${item.label}`, rate: `${item.rate}` })),
           type: customer.type,
           discount: customer.discount,
-          status: customer.status
+          status: customer.status,
+          time: customer.time,
         });
         setItems(items);
         setCompany(company);
@@ -164,7 +166,8 @@ const ViewSales = ({ business, user, access, sales }) => {
       items: items,
       totals: total2(),
       tax_levy: sale.tax_levy,
-      rate: sale.rate
+      rate: sale.rate,
+      time: sale.time
     });
   };
 
@@ -238,8 +241,8 @@ const ViewSales = ({ business, user, access, sales }) => {
 
               <div className="ivi_subboxes">
                 <div className="ivi_holder_box">
-                  <label className="ivi_label">Issue Date</label>
-                  <input className="ivi_input" value={format(sale.issueDate, 'dd/MM/yyyy')} readOnly title={sale.issueDate} />
+                  <label className="ivi_label">Date</label>
+                  <input className="ivi_input" value={`${format(sale.issueDate, 'dd/MM/yyyy')} - ${sale.time}`} readOnly title={sale.issueDate} />
                 </div>
                 <div className="ivi_holder_box">
                   <label className="ivi_label">Due Date</label>
@@ -407,14 +410,15 @@ const ViewSales = ({ business, user, access, sales }) => {
           </div>
 
           <div className="info-row" style={{ marginBottom: "4px" }}>
-            <div style={{ textAlign: "left", width: "60%" }}>
+            <div style={{ textAlign: "left", width: "55%" }}>
               {printData.company.address && <div><strong>Addr: {printData.company.address}</strong></div>}
               {printData.company.contact && <div><strong>Tel: {printData.company.contact}</strong></div>}
             </div>
-            <div style={{ textAlign: "right", width: "38%" }}>
+            <div style={{ textAlign: "right", width: "44%" }}>
               <div><strong>Customer: {printData.customer}</strong></div>
-              <div><strong>Inv#: {printData.id}</strong></div>
+              <div><strong>No: {printData.id}</strong></div>
               <div><strong>Date: {format(printData.date, 'dd/MM/yyyy')}</strong></div>
+              <div><strong>Time: {printData.time}</strong></div>
             </div>
           </div>
 

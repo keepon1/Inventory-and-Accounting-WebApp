@@ -303,7 +303,7 @@ def fetch_data_for_sales_performance(business, company, user, location, start, e
     
     except Exception as error:
         logger.exception(error)
-        return 'something happened'
+        return f'something happened {str(error)}'
     
     
 def fetch_data_for_dashboard(business, company, user, location):
