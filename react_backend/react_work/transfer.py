@@ -110,9 +110,19 @@ def create_transfer(items, business, user, company, description, date, source, d
         source_query = models.inventory_location.objects.get(bussiness_name=business_query, location_name=source)
         destination_query = models.inventory_location.objects.get(bussiness_name=business_query, location_name=destination)
 
-        if not user_query.admin and not user_query.create_access:
+        if not user_query.admin and not user_query.create_access and not user_query.transfer_access:
             return {"status": "error", "message": "No access to create transfer"}
         
+        if not (user_query.admin or (user_query.date_access and user_query.transfer_access)):
+            current_date = datetime.strptime(date, "%Y-%m-%d").date()
+            today = date.today()
+
+            if current_date < today:
+                return {"status": "error", "message": "User has no access to past dates", "data": {}}
+            
+            if current_date > today:
+                return {"status": "error", "message": "User has no access to future dates", "data": {}}
+
         if not user_query.admin and source not in user_query.per_location_access:
             return {"status": "error", "message": f"No access to source location {source}"}
         

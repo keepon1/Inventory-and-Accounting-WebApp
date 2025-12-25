@@ -110,6 +110,15 @@ def post_and_save_purchase(business, user, company, location, data, totals, item
         if not user_query.admin and not user_query.create_access and not user_query.purchase_access:
             return {'status': 'error', 'message': f'User {user} has no access'}
         
+        if not(user_query.admin or (user_query.date_access and user_query.purchase_access)):
+            today = date.today()
+            input_date = datetime.strptime(data['date'], "%Y-%m-%d").date()
+            if input_date < today:
+                return {'status': 'error', 'message': f'User {user} has no access to past dates'}
+            
+            if input_date > today:
+                return {'status': 'error', 'message': f'User {user} has no access to future dates'}
+        
         if not user_query.admin:
             if location not in user_query.per_location_access:
                 return {'status': 'error', 'message': f'User {user} has no access to location {location}'}

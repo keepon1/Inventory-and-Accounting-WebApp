@@ -80,6 +80,7 @@ class current_user(models.Model):
     give_access = models.BooleanField(default=False)
     info_access = models.BooleanField(default=False)
     receive_access = models.BooleanField(default=False)
+    date_access = models.BooleanField(default=False)
 
     class Meta:
         indexes = [

@@ -7,9 +7,8 @@ import CreatableSelect from 'react-select/creatable';
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { set } from "date-fns";
 
-const AddCashReceipt = ({business, user}) => {
+const AddCashReceipt = ({business, user, access}) => {
     const [entry, setEntry] = useState({
         date: new Date().toISOString().split('T')[0],
         debitAccount: null,
@@ -214,7 +213,9 @@ const AddCashReceipt = ({business, user}) => {
                                     name="date" 
                                     value={entry.date} 
                                     onChange={handleChange} 
-                                    className="ivi_input" 
+                                    className="ivi_input"
+                                    required
+                                    disabled={access.admin || access.date_access ? false : true}
                                 />
                             </div>
                             

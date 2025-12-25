@@ -335,6 +335,8 @@ const CreatePurchase = ({ business, user, access }) => {
                     className="ivi_input"
                     value={purchase.date}
                     onChange={e => setPurchase({...purchase, date: e.target.value})}
+                    required
+                    disabled={access.admin || access.date_access ? false : true}
                   />
                 </div>
                 <div className="ivi_holder_box">

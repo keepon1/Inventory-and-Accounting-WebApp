@@ -105,9 +105,21 @@ def add_payment(company, user, business, data):
         business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
-        if not user_query.admin and not user_query.create_access:
+        if not user_query.admin and not user_query.create_access and not user_query.payment_access:
             return {'status':'error', 'message':f'user {user} has no access to create payment entry'}
         
+        if not (user_query.admin or (user_query.date_access and user_query.payment_access)):
+            today = date.today()
+
+            for i in data:
+                current_date = datetime.strptime(i['date'], "%Y-%m-%d").date()
+
+                if current_date < today:
+                    return {'status':'error', 'message':'User has no access to past dates'}
+                
+                if current_date > today:
+                    return {'status':'error', 'message':'User has no access to future dates'}
+
         ledger_map = {
             'Assets': models.asset_ledger,
             'Liabilities': models.liabilities_ledger,

@@ -231,32 +231,6 @@ const SalesRecords = ({ business, user, access }) => {
             </ResponsiveContainer>
           </div>
         );
-      case 'profit':
-        return (
-          <div>
-            <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Profit by Item</h3>
-            <ResponsiveContainer width="100%" height={500}>
-              <BarChart data={salesData.charts.profitByItem || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis yAxisId="left" tickFormatter={val => `GHS ${val}`} />
-                <YAxis yAxisId="right" orientation="right" tickFormatter={val => `${val}%`} />
-                
-                <Tooltip
-                  formatter={(value, dataKey) => {
-                    if (dataKey === "profit") return [`GHS ${value}`, "Profit"];
-                    if (dataKey === "margin") return [`${value.toFixed(2)}%`, "Margin"];
-                    return [value.toFixed(2), dataKey];
-                  }}
-                />
-                <Legend />
-
-                <Bar yAxisId="left" dataKey="profit" name="Profit" fill="#4caf50" />
-                <Bar yAxisId="right" dataKey="margin" name="Margin %" fill="#ff9800" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        );
       default:
         return null;
     }
@@ -433,12 +407,6 @@ const SalesRecords = ({ business, user, access }) => {
           onClick={() => setActiveChart('trend')}
         >
           <FontAwesomeIcon icon={faChartLine} /> Trend
-        </button>
-        <button 
-          className={`chart-btn ${activeChart === 'profit' ? 'active' : ''}`}
-          onClick={() => setActiveChart('profit')}
-        >
-          <FontAwesomeIcon icon={faDollarSign} /> Profit
         </button>
       </div>
 

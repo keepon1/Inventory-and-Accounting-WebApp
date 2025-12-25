@@ -8,7 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { format, set } from 'date-fns'
 import { toast } from "react-toastify";
 
-const GLJournal = ({business, user}) => {
+const GLJournal = ({business, user, access}) => {
     const [entry, setEntry] = useState({
         date: new Date().toISOString().split('T')[0],
         debitAccount: null,
@@ -202,7 +202,8 @@ const GLJournal = ({business, user}) => {
                                     value={entry.date} 
                                     onChange={handleChange} 
                                     className="ivi_input" 
-                                    required 
+                                    required
+                                    disabled={access.admin || access.date_access ? false : true}
                                 />
                             </div>
                             

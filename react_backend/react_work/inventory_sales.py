@@ -112,6 +112,16 @@ def post_and_save_sales(business, user, company, location, data, totals, items, 
 
         if not user_query.admin and not user_query.create_access and not user_query.sales_access:
             return {"status": "error", "message": "User has no access", "data": {}}
+        
+        if not (user_query.admin or (user_query.date_access and user_query.sales_access)):
+            current_date = datetime.strptime(data['date'], "%Y-%m-%d").date()
+            today = date.today()
+
+            if current_date < today:
+                return {"status": "error", "message": "User has no access to past dates", "data": {}}
+            
+            if current_date > today:
+                return {"status": "error", "message": "User has no access to future dates", "data": {}}
 
         if not user_query.admin:
             if location not in user_query.per_location_access:

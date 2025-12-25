@@ -31,7 +31,7 @@ const SupplierPerformance = ({ business, user, access }) => {
   const [suppliers, setSuppliers] = useState([]);
   const [filteredSuppliers, setFilteredSuppliers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [startDate, setStartDate] = useState(firstDayOfMonth);
+  const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
   const [activeChart, setActiveChart] = useState('spend');
   const [hasAccess, setHasAccess] = useState(true);

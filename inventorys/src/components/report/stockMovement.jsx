@@ -38,7 +38,7 @@ const StockMovement = ({ business, user, access }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('All Locations');
   const [selectedType, setSelectedType] = useState('all');
-  const [startDate, setStartDate] = useState(firstDayOfMonth);
+  const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
   const [activeChart, setActiveChart] = useState('quantity');
   const [detailsCollapsed, setDetailsCollapsed] = useState(false);

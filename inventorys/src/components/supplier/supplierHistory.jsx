@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faFileInvoice, faMoneyBillWave, faShareFromSquare, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import "./supplierHistory.css";
 import { toast } from "react-toastify";
-import { format } from "date-fns";
+import { format, set } from "date-fns";
 
 const SupplierHistory = ({ business, user, access }) => {
   const [transactions, setTransactions] = useState([]);
@@ -13,6 +13,9 @@ const SupplierHistory = ({ business, user, access }) => {
   const [activeTab, setActiveTab] = useState('all');
   const [exporting, setExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState('pdf');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const observer = useRef(null);
   const { supplierName } = useParams();
   const navigate = useNavigate();
 
@@ -24,7 +27,8 @@ const SupplierHistory = ({ business, user, access }) => {
         const response = await api.post("fetch_supplier_history", { 
           business, 
           reference: supplierName,
-          user 
+          user,
+          page
         });
         
         if (response?.status === "error") {
@@ -33,7 +37,8 @@ const SupplierHistory = ({ business, user, access }) => {
         }
 
         setSupplier(response.data.supplier);
-        setTransactions(response.data.transactions);
+        setTransactions(prev => page === 1 ? response.data.transactions : [...prev, ...response.data.transactions]);
+        setHasMore(response.data.has_more);
       } catch (error) {
         console.error("Failed to fetch supplier history:", error);
         toast.error("Failed to fetch supplier history. Please try again.");
@@ -41,13 +46,34 @@ const SupplierHistory = ({ business, user, access }) => {
     };
 
     fetchSupplierHistory();
-  }, [business, supplierName, user]);
+  }, [page]);
 
   const handleCreateOverlayClick = (e) => {
     if (overlayRef.current && !overlayRef.current.contains(e.target)) {
       setExporting(false);
     }
   };
+
+  const observeSecondLast = useCallback(node => {
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [hasMore]);
+
+  useEffect(() => {
+    if (transactions.length >= 2) {
+      const index = transactions.length - 2;
+      const row = document.getElementById(`row-${index}`);
+
+      if (row) {
+        observeSecondLast(row);
+      }
+    }
+  }, [transactions, observeSecondLast]);
 
   const handleExport = async () => {
     try {
@@ -155,7 +181,9 @@ const SupplierHistory = ({ business, user, access }) => {
           <tbody>
             {filteredTransactions.length > 0 ? (
               filteredTransactions.map((transaction, index) => (
-                <tr key={index} className="table-row">
+                <tr key={index} 
+                id={`row-${index}`}
+                className="table-row">
                   <td>{format(transaction.date, 'dd/MM/yyyy')}</td>
                   <td>
                     <span className={`transaction-type ${transaction.t_type}`}>

@@ -22,7 +22,8 @@ import {
   faInfoCircle,
   faUserPlus,
   faKey,
-  faArrowLeft
+  faArrowLeft,
+  faCalendarAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import Select from 'react-select';
@@ -60,7 +61,8 @@ const RolePermission = ({ business, user }) => {
         add_user_access: false,
         give_access: false,
         info_access: false,
-        receive_access: false
+        receive_access: false,
+        date_access: false
     });
     const [errors, setErrors] = useState();
     const editOverlayRef = useRef(null);
@@ -163,7 +165,8 @@ const RolePermission = ({ business, user }) => {
                 add_user_access: response.admin || response.add_user_access || false,
                 give_access: response.admin || response.give_access || false,
                 info_access: response.admin || response.info_access || false,
-                receive_access: response.admin || response.receive_access || false
+                receive_access: response.admin || response.receive_access || false,
+                date_access: response.admin || response.date_access || false
             });
             setShowEdit(true);
             document.addEventListener('mousedown', handleEditOverlay);
@@ -204,7 +207,8 @@ const RolePermission = ({ business, user }) => {
             add_user_access: isAdmin,
             give_access: isAdmin,
             info_access: isAdmin,
-            receive_access: isAdmin
+            receive_access: isAdmin,
+            date_access: isAdmin
         }));
     };
 
@@ -251,7 +255,8 @@ const RolePermission = ({ business, user }) => {
             add_user_access: editData.admin || editData.add_user_access,
             give_access: editData.admin || editData.give_access,
             info_access: editData.admin || editData.info_access,
-            receive_access: editData.admin || editData.receive_access
+            receive_access: editData.admin || editData.receive_access,
+            date_access: editData.admin || editData.date_access
         };
 
         try {
@@ -375,6 +380,7 @@ const RolePermission = ({ business, user }) => {
                                                 {user.give_access && <span title="Give Access"><FontAwesomeIcon icon={faKey} /></span>}
                                                 {user.info_access && <span title="Info Access"><FontAwesomeIcon icon={faInfoCircle} /></span>}
                                                 {user.receive_access && <span title="Receive Access"><FontAwesomeIcon icon={faTruck} /></span>}
+                                                {user.date_access && <span title="Date Access"><FontAwesomeIcon icon={faCalendarAlt} /></span>}
                                             </>
                                         )}
                                     </div>
@@ -685,6 +691,17 @@ const RolePermission = ({ business, user }) => {
                                                 disabled={editData.admin}
                                             />
                                             <span> Receive Access</span>
+                                        </label>
+                                    </div>
+                                    <div className="permission-item">
+                                        <label>
+                                            <input
+                                                type="checkbox"
+                                                checked={editData.date_access}
+                                                onChange={(e) => setEditData({ ...editData, date_access: e.target.checked })}
+                                                disabled={editData.admin}
+                                            />
+                                            <span> Date Access</span>
                                         </label>
                                     </div>
                                 </div>

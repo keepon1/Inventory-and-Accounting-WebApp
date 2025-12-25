@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faBook, faFileInvoice, faMoneyBillWave, faShareFromSquare, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import api from "../api";
@@ -13,6 +13,9 @@ const AccountHistory = ({ business, user, access }) => {
   const [activeTab, setActiveTab] = useState('all');
   const [exporting, setExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState('pdf');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const observer = useRef(null);
   const { accountCode } = useParams();
 
   const overlayRef = useRef(null);
@@ -23,7 +26,8 @@ const AccountHistory = ({ business, user, access }) => {
         const response = await api.post("fetch_account_history", { 
           business, 
           reference: accountCode,
-          user 
+          user,
+          page
         });
         
         if (response?.status === "error") {
@@ -32,7 +36,8 @@ const AccountHistory = ({ business, user, access }) => {
         }
 
         setAccount(response.data.account);
-        setTransactions(response.data.transactions);
+        setTransactions(prev => page === 1 ? response.data.transactions : [...prev, ...response.data.transactions]);
+        setHasMore(response.data.has_more);
       } catch (error) {
         console.error("Failed to fetch account history:", error);
         toast.error("Failed to fetch account history. Please try again.");
@@ -40,13 +45,37 @@ const AccountHistory = ({ business, user, access }) => {
     };
 
     fetchAccountHistory();
-  }, []);
+  }, [page]);
 
   const handleCreateOverlayClick = (e) => {
     if (overlayRef.current && !overlayRef.current.contains(e.target)) {
       setExporting(false);
     }
   };
+
+  const observeSecondLast = useCallback((node) => {
+    if (observer.current) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+
+    if (node) observer.current.observe(node);
+  }, [hasMore]);
+
+  useEffect(() => {
+    if (transactions.length >= 2) {
+      const index = transactions.length - 2;
+      const row = document.getElementById(`row-${index}`);
+
+      if (row) {
+        observeSecondLast(row);
+      }
+    }
+  }, [transactions, observeSecondLast]);
+
 
   const handleExport = async () => {
     try {
@@ -162,7 +191,9 @@ const AccountHistory = ({ business, user, access }) => {
           <tbody>
             {filteredTransactions.length > 0 ? (
               filteredTransactions.map((transaction, index) => (
-                <tr key={index} className="table-row">
+                <tr key={index} 
+                id={`row-${index}`}
+                className="table-row">
                   <td>{format(transaction.date, 'dd/MM/yyyy')}</td>
                   <td>{transaction.hit_code} - {transaction.hit_name}</td>
                   <td>

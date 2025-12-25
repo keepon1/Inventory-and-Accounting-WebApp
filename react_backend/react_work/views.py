@@ -711,7 +711,8 @@ def main_dashboard(request):
                 'location_access':user.location_access, 'customer_access':user.customer_access, 'supplier_access':user.supplier_access,
                 'cash_access':user.cash_access, 'payment_access':user.payment_access, 'report_access':user.report_access, 'settings_access':user.settings_access,
                 'edit_access':user.edit_access, 'purchase_price_access':user.purchase_price_access, 'dashboard_access':user.dashboard_access,
-                'add_user_access':user.add_user_access, 'give_access':user.give_access, 'info_access':user.info_access, 'receive_access':user.receive_access}
+                'add_user_access':user.add_user_access, 'give_access':user.give_access, 'info_access':user.info_access, 'receive_access':user.receive_access,
+                'date_access': user.date_access}
 
         return Response(access)
 
@@ -2428,7 +2429,8 @@ def get_user_access(request):
             'customer_access': cu.customer_access, 'supplier_access': cu.supplier_access, 'cash_access': cu.cash_access,
             'payment_access': cu.payment_access, 'report_access': cu.report_access, 'settings_access': cu.settings_access,
             'edit_access': cu.edit_access, 'purchase_price_access': cu.purchase_price_access, 'dashboard_access': cu.dashboard_access,
-            'add_user_access': cu.add_user_access, 'give_access': cu.give_access, 'info_access': cu.info_access, 'recieve_access': cu.receive_access
+            'add_user_access': cu.add_user_access, 'give_access': cu.give_access, 'info_access': cu.info_access, 'recieve_access': cu.receive_access,
+            'date_access': cu.date_access
         }
 
         return Response({'status': 'success', 'message': 'User access fetched', 'data': result})
@@ -2506,6 +2508,7 @@ def edit_user_permissions(request):
             user_obj.give_access = data['give_access']
             user_obj.info_access = data['info_access']
             user_obj.receive_access = data['receive_access']
+            user_obj.date_access = data['date_access']
             user_obj.save()
 
             models.tracking_history.objects.create(
@@ -5082,15 +5085,16 @@ def fetch_customer_history(request):
             user = request.data['user']
             reference = request.data['reference'].split(' ')[0]
             company = request.user.id
+            page = request.data.get('page', 1) 
 
             verify_data = (isinstance(business, str) and isinstance(user, str)
                            and isinstance(reference, str) and business.strip() and 
-                           reference.strip())
+                           reference.strip() and isinstance(page, int) and page > 0)
             
             if not verify_data:
                 return Response({'status': 'error', 'message': 'Invalid data was submitted'})
             
-            result = history.FetchHistory(business=business, company=company, location=None, user=user, reference=reference).fetch_customer_ledgers()
+            result = history.FetchHistory(business=business, company=company, location=None, user=user, reference=reference).fetch_customer_ledgers(page=page)
 
             return Response(result)
 
@@ -5107,15 +5111,16 @@ def fetch_supplier_history(request):
             user = request.data['user']
             reference = request.data['reference'].split(' ')[0]
             company = request.user.id
+            page = request.data.get('page', 1)
 
             verify_data = (isinstance(business, str) and isinstance(user, str)
                            and isinstance(reference, str) and business.strip() and 
-                           reference.strip())
+                           reference.strip() and isinstance(page, int) and page > 0)
             
             if not verify_data:
                 return Response({'status': 'error', 'message': 'Invalid data was submitted'})
             
-            result = history.FetchHistory(business=business, company=company, location=None, user=user, reference=reference).fetch_supplier_ledgers()
+            result = history.FetchHistory(business=business, company=company, location=None, user=user, reference=reference).fetch_supplier_ledgers(page=page)
 
             return Response(result)
 
@@ -5131,16 +5136,17 @@ def fetch_account_history(request):
             business = request.data['business']
             user = request.data['user']
             reference = request.data['reference'].split(' ')[0]
+            page = request.data.get('page', 1)
             company = request.user.id
 
             verify_data = (isinstance(business, str) and isinstance(user, str)
                            and isinstance(reference, str) and business.strip() and 
-                           reference.strip())
+                           reference.strip() and isinstance(page, int) and page > 0)
             
             if not verify_data:
                 return Response({'status': 'error', 'message': 'Invalid data was submitted'})
             
-            result = history.FetchHistory(business=business, company=company, location=None, user=user, reference=reference).fetch_account_ledgers()
+            result = history.FetchHistory(business=business, company=company, location=None, user=user, reference=reference).fetch_account_ledgers(page=page)
 
             return Response(result)
 

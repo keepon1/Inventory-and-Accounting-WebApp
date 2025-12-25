@@ -106,9 +106,25 @@ def add_gl_journal(company, user, business, data):
         business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
 
-        if not user_query.admin and not user_query.create_access:
+        if not user_query.admin and not user_query.create_access and not user_query.journal_access:
             return {'status':'error', 'message':f'User {user} has no access to create general journal'}
         
+        if not (user_query.admin or (user_query.date_access and user_query.journal_access)):
+            today = date.today()
+
+            for i in data:
+                current_date = datetime.strptime(i['date'], "%Y-%m-%d").date()
+                
+                if current_date < today:
+                    return {'status':'error', 'message':'User has no access to past dates'}
+                
+                if current_date > today:
+                    return {'status':'error', 'message':'User has no access to future dates'}
+                    return {'status':'error', 'message':'User has no access to past dates'}
+                
+                if current_date > today:
+                    return {'status':'error', 'message':'User has no access to future dates'}
+
         ledger_map = {
             'Assets': models.asset_ledger,
             'Liabilities': models.liabilities_ledger,

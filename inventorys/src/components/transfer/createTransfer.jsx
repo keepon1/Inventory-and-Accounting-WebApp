@@ -231,6 +231,7 @@ const CreateTransfer = ({ business, user, access }) => {
                     onChange={(e) =>
                       setTransfer({ ...transfer, description: e.target.value })
                     }
+                    disabled={access.admin || access.date_access ? false : true}
                   />
                 </div>
                 <div className="ivi_holder_box">

@@ -32,7 +32,7 @@ const PurchaseMetric = ({ business, user, access }) => {
   const [sales, setSales] = useState([]);
   const [filteredSales, setFilteredSales] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [startDate, setStartDate] = useState(firstDayOfMonth);
+  const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
   const [activeChart, setActiveChart] = useState('expenses');
   const [hasAccess, setHasAccess] = useState(true);

@@ -207,17 +207,6 @@ class Report_Data:
             profit=Sum(F("quantity") * (F("sales_price") - F("purchase_price"))) if can_view_cost_profit else Value(0, output_field=DecimalField()),
         ).order_by("date")
 
-        profit_by_item = qs.values(
-            name=F("item_name__item_name")
-        ).annotate(
-            revenue=Sum(F("quantity") * F("sales_price")),
-            cost=Sum(F("quantity") * F("purchase_price")) if can_view_cost_profit else Value(0, output_field=DecimalField()),
-            quantity1=Sum("quantity")
-        ).annotate(
-            profit=F("revenue") - F("cost") if can_view_cost_profit else Value(0, output_field=DecimalField()),
-            margin=(F("revenue") - F("cost")) * 100.0 / F("revenue") if can_view_cost_profit else Value(0, output_field=DecimalField()),
-        ).order_by("-profit")
-
         return {
             "records": list(records),
             "summary": summary,
@@ -226,7 +215,6 @@ class Report_Data:
                 "byCategory": list(by_category),
                 "byBrand": list(by_brand),
                 "dailyTrend": list(daily_trend),
-                "profitByItem": list(profit_by_item),
             }
         }
 

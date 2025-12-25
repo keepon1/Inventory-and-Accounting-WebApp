@@ -12,6 +12,9 @@ const CustomerHistory = ({ business, user, access }) => {
   const [activeTab, setActiveTab] = useState('all');
   const [exporting, setExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState('pdf');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const observer = useRef(null);
   const { customerName } = useParams();
   const navigate = useNavigate();
 
@@ -32,7 +35,8 @@ const CustomerHistory = ({ business, user, access }) => {
         }
 
         setCustomer(response.data.customer);
-        setTransactions(response.data.transactions);
+        setTransactions(prev => page === 1 ? response.data.transactions : [...prev, ...response.data.transactions]);
+        setHasMore(response.data.has_more);
       } catch (error) {
         console.error("Failed to fetch customer history:", error);
         toast.error("Failed to fetch customer history. Please try again.");
@@ -40,13 +44,34 @@ const CustomerHistory = ({ business, user, access }) => {
     };
 
     fetchCustomerHistory();
-  }, [business, customerName, user]);
+  }, [page]);
 
   const handleCreateOverlayClick = (e) => {
     if (overlayRef.current && !overlayRef.current.contains(e.target)) {
       setExporting(false);
     }
   };
+
+  const observeSecondLast = useCallback(node => {
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [hasMore]);
+
+  useEffect(() => {
+    if (transactions.length >= 2) {
+      const index = transactions.length - 2;
+      const row = document.getElementById(`row-${index}`);
+
+      if (row) {
+        observeSecondLast(row);
+      }
+    }
+  }, [transactions, observeSecondLast]);
 
   const handleExport = async () => {
     try {
@@ -154,7 +179,9 @@ const CustomerHistory = ({ business, user, access }) => {
                 <tbody>
                   {filteredTransactions.length > 0 ? (
                     filteredTransactions.map((transaction, index) => (
-                          <tr key={index} className="table-row">
+                          <tr key={index} 
+                          id={`row-${index}`}
+                          className="table-row">
                             <td>{new Date(transaction.date).toLocaleDateString()}</td>
                             <td>
                               <span className={`transaction-type ${transaction.t_type}`}>

@@ -413,6 +413,7 @@ const CreateSales = ({ business, user, access }) => {
                       className="ivi_input"
                       value={sales.issueDate}
                       onChange={e => setSales({...sales, issueDate: e.target.value})}
+                      disabled={access.admin || access.date_access ? false : true}
                     />
                   </div>  
                 
@@ -534,6 +535,7 @@ const CreateSales = ({ business, user, access }) => {
                       className="ivi_input"
                       value={sales.issueDate}
                       onChange={e => setSales({...sales, issueDate: e.target.value})}
+                      disabled={access.admin || access.date_access ? false : true}
                     />
                   </div>
                   <div className="ivi_holder_box">

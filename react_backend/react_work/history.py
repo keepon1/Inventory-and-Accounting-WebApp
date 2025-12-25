@@ -1,6 +1,8 @@
 from . import models
 from django.db.models import F, When, Case, Value, CharField, IntegerField
 from decimal import Decimal
+from django.db.models import Q
+from django.core.paginator import Paginator
 import logging
 
 logger = logging.getLogger(__name__)
@@ -169,7 +171,7 @@ class FetchHistory:
             },
         }
     
-    def fetch_customer_ledgers(self):
+    def fetch_customer_ledgers(self, page=1, page_size=20):
         if not self._access():
             return {"status": "error", "message": "User has no access"}
 
@@ -193,7 +195,7 @@ class FetchHistory:
                     output_field=CharField(),
                 ),
                 reference=F("transaction_number"),
-            ).order_by("date").values(
+            ).order_by("-date").values(
                 "date",
                 "type",
                 "t_type",
@@ -201,6 +203,11 @@ class FetchHistory:
                 "description",
                 "amount",
             )
+        
+        paginator = Paginator(transactions, page_size)
+        page_obj = paginator.get_page(page)
+        transactions_page = list(page_obj.object_list)
+        has_more = page_obj.has_next()
 
         return {
             "status": "success",
@@ -210,11 +217,12 @@ class FetchHistory:
                     "account": customer.account,
                     "balance": float(customer.debit or 0) - float(customer.credit or 0),
                 },
-                "transactions": transactions,
+                "transactions": transactions_page,
+                "has_more": has_more,
             },
         }
-    
-    def fetch_supplier_ledgers(self):
+
+    def fetch_supplier_ledgers(self, page=1, page_size=20):
         if not self._access():
             return {"status": "error", "message": "User has no access"}
 
@@ -238,7 +246,7 @@ class FetchHistory:
                     output_field=CharField(),
                 ),
                 reference=F("transaction_number"),
-            ).order_by("date").values(
+            ).order_by("-date").values(
                 "date",
                 "type",
                 "t_type",
@@ -246,6 +254,11 @@ class FetchHistory:
                 "description",
                 "amount",
             )
+        
+        paginator = Paginator(transactions, page_size)
+        page_obj = paginator.get_page(page)
+        transactions_page = list(page_obj.object_list)
+        has_more = page_obj.has_next()
 
         return {
             "status": "success",
@@ -255,15 +268,15 @@ class FetchHistory:
                     "account": supplier.account,
                     "balance": float(supplier.credit or 0) - float(supplier.debit or 0),
                 },
-                "transactions": transactions,
+                "transactions": transactions_page,
+                "has_more": has_more,
             },
         }
 
-    def fetch_account_ledgers(self):
+    def fetch_account_ledgers(self, page=1, page_size=20):
         if not self._access():
             return {"status": "error", "message": "User has no access"}
 
-        # --- Step 1: Resolve reference to account(s) ---
         real_accounts = []
         account_type_name = None
 
@@ -326,7 +339,6 @@ class FetchHistory:
             ).annotate(
                 debit_amount=F("debit"),
                 credit_amount=F("credit"),
-                amount=F("debit") - F("credit"),
                 hit_code=F('account__code'),
                 hit_name=F('account__name'),
                 reference=F("transaction_number"),
@@ -337,7 +349,7 @@ class FetchHistory:
                     output_field=CharField(),
                 ),
                 
-            ).order_by("date", "id").values(
+            ).order_by("-date", "id").values(
                 "date",
                 "type",
                 "t_type",
@@ -345,10 +357,14 @@ class FetchHistory:
                 "description",
                 "debit_amount",
                 "credit_amount",
-                "amount",
                 "hit_code",
                 "hit_name"
             )
+        
+        paginator = Paginator(transactions, page_size)
+        page_obj = paginator.get_page(page)
+        transactions_page = list(page_obj.object_list)
+        has_more = page_obj.has_next()
 
         return {
             "status": "success",
@@ -357,7 +373,8 @@ class FetchHistory:
                     "code": self.reference,
                     "type": account_type_name,
                 },
-                "transactions": list(transactions),
+                "transactions": transactions_page,
+                "has_more": has_more
             },
         }
 
