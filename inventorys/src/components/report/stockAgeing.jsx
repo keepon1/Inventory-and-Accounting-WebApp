@@ -20,7 +20,7 @@ import AccessDenied from '../access';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
-const StockAging = ({ business, user }) => {
+const StockAging = ({ business, user, access }) => {
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -389,14 +389,14 @@ const StockAging = ({ business, user }) => {
               return (
                 <tr key={item.code} className={daysInStock > 90 ? 'low-stock' : ''}>
                   <td>
-                    <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? item.item_name1 : item.item_name}`}
-                      state={{item: typeof item.item_name == 'number' ? item.item_name1 : item.item_name, business, user}}>
+                    <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? `${item.item_name1} ! ${location.value}` : `${item.item_name} ! ${location.value}`}`}
+                      state={{item: typeof item.item_name == 'number' ? item.item_name1 : item.item_name, business, user, access}}>
                       {typeof item.item_name == 'number' ? item.item_name1 : item.item_name}
                     </Link>
                   </td>
                   <td>
-                    <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? item.item_name1 : item.item_name}`}
-                      state={{item: typeof item.item_name == 'number' ? item.item_name1 : item.item_name, business, user}}>
+                    <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? `${item.item_name1} ! ${location.value}` : `${item.item_name} ! ${location.value}`}`}
+                      state={{item: typeof item.item_name == 'number' ? item.item_name1 : item.item_name, business, user, access}}>
                       {item.code}
                     </Link>
                   </td>

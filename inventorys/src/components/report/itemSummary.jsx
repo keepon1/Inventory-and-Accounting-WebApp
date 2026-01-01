@@ -400,13 +400,13 @@ const StockSummary = ({ business, user }) => {
                 <div key={item.code} className="alert-item">
                   <div className="alert-header">
                     <span className="item-name">
-                      <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? item.item_name1 : item.item_name}`} 
+                      <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? `${item.item_name1} ! ${location.value}` : `${item.item_name} ! ${location.value}`}`} 
                         state={{ item: typeof item.item_name == 'number' ? item.item_name1 : item.item_name, business, user }} className='item-name'>
                         {typeof item.item_name == 'number' ? item.item_name1 : item.item_name}
                       </Link>
                     </span>
                     <span className="item-code">
-                      <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? item.item_name1 : item.item_name}`} 
+                      <Link to={`/dashboard/inventory/history/${typeof item.item_name == 'number' ? `${item.item_name1} ! ${location.value}` : `${item.item_name} ! ${location.value}`}`}
                         state={{ item: typeof item.item_name == 'number' ? item.item_name1 : item.item_name, business, user }} className='item-code'>
                         ({item.code})
                       </Link>

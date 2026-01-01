@@ -183,10 +183,16 @@ def fetch_items_for_select(business, user, company, search, location):
                 } for i in items_query
             ]
         else:
-            location_query = models.inventory_location.objects.get(
+            
+            location_query = models.inventory_location.objects.filter(
                 bussiness_name=business_query,
                 location_name=location
-            )
+            ).first()
+
+            if location_query is None:
+                logger.warning(f"Location '{location}' not found in business '{business}'")
+                return {"status": "error", "message": f"Location '{location}' not found.", "data": []}
+            
             items_query = models.location_items.objects.filter(bussiness_name=business_query, location=location_query)
             if search:
                 items_query = items_query.filter(item_name__item_name__icontains=search)

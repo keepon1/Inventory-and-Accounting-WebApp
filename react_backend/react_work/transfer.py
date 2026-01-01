@@ -115,7 +115,7 @@ def create_transfer(items, business, user, company, description, date, source, d
         
         if not (user_query.admin or (user_query.date_access and user_query.transfer_access)):
             current_date = datetime.strptime(date, "%Y-%m-%d").date()
-            today = date.today()
+            today = date1.today()
 
             if current_date < today:
                 return {"status": "error", "message": "User has no access to past dates", "data": {}}

@@ -164,7 +164,7 @@ const UserActivity = ({ business, user }) => {
 
             {showDetails && selectedUser && (
                 <div className="modal-overlay">
-                    <div className="modal wide-modal">
+                    <div className="modal1 wide-modal">
                         <div className="modal-header">
                             <h3>
                                 Activity History for {selectedUser.user_name}
@@ -196,10 +196,11 @@ const UserActivity = ({ business, user }) => {
                                             </div>
                                         </div>
 
-                                        <div className="activity-table-container">
-                                            <table className="activity-table">
+                                        <div className="stock-table">
+                                            <table className="ia_main_table">
                                                 <thead>
                                                     <tr>
+                                                        <th>Username</th>
                                                         <th>Area</th>
                                                         <th>Action</th>
                                                         <th>Date</th>
@@ -208,6 +209,7 @@ const UserActivity = ({ business, user }) => {
                                                 <tbody>
                                                     {activities.map((activity, index) => (
                                                         <tr key={`${activity.date}-${index}`}>
+                                                            <td>{activity.user__user_name}</td>
                                                             <td>{activity.area}</td>
                                                             <td>{activity.head}</td>
                                                             <td>{formatDate(activity.date)}</td>

@@ -2824,7 +2824,7 @@ def fetch_user_activities(request):
             return Response({'status': 'error', 'message': f'{username} not found in this business', 'data': {}})
         
         result = models.tracking_history.objects.filter(user=user_obj).order_by('-date').values(
-            'date', 'area', 'head'
+            'date', 'area', 'head', 'user__user_name'
         )
 
         return Response({'status': 'success', 'message': 'User activities fetched', 'data': result})

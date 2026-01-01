@@ -155,7 +155,7 @@ def post_and_save_purchase(business, user, company, location, data, totals, item
                 item_info = models.items.objects.get(item_name=item['name'], bussiness_name=business_query)
 
                 if item_info.is_active is False:
-                    return {'status': 'error', 'message': f'Item {item_info.item_name} is inactive'}
+                    raise Exception({'status': 'error', 'message': f'Item {item_info.item_name} is inactive'})
 
                 models.purchase_history.objects.create(item_name=item_info, purchase=purchase_info, quantity=item['qty'], purchase_price=item['price'],
                                                                bussiness_name=business_query) 
@@ -378,13 +378,13 @@ def reverse_purchase(business, user, company, number):
                 item.save()
                 if item.purchase_price != i.purchase_price:
                     total = 0
-                    target = item.quantity
+                    target = item.quantity - i.quantity
 
                     history = models.purchase_history.objects.filter(item_name=item, bussiness_name=business_query).exclude(purchase=purchase).order_by('-id')
 
                     for j in history:
                         if target == 0:
-                            item.purchase_price = Decimal(str(total/item.quantity))
+                            item.purchase_price = Decimal(str(total/item.quantity - i.quantity))
                             item.save()
                             break
 

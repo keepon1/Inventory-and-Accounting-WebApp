@@ -246,6 +246,16 @@
   .business-table td {
     padding: 12px 8px;
   }
+
+  .modal1 {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
 }
 
 @media (max-width: 480px) {
@@ -260,5 +270,15 @@
   
   .modal {
     padding: 20px;
+  }
+
+  .modal1 {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
   }
 }
