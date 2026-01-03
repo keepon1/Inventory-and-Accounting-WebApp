@@ -160,20 +160,20 @@ class Report_Data:
             qs.annotate(
                 total_value=ExpressionWrapper(
                     F('quantity') * F('sales_price') - F('sales__discount') * (F('quantity') * F('sales_price')) / F('sales__sub_total') + F('sales__tax_levy') * (F('quantity') * F('sales_price')) / F('sales__sub_total'),
-                    output_field=DecimalField()
+                    output_field=DecimalField(decimal_places=2)
                 ),
 
                 total_cost=ExpressionWrapper(
                     F('quantity') * F('purchase_price'),
-                    output_field=DecimalField()
+                    output_field=DecimalField(decimal_places=2)
                 )
             )
             .values('item_name__category__name')
             .annotate(
                 name=F('item_name__category__name'),
-                quantity=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField()),
-                value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField()),
-                profit=Coalesce(Sum(F('total_value') - F('total_cost')), Value(0), output_field=DecimalField()) if can_view_cost_profit else Value(0, output_field=DecimalField())
+                quantity=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField(decimal_places=2)),
+                value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField(decimal_places=2)),
+                profit=Coalesce(Sum(F('total_value') - F('total_cost')), Value(0), output_field=DecimalField(decimal_places=2)) if can_view_cost_profit else Value(0, output_field=DecimalField(decimal_places=2))
             )
         )
 
@@ -181,20 +181,20 @@ class Report_Data:
             qs.annotate(
                 total_value=ExpressionWrapper(
                     F('quantity') * F('sales_price') - F('sales__discount') * (F('quantity') * F('sales_price')) / F('sales__sub_total') + F('sales__tax_levy') * (F('quantity') * F('sales_price')) / F('sales__sub_total'),
-                    output_field=DecimalField()
+                    output_field=DecimalField(decimal_places=2)
                 ),
 
                 total_cost=ExpressionWrapper(
                     F('quantity') * F('purchase_price'),
-                    output_field=DecimalField()
+                    output_field=DecimalField(decimal_places=2)
                 )
             )
             .values('item_name__brand__name')
             .annotate(
                 name=F('item_name__brand__name'),
-                quantity=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField()),
-                value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField()),
-                profit=Coalesce(Sum(F('total_value') - F('total_cost')), Value(0), output_field=DecimalField()) if can_view_cost_profit else Value(0, output_field=DecimalField())
+                quantity=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField(decimal_places=2)),
+                value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField(decimal_places=2)),
+                profit=Coalesce(Sum(F('total_value') - F('total_cost')), Value(0), output_field=DecimalField(decimal_places=2)) if can_view_cost_profit else Value(0, output_field=DecimalField(decimal_places=2))
             )
         )
 
@@ -203,8 +203,8 @@ class Report_Data:
         ).values("date").annotate(
             quantity1=Sum("quantity"),
             revenue=Sum(F("quantity") * F("sales_price")),
-            cost=Sum(F("quantity") * F("purchase_price")) if can_view_cost_profit else Value(0, output_field=DecimalField()),
-            profit=Sum(F("quantity") * (F("sales_price") - F("purchase_price"))) if can_view_cost_profit else Value(0, output_field=DecimalField()),
+            cost=Sum(F("quantity") * F("purchase_price")) if can_view_cost_profit else Value(0, output_field=DecimalField(decimal_places=2)),
+            profit=Sum(F("quantity") * (F("sales_price") - F("purchase_price"))) if can_view_cost_profit else Value(0, output_field=DecimalField(decimal_places=2)),
         ).order_by("date")
 
         return {
@@ -217,8 +217,111 @@ class Report_Data:
                 "dailyTrend": list(daily_trend),
             }
         }
-
     
+    def fetch_purchase_records(self, supplier=None):
+        qs = models.purchase_history.objects.filter(
+            purchase__bussiness_name=self.business,
+            purchase__date__range=(self.start, self.end),
+            purchase__location_address__location_name__in=self.location,
+            purchase__is_reversed=False,
+            purchase__supplier__name__in=[supplier] if supplier and supplier != "all" else models.supplier.objects.filter(bussiness_name=self.business).values_list('name', flat=True),
+            item_name__category__name__in=[self.category] if self.category and self.category != "all" else models.inventory_category.objects.filter(bussiness_name=self.business).values_list('name', flat=True),
+            item_name__brand__name__in=[self.brand] if self.brand and self.brand != "all" else models.inventory_brand.objects.filter(bussiness_name=self.business).values_list('name', flat=True),
+        )
+
+        records = qs.values(
+            purchase_code=F("purchase__code"),
+            purchase_date=F("purchase__date"),
+            supplier_name=F("purchase__supplier__name"),
+            item_name1=F("item_name__item_name"),
+            category=F("item_name__category__name"),
+            brand=F("item_name__brand__name"),
+            quantity1=F("quantity"),
+            unit_price=F("purchase_price"),
+            location=F("purchase__location_address__location_name"),
+        ).annotate(
+            total_price=F("quantity") * F("purchase_price"),
+        )
+
+        top_items = qs.values(
+            name=F("item_name__item_name")
+        ).annotate(
+            quantity1=Sum("quantity"),
+            expenditure=Sum(F("quantity") * F("purchase_price"))
+        ).order_by("-expenditure")[:10]
+
+        by_category = (
+            qs.annotate(
+                total_value=ExpressionWrapper(
+                    F('quantity') * F('purchase_price'),
+                    output_field=DecimalField(decimal_places=2)
+                ),
+            )
+            .values('item_name__category__name')
+            .annotate(
+                name=F('item_name__category__name'),
+                quantity=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField(decimal_places=2)),
+                value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField(decimal_places=2)),
+            )
+        )
+
+        by_brand = (
+            qs.annotate(
+                total_value=ExpressionWrapper(
+                    F('quantity') * F('purchase_price'),
+                    output_field=DecimalField(decimal_places=2)
+                ),
+            )
+            .values('item_name__brand__name')
+            .annotate(
+                name=F('item_name__brand__name'),
+                quantity=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField(decimal_places=2)),
+                value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField(decimal_places=2)),
+            )
+        )
+
+        supplier_summary = (
+            qs.annotate(
+                total_value=ExpressionWrapper(
+                    F('quantity') * F('purchase_price'),
+                    output_field=DecimalField(decimal_places=2)
+                ),
+            )
+            .values('purchase__supplier__name')
+            .annotate(
+                name=F('purchase__supplier__name'),
+                quantity=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField(decimal_places=2)),
+                value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField(decimal_places=2)),
+            )
+        )
+
+        daily_trend = qs.annotate(
+            date=F("purchase__date"),
+            total_value=ExpressionWrapper(
+                F('quantity') * F('purchase_price'),
+                output_field=DecimalField(decimal_places=2)
+            )
+        ).values('date').annotate(
+            value=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField(decimal_places=2)),
+            quantity=Coalesce(Sum('quantity'), Value(0), output_field=DecimalField(decimal_places=2)),
+        )
+
+        suppliers = [{'value': 'all', 'label': 'All Suppliers'}]
+
+        suppliers.extend([{'value': i.name, 'label': i.name} for i in models.supplier.objects.filter(bussiness_name=self.business)])
+
+        return {
+            "records": list(records),
+            "suppliers": suppliers,
+            "charts": {
+                "topItems": list(top_items),
+                "byCategory": list(by_category),
+                "byBrand": list(by_brand),
+                "dailyTrend": list(daily_trend),
+                "bySupplier": list(supplier_summary),
+            }
+        }
+
 class Dashboard_Report:
     def __init__(self, business, company, user, location_access=None):
         self.business = models.bussiness.objects.get(bussiness_name=business)  

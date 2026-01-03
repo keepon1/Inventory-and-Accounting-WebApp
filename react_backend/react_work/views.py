@@ -4902,6 +4902,32 @@ def fetch_sales_records(request):
     
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
+def fetch_purchase_records(request):
+    if request.method == 'POST':
+        business = request.data.get('business')
+        company = request.user.id
+        user = request.data.get('user', '')
+        location = request.data.get('selectedLocation', '')
+        start = request.data.get('startDate')
+        end = request.data.get('endDate')
+        category = request.data.get('category', '')
+        brand = request.data.get('brand', '')
+        supplier = request.data.get('supplier', '')
+
+        verify_data = (isinstance(business, str) and business.strip() and isinstance(start, str) and isinstance(end, str) and
+                       isinstance(user, str) and user.strip() and isinstance(location, str) and
+                       isinstance(category, str) and isinstance(brand, str) and isinstance(supplier, str))
+
+        if not verify_data:
+            return Response({'status': 'error', 'message': 'Invalid data submitted'})
+        
+        result = report.fetch_data_for_sales_performance(business=business, company=company, user=user, location=location, start=start, end=end,  category=category, brand=brand, supplier=supplier, reference='purchase_records')
+
+    
+        return Response(result)
+    
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def fetch_customer_aging(request):
     if request.method == 'POST':
         business = request.data['business']

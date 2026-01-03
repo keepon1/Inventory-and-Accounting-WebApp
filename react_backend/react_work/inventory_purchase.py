@@ -172,7 +172,7 @@ def post_and_save_purchase(business, user, company, location, data, totals, item
                     total_value = 0
                     target_qty = item_info.quantity + int(item['qty'])
 
-                    history = models.purchase_history.objects.filter(item_name=item_info, bussiness_name=business_query).order_by('-id')
+                    history = models.purchase_history.objects.filter(item_name=item_info, bussiness_name=business_query).exclude(purchase__is_reversed=True).order_by('-id')
                         
                     for j in history:
                         cost = Decimal(str(min(target_qty, j.quantity))) * j.purchase_price
@@ -365,37 +365,39 @@ def reverse_purchase(business, user, company, number):
         if purchase.is_reversed:
             return {'status': 'error', 'message': f'Purchase {number} has been reversed already'}
         
-        history = models.purchase_history.objects.filter(purchase=purchase, bussiness_name=business_query)
+        main_history = models.purchase_history.objects.filter(purchase=purchase, bussiness_name=business_query)
 
         with transaction.atomic(savepoint=False, durable=True, using='default'):
                 
-            for i in history:
+            for i in main_history:
                 item = i.item_name
                 if item.quantity - i.quantity < 0:
                     return {'status': 'error', 'message': f'Cannot reverse purchase because item {item.item_name} has insufficient stock'}
                 
-                item.quantity -= i.quantity
-                item.save()
                 if item.purchase_price != i.purchase_price:
                     total = 0
                     target = item.quantity - i.quantity
 
-                    history = models.purchase_history.objects.filter(item_name=item, bussiness_name=business_query).exclude(purchase=purchase).order_by('-id')
+                    history = models.purchase_history.objects.filter(item_name=item, bussiness_name=business_query).exclude(Q(purchase=purchase) | Q(purchase__is_reversed=True)).order_by('-id')
 
                     for j in history:
+                        cost = Decimal(str(min(target, j.quantity))) * j.purchase_price
+                        total += float(cost)
+                        target -= min(target, j.quantity)
+
                         if target == 0:
-                            item.purchase_price = Decimal(str(total/item.quantity - i.quantity))
+                            item.purchase_price = Decimal(str(total/(item.quantity - i.quantity)))
                             item.save()
                             break
 
-                        cost = min(target, j.quantity) * j.purchase_price
-                        total += cost
-                        target -= min(target, j.quantity)
+                item.quantity -= i.quantity
+                item.save()  
 
                 loc_item = models.location_items.objects.get(item_name=item, location=purchase.location_address, bussiness_name=business_query)
                 loc_item.quantity -= Decimal(str(i.quantity))
                 loc_item.purchase_price = item.purchase_price
                 loc_item.save()
+
 
             if purchase.supplier.debit is None:
                 purchase.supplier.debit = Decimal('0')

@@ -130,6 +130,7 @@ urlpatterns = [
     path('fetch_report_data_movements/', views.fetch_report_data_movements, name='fetch_report_data_movements'),
     path('fetch_report_data_sales_performance/', views.fetch_report_data_sales_performance, name='fetch_report_data_sales_performance'),
     path('fetch_sales_records/', views.fetch_sales_records, name='fetch_sales_records'),
+    path('fetch_purchase_records/', views.fetch_purchase_records, name='fetch_purchase_records'),
     path('fetch_customer_aging/', views.fetch_customer_aging, name='fetch_customer_aging'),
     path('fetch_supplier_performance/', views.fetch_supplier_performance, name='fetch_supplier_performance'),
     path('fetch_profit_loss/', views.fetch_profit_loss, name='fetch_profit_loss'),

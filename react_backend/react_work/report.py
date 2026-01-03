@@ -169,7 +169,7 @@ def fetch_data_for_report_movements(business, company, user, location, start, en
         logger.exception('unhandled error')
         return 'something happened'
     
-def fetch_data_for_sales_performance(business, company, user, location, start, end, reference, category=None, brand=None):
+def fetch_data_for_sales_performance(business, company, user, location, start, end, reference, category=None, brand=None, supplier=None):
     try:
         business_query = models.bussiness.objects.get(bussiness_name=business)
         user_query = models.current_user.objects.get(bussiness_name=business_query, user_name=user)
@@ -262,6 +262,22 @@ def fetch_data_for_sales_performance(business, company, user, location, start, e
                 category=category,
                 brand=brand
             ).fetch_sales_records()
+
+        elif reference == 'purchase_records':
+
+            if report_permission.purchase_records is False and report_permission.user.admin is False:
+                return 'no access'
+
+            sales_data = report_class.Report_Data(
+                business=business_query,
+                company=company,
+                user=user_query,
+                location_access=locations_access,
+                start=start,
+                end=end,
+                category=category,
+                brand=brand
+            ).fetch_purchase_records(supplier=supplier)
 
 
         locs = [{'value': 'All Locations', 'label': 'All Locations'}]
